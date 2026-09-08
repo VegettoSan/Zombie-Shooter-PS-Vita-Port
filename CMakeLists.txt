@@ -10,10 +10,10 @@ project(so_loader C CXX)
 
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-# Vita application configuration
-set(VITA_APP_NAME "so-loader")
-set(VITA_TITLEID "SLDR00000")
-set(VITA_VPKNAME "so_loader")
+# Vita application configuration - Zombie Shooter
+set(VITA_APP_NAME "Zombie Shooter")
+set(VITA_TITLEID "ZOMB00001")
+set(VITA_VPKNAME "zombie_shooter")
 set(VITA_VERSION "01.00")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
@@ -21,9 +21,9 @@ set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 set(PSVITAIP "192.168.0.198" CACHE STRING "PSVita IP (for FTP access)")
 set(PARSECOREPATH "$ENV{PARSECOREPATH}" CACHE STRING "vita-parse-core main.py")
 
-# Game-specific definitions
-set(DATA_PATH "ux0:data/gamename/") # Path to data (with trailing /)
-set(SO_PATH "${DATA_PATH}main.so") # Path to .so
+# Game-specific definitions - Zombie Shooter
+set(DATA_PATH "ux0:data/zombieshooter/" CACHE STRING "Path to data (with trailing /)")
+set(SO_PATH "${DATA_PATH}libzombie_shooter.so" CACHE STRING "Path to .so")
 add_definitions(-DDATA_PATH="${DATA_PATH}" -DSO_PATH="${SO_PATH}")
 
 # Port type
