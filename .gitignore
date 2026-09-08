@@ -1,6 +1,23 @@
+# Build
 build/*
-.DS_Store
-.idea/
 cmake-build-*/
 lib/libc_bridge/out/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Archivos del juego (NO subir al repositorio)
+*.apk
+*.xapk
+*.xapk.zip
+*.so
 apk/
+data/
+assets/
+
+# Otros
+*.log
+*.tmp
