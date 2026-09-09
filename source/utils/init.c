@@ -29,7 +29,8 @@
 #include <fios/fios.h>
 
 // Base address for the Android .so to be loaded at
-#define LOAD_ADDRESS 0x98000000
+// 0x98000000 is the classic value; 0xA0000000 is used when that region fails
+#define LOAD_ADDRESS 0xA0000000
 
 extern so_module so_mod;
 
@@ -55,24 +56,32 @@ void soloader_init_all() {
 #ifdef USE_SCELIBC_IO
     if (fios_init(DATA_PATH) == 0)
         l_success("FIOS initialized.");
+    else
+        l_warn("FIOS init failed (continuing anyway).");
 #endif
 
     if (!module_loaded("kubridge")) {
         l_fatal("kubridge is not loaded.");
-        fatal_error("Error: kubridge.skprx is not installed.");
+        fatal_error("Error: kubridge.skprx is not installed or not in *KERNEL.");
     }
     l_success("kubridge check passed.");
 
     if (!file_exists(SO_PATH)) {
+        l_fatal("SO file missing at %s", SO_PATH);
         fatal_error("Looks like you haven't installed the data files for this "
                     "port, or they are in an incorrect location. Please make "
                     "sure that you have %s file exactly at that path.", SO_PATH);
     }
+    l_success("SO file found: %s", SO_PATH);
 
-    if (so_file_load(&so_mod, SO_PATH, LOAD_ADDRESS) < 0) {
-        l_fatal("SO could not be loaded.");
-        fatal_error("Error: could not load %s.", SO_PATH);
+    l_info("Loading SO at address 0x%08X ...", (unsigned)LOAD_ADDRESS);
+    int load_res = so_file_load(&so_mod, SO_PATH, LOAD_ADDRESS);
+    if (load_res < 0) {
+        l_fatal("SO could not be loaded (error 0x%08X / %d).", (unsigned)load_res, load_res);
+        fatal_error("Error: could not load %s\n(code 0x%08X).\nCheck kubridge + memory.",
+                    SO_PATH, (unsigned)load_res);
     }
+    l_success("SO loaded successfully.");
 
     settings_load();
     l_success("Settings loaded.");
