@@ -58,35 +58,24 @@ if (DUMP_COMPILED_SHADERS)
   endif()
 endif()
 
-# Unique debug definition for loader's logging to not interfere with anything
+# Detailed logging always enabled for diagnostics (hardware testing)
+add_definitions(-DDEBUG_SOLOADER)
+add_definitions(-DSO_UTIL_VERBOSE=1)
+# Uncomment later if needed:
+# add_definitions(-DFALSOJNI_DEBUGLEVEL=0)
+# add_definitions(-DDEBUG_OPENGL)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_definitions(-DDEBUG_SOLOADER)
-  # Uncomment this for verbose FalsoJNI logging:
-  #add_definitions(-DFALSOJNI_DEBUGLEVEL=0)
-  # Uncomment this for OpenGL logging:
-  #add_definitions(-DDEBUG_OPENGL)
-  # Uncomment this for so_util logging:
-  #add_definitions(-DSO_UTIL_VERBOSE=1)
-  # Uncomment this for verbose FalsoNDK logging (separate things):
-  #add_definitions(-DDEBUG_POLL_AND_WAKE=1)
-  #add_definitions(-DDEBUG_EPOLL=1)
-  #add_definitions(-DDEBUG_PIPEFD=1)
-  #add_definitions(-DDEBUG_CALLBACKS=1)
-  # Space-separated flags passed to vitaGL
   set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1")
 else()
-  # Space-separated flags passed to vitaGL
-  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 NO_DEBUG=1")
+  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 LOG_ERRORS=1")
 endif()
 
 # makes sincos, sincosf, etc. visible
 add_definitions(-D_GNU_SOURCE -D__POSIX_VISIBLE=999999)
 
 # Zombie Shooter's Android .so is loaded by so-loader, so the whole Vita
-# application must use the same softfp calling convention.  In particular,
-# force the ABI on the LINK step as well as compilation.  Without this the
-# linker may use the default hardfp ABI and report:
-#   "uses VFP register arguments"
+# application must use the same softfp calling convention.
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfloat-abi=softfp -std=gnu11 -Wno-deprecated")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=softfp -std=gnu++20 -Wno-write-strings -Wno-psabi")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp")
@@ -95,8 +84,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -g3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g3")
 else ()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g0 -ffast-math")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g0 -ffast-math")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g1")
 endif()
 
 set(SOURCES
@@ -143,15 +132,11 @@ if(NDK_PORT)
   add_dependencies(${CMAKE_PROJECT_NAME} FalsoNDK)
 endif()
 
-# VitaGL built from lib/vitagl via its own Makefile.
-# Made this way so that testing quick adjustments to VitaGL is possible,
-# as well as changing build flags in a fast and efficient way.
 separate_arguments(VITAGL_MAKE_ARGS UNIX_COMMAND "${VITAGL_MAKE_FLAGS}")
 
 set(VITAGL_DIR ${CMAKE_SOURCE_DIR}/lib/vitagl)
 set(VITAGL_LIB ${VITAGL_DIR}/libvitaGL.a)
 
-# Force a full rebuild of vitaGL whenever VITAGL_MAKE_FLAGS change
 set(VITAGL_FLAGS_STAMP ${CMAKE_BINARY_DIR}/vitagl_flags.stamp)
 set(vitagl_old_flags "")
 if (EXISTS ${VITAGL_FLAGS_STAMP})
