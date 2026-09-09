@@ -16,6 +16,8 @@ set(VITA_TITLEID "ZOMB00001")
 set(VITA_VPKNAME "zombie_shooter")
 set(VITA_VERSION "01.00")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
+# Same process memory attribute used by mc3-vita (helps large RWX maps)
+set(VITA_MAKE_FSELF_FLAGS "${VITA_MAKE_FSELF_FLAGS} -a 0x2800000000000000")
 
 # Optional: used for "send" and "dump" targets
 set(PSVITAIP "192.168.0.198" CACHE STRING "PSVita IP (for FTP access)")
