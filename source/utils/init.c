@@ -34,19 +34,22 @@
 #define LOAD_ADDRESS 0x98000000
 
 /*
- * init_array[16] crashes on real hardware (fn=0x98460DCD, offset +0x460DCD).
- * Confirmed by log.txt + last_init.txt from device testing.
- * Skipping it is a temporary workaround until we reverse / patch that ctor.
+ * Device testing showed:
+ *   init 0..15 OK
+ *   init 16 crashes at +0x460DCD
+ *   after skipping 16, init 17 crashes at +0x461DFD (adjacent code)
+ *
+ * These are almost certainly static C++ constructors for the same subsystem
+ * (addresses are ~4KB apart). Skipping them one-by-one wastes test cycles.
+ *
+ * Strategy: skip ALL remaining init_array entries from this index onward so we
+ * can finish soloader_init_all() and see the *next* real failure (JNI / main).
+ * Later: reverse the block at +0x460DCD in Ghidra and fix the root cause.
  */
-#define SKIP_INIT_INDEX 16u
-#define SKIP_INIT_OFFSET 0x00460DCDu
+#define SKIP_INIT_FROM_INDEX 16u
 
 extern so_module so_mod;
 
-/*
- * Write a tiny breadcrumb file so we know the last init_array index even if
- * the process crashes before log.txt is fully flushed.
- */
 static void write_last_init_breadcrumb(uint32_t index, uint32_t total, uintptr_t fn) {
     char buf[256];
     int n = sceClibSnprintf(buf, sizeof(buf),
@@ -56,14 +59,15 @@ static void write_last_init_breadcrumb(uint32_t index, uint32_t total, uintptr_t
         file_save(DATA_PATH "last_init.txt", (const uint8_t *)buf, (size_t)n);
 }
 
-/*
- * Same as so_util's so_initialize(), but logs every entry so a crash pinpoints
- * which .init_array constructor is fatal. Also skips known-bad entries.
- */
 static void so_initialize_logged(so_module *mod) {
     uint32_t total = mod->num_init_array;
+    uint32_t ran = 0, skipped = 0;
 
-    l_info("init_array count = %u", (unsigned)total);
+    l_info("init_array count = %u (will run 0..%u, skip from %u)",
+           (unsigned)total,
+           (unsigned)(SKIP_INIT_FROM_INDEX ? SKIP_INIT_FROM_INDEX - 1 : 0),
+           (unsigned)SKIP_INIT_FROM_INDEX);
+
     if (total == 0) {
         l_warn("No init_array entries — nothing to run.");
         return;
@@ -79,35 +83,33 @@ static void so_initialize_logged(so_module *mod) {
 
         if (!fn || fn == (void (*)(void))-1) {
             l_info("init_array[%u/%u] SKIP (null or -1)", (unsigned)i, (unsigned)total);
+            skipped++;
             continue;
         }
 
         uintptr_t addr = (uintptr_t)fn;
         uintptr_t offset = addr - (uintptr_t)LOAD_ADDRESS;
 
-        /* Known crash: index 16 / +0x460DCD on real Vita */
-        if (i == SKIP_INIT_INDEX || offset == SKIP_INIT_OFFSET) {
-            l_warn("init_array[%u/%u] SKIP known-bad ctor fn=0x%08X offset=0x%08X",
+        if (i >= SKIP_INIT_FROM_INDEX) {
+            l_warn("init_array[%u/%u] SKIP (from-index policy) fn=0x%08X off=0x%08X",
                    (unsigned)i, (unsigned)total,
                    (unsigned)addr, (unsigned)offset);
             write_last_init_breadcrumb(i, total, addr);
+            skipped++;
             continue;
         }
 
-        l_info("init_array[%u/%u] CALL fn=0x%08X (offset from LOAD=0x%08X)",
+        l_info("init_array[%u/%u] CALL fn=0x%08X (offset=0x%08X)",
                (unsigned)i, (unsigned)total,
                (unsigned)addr, (unsigned)offset);
 
-        /* Breadcrumb BEFORE the call — survives hard crash */
         write_last_init_breadcrumb(i, total, addr);
-
         fn();
-
         l_success("init_array[%u/%u] RETURNED OK", (unsigned)i, (unsigned)total);
-        write_last_init_breadcrumb(i, total, addr); /* mark completed */
+        ran++;
     }
 
-    l_success("All init_array entries finished (with known skips). total=%u", (unsigned)total);
+    l_success("init_array done: ran=%u skipped=%u total=%u", (unsigned)ran, (unsigned)skipped, (unsigned)total);
 }
 
 void soloader_init_all() {
@@ -116,7 +118,6 @@ void soloader_init_all() {
     l_info("SO_PATH=%s", SO_PATH);
     l_info("LOAD_ADDRESS=0x%08X", (unsigned)LOAD_ADDRESS);
 
-    // Launch `app0:configurator.bin` on `-config` init param
     sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
     SceAppUtilAppEventParam eventParam;
     sceClibMemset(&eventParam, 0, sizeof(SceAppUtilAppEventParam));
@@ -128,7 +129,6 @@ void soloader_init_all() {
             sceAppMgrLoadExec("app0:/configurator.bin", NULL, NULL);
     }
 
-    // Set default overclock values
     scePowerSetArmClockFrequency(444);
     scePowerSetBusClockFrequency(222);
     scePowerSetGpuClockFrequency(222);
@@ -145,7 +145,6 @@ void soloader_init_all() {
     l_info("USE_SCELIBC_IO is OFF - skipping FIOS.");
 #endif
 
-    // --- kubridge presence ---
     l_info("Checking if kubridge module is loaded...");
     if (!module_loaded("kubridge")) {
         l_fatal("kubridge is NOT loaded.");
@@ -155,7 +154,6 @@ void soloader_init_all() {
     }
     l_success("kubridge module is loaded.");
 
-    // --- kubridge version (same hashes as mc3-vita) ---
     l_info("Checking kubridge.skprx version (SHA1)...");
     char *kubridge_hash = file_sha1sum("ux0:/tai/kubridge.skprx");
     if (!kubridge_hash)
@@ -194,7 +192,6 @@ void soloader_init_all() {
     l_success("kubridge version check passed (not a known old build).");
     free(kubridge_hash);
 
-    // --- SO file existence ---
     l_info("Checking SO file exists: %s", SO_PATH);
     if (!file_exists(SO_PATH)) {
         l_fatal("SO file MISSING at %s", SO_PATH);
@@ -207,18 +204,11 @@ void soloader_init_all() {
     size_t so_sz = file_size(SO_PATH);
     l_success("SO file found. Size = %u bytes (0x%X)", (unsigned)so_sz, (unsigned)so_sz);
 
-    // --- Load SO ---
     l_info("Calling so_file_load(path=%s, addr=0x%08X)...", SO_PATH, (unsigned)LOAD_ADDRESS);
     int load_res = so_file_load(&so_mod, SO_PATH, LOAD_ADDRESS);
     if (load_res < 0) {
         l_fatal("so_file_load FAILED. return=0x%08X (%d)", (unsigned)load_res, load_res);
-        l_fatal("Common causes: old kubridge, missing fd_fix, memory map failure.");
-        fatal_error("Error: could not load\n%s\n\n"
-                    "Error code: 0x%08X (%d)\n\n"
-                    "1) Install kubridge v0.3.1+ from bythos14\n"
-                    "2) Install fd_fix.skprx under *KERNEL\n"
-                    "3) Reboot the Vita\n"
-                    "4) Send ux0:data/zombieshooter/log.txt",
+        fatal_error("Error: could not load\n%s\n\nError code: 0x%08X (%d)",
                     SO_PATH, (unsigned)load_res, load_res);
     }
     l_success("SO loaded successfully at 0x%08X.", (unsigned)LOAD_ADDRESS);
@@ -243,7 +233,7 @@ void soloader_init_all() {
     so_flush_caches(&so_mod);
     l_success("SO caches flushed.");
 
-    l_info("Running SO init arrays (logged per entry, skip known-bad)...");
+    l_info("Running SO init arrays (0..15 only; skip 16+)...");
     so_initialize_logged(&so_mod);
     l_success("SO initialized.");
 
