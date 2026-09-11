@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <pthread.h>
 
 #ifndef NDK_PORT
@@ -73,8 +74,7 @@ static void log_activity_callbacks(ANativeActivity *activity) {
     l_info("  onLowMemory             = %p", (void *)c->onLowMemory);
 }
 
-/* Run ANativeActivity_onCreate + full lifecycle on a thread with a large stack
- * (same idea as mc3-vita game_thread). native_app_glue often needs it. */
+/* ANativeActivity_onCreate + full lifecycle + idle loop */
 static void *ndk_game_thread(void *arg) {
     (void)arg;
 
@@ -87,7 +87,6 @@ static void *ndk_game_thread(void *arg) {
         return NULL;
     }
 
-    /* Optional: some builds also export android_main as dynamic — log only */
     find_so_symbol("android_main");
     find_so_symbol("JNI_OnLoad");
 
@@ -110,13 +109,11 @@ static void *ndk_game_thread(void *arg) {
     activity->env = &jni;
     activity->vm = &jvm;
     activity->clazz = (jclass)0x42424242;
-    /* Saves / private files */
     activity->internalDataPath = DATA_PATH;
-    /* Shared / assets root (APK assets extracted here) */
     activity->externalDataPath = DATA_PATH "assets/";
-    activity->sdkVersion = 19; /* KitKat — matches java.c SDK_INT */
+    activity->sdkVersion = 19;
     activity->instance = NULL;
-    activity->assetManager = NULL; /* FalsoNDK may fill later via JNI */
+    activity->assetManager = NULL;
 
     l_info("[ndk] activity=%p callbacks=%p", (void *)activity, (void *)activity->callbacks);
     l_info("[ndk] internalDataPath=%s", activity->internalDataPath);
@@ -124,7 +121,6 @@ static void *ndk_game_thread(void *arg) {
     l_info("[ndk] sdkVersion=%d env=%p vm=%p", activity->sdkVersion,
            (void *)activity->env, (void *)activity->vm);
 
-    /* ANativeActivity_createFunc is already typedef'd in FalsoNDK headers */
     ANativeActivity_createFunc *onCreate = (ANativeActivity_createFunc *)sym;
 
     l_info("[ndk] >>> ANativeActivity_onCreate(activity, NULL, 0) @ 0x%08X",
@@ -134,7 +130,6 @@ static void *ndk_game_thread(void *arg) {
 
     log_activity_callbacks(activity);
 
-    /* Drive lifecycle — each step logged; null-safe */
     if (activity->callbacks->onStart) {
         l_info("[ndk] >>> onStart");
         activity->callbacks->onStart(activity);
@@ -195,10 +190,6 @@ static void *ndk_game_thread(void *arg) {
 
     l_success("[ndk] lifecycle sequence finished — idle loop (gl_swap)");
 
-    /*
-     * native_app_glue games usually run their own loop on another thread
-     * started inside onCreate. We keep the process alive and present frames.
-     */
     unsigned frame = 0;
     while (1) {
         if (frame == 0)
@@ -212,6 +203,39 @@ static void *ndk_game_thread(void *arg) {
     }
 
     return NULL;
+}
+
+/* Try pthread with smaller stacks; on EAGAIN fall back to main thread. */
+static void run_ndk_path(void) {
+    static const size_t stacks[] = {
+        2 * 1024 * 1024,  /* 2 MB */
+        1 * 1024 * 1024,  /* 1 MB */
+        512 * 1024,       /* 512 KB */
+    };
+
+    for (unsigned i = 0; i < sizeof(stacks) / sizeof(stacks[0]); i++) {
+        pthread_t t;
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setstacksize(&attr, stacks[i]);
+
+        l_info("[main] pthread_create try stack=%u KB...", (unsigned)(stacks[i] / 1024));
+        int pret = pthread_create(&t, &attr, ndk_game_thread, NULL);
+        pthread_attr_destroy(&attr);
+
+        if (pret == 0) {
+            l_success("[main] NDK thread OK (stack=%u KB) — joining", (unsigned)(stacks[i] / 1024));
+            pthread_join(t, NULL);
+            l_warn("[main] NDK thread exited (unexpected)");
+            return;
+        }
+
+        l_warn("[main] pthread_create failed: %d (errno=%d) stack=%u KB",
+               pret, errno, (unsigned)(stacks[i] / 1024));
+    }
+
+    l_warn("[main] all pthread attempts failed — running NDK path on MAIN thread");
+    ndk_game_thread(NULL);
 }
 #endif /* NDK_PORT */
 
@@ -232,24 +256,7 @@ int main() {
     l_success("[main] gl_init() returned");
 
 #ifdef NDK_PORT
-    /*
-     * Large stack like mc3-vita — ANativeActivity_onCreate / native_app_glue
-     * can blow a default stack.
-     */
-    l_info("[main] spawning NDK game thread (stack=8MB)...");
-    pthread_t t;
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
-    int pret = pthread_create(&t, &attr, ndk_game_thread, NULL);
-    pthread_attr_destroy(&attr);
-    if (pret != 0) {
-        l_fatal("[main] pthread_create failed: %d", pret);
-        fatal_error("pthread_create failed (%d)", pret);
-    }
-    l_success("[main] NDK game thread created — joining");
-    pthread_join(t, NULL);
-    l_warn("[main] NDK game thread exited (unexpected)");
+    run_ndk_path();
 #else
     l_info("[main] probing JNI symbols...");
     uintptr_t sym_jni = find_so_symbol("JNI_OnLoad");
