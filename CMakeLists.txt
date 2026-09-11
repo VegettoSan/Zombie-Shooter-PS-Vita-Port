@@ -28,10 +28,13 @@ set(DATA_PATH "ux0:data/zombieshooter/" CACHE STRING "Path to data (with trailin
 set(SO_PATH "${DATA_PATH}libzombie_shooter.so" CACHE STRING "Path to .so")
 add_definitions(-DDATA_PATH="${DATA_PATH}" -DSO_PATH="${SO_PATH}")
 
-# Port type
-option(NDK_PORT "This should be on if the game is done with Android NDK (has an android_main entry point)" OFF)
+# Port type — ON because libzombie_shooter.so exports ANativeActivity_onCreate
+option(NDK_PORT "Android NDK / NativeActivity game (has ANativeActivity_onCreate)" ON)
 if (NDK_PORT)
   add_definitions(-DNDK_PORT)
+  message(STATUS "NDK_PORT=ON (NativeActivity path)")
+else()
+  message(STATUS "NDK_PORT=OFF (JNI path)")
 endif()
 
 option(USE_SCELIBC_IO "Use SceLibcBridge for IO and some other std functions" ON)
