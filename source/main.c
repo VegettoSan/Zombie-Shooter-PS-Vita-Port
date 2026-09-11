@@ -73,10 +73,6 @@ static void log_activity_callbacks(ANativeActivity *activity) {
     l_info("  onLowMemory             = %p", (void *)c->onLowMemory);
 }
 
-typedef void (*ANativeActivity_createFunc)(ANativeActivity *activity,
-                                           void *savedState,
-                                           size_t savedStateSize);
-
 /* Run ANativeActivity_onCreate + full lifecycle on a thread with a large stack
  * (same idea as mc3-vita game_thread). native_app_glue often needs it. */
 static void *ndk_game_thread(void *arg) {
@@ -128,7 +124,8 @@ static void *ndk_game_thread(void *arg) {
     l_info("[ndk] sdkVersion=%d env=%p vm=%p", activity->sdkVersion,
            (void *)activity->env, (void *)activity->vm);
 
-    ANativeActivity_createFunc onCreate = (ANativeActivity_createFunc)sym;
+    /* ANativeActivity_createFunc is already typedef'd in FalsoNDK headers */
+    ANativeActivity_createFunc *onCreate = (ANativeActivity_createFunc *)sym;
 
     l_info("[ndk] >>> ANativeActivity_onCreate(activity, NULL, 0) @ 0x%08X",
            (unsigned)sym);
