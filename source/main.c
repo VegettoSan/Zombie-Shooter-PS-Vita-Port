@@ -1,10 +1,9 @@
 /*
  * Zombie Shooter Vita — main entry
  *
- * The Android .so exports ANativeActivity_onCreate (NativeActivity / NDK).
- * It does NOT export JNI_OnLoad or android_main as a public dynamic symbol
- * (android_main is usually internal to native_app_glue and started from
- * ANativeActivity_onCreate on a secondary thread).
+ * NativeActivity path: ANativeActivity_onCreate is the public entry.
+ * native_app_glue typically spawns android_main on a *second* thread inside
+ * onCreate; that thread can crash independently while we still log on this one.
  */
 
 #include "utils/init.h"
@@ -49,36 +48,48 @@ static uintptr_t find_so_symbol(const char *name) {
 }
 
 #ifdef NDK_PORT
-/* Dump which lifecycle callbacks the game filled in after onCreate. */
+static void breadcrumb(const char *msg) {
+    char buf[256];
+    int n = sceClibSnprintf(buf, sizeof(buf), "%s\n", msg);
+    if (n > 0)
+        file_save(DATA_PATH "ndk_step.txt", (const uint8_t *)buf, (size_t)n);
+}
+
+static void log_cb(const char *name, void *fn) {
+    l_info("  %-28s = %p", name, fn);
+}
+
 static void log_activity_callbacks(ANativeActivity *activity) {
     if (!activity || !activity->callbacks) {
         l_warn("[ndk] activity or callbacks is NULL");
         return;
     }
     ANativeActivityCallbacks *c = activity->callbacks;
-    l_info("[ndk] callbacks dump:");
-    l_info("  onStart                 = %p", (void *)c->onStart);
-    l_info("  onResume                = %p", (void *)c->onResume);
-    l_info("  onPause                 = %p", (void *)c->onPause);
-    l_info("  onStop                  = %p", (void *)c->onStop);
-    l_info("  onDestroy               = %p", (void *)c->onDestroy);
-    l_info("  onWindowFocusChanged    = %p", (void *)c->onWindowFocusChanged);
-    l_info("  onNativeWindowCreated   = %p", (void *)c->onNativeWindowCreated);
-    l_info("  onNativeWindowResized   = %p", (void *)c->onNativeWindowResized);
-    l_info("  onNativeWindowRedrawNeeded = %p", (void *)c->onNativeWindowRedrawNeeded);
-    l_info("  onNativeWindowDestroyed = %p", (void *)c->onNativeWindowDestroyed);
-    l_info("  onInputQueueCreated     = %p", (void *)c->onInputQueueCreated);
-    l_info("  onInputQueueDestroyed   = %p", (void *)c->onInputQueueDestroyed);
-    l_info("  onContentRectChanged    = %p", (void *)c->onContentRectChanged);
-    l_info("  onConfigurationChanged  = %p", (void *)c->onConfigurationChanged);
-    l_info("  onLowMemory             = %p", (void *)c->onLowMemory);
+    l_info("[ndk] callbacks dump (sizeof callbacks=%u):",
+           (unsigned)sizeof(ANativeActivityCallbacks));
+    log_cb("onStart", (void *)c->onStart);
+    log_cb("onResume", (void *)c->onResume);
+    log_cb("onSaveInstanceState", (void *)c->onSaveInstanceState);
+    log_cb("onPause", (void *)c->onPause);
+    log_cb("onStop", (void *)c->onStop);
+    log_cb("onDestroy", (void *)c->onDestroy);
+    log_cb("onWindowFocusChanged", (void *)c->onWindowFocusChanged);
+    log_cb("onNativeWindowCreated", (void *)c->onNativeWindowCreated);
+    log_cb("onNativeWindowResized", (void *)c->onNativeWindowResized);
+    log_cb("onNativeWindowRedrawNeeded", (void *)c->onNativeWindowRedrawNeeded);
+    log_cb("onNativeWindowDestroyed", (void *)c->onNativeWindowDestroyed);
+    log_cb("onInputQueueCreated", (void *)c->onInputQueueCreated);
+    log_cb("onInputQueueDestroyed", (void *)c->onInputQueueDestroyed);
+    log_cb("onContentRectChanged", (void *)c->onContentRectChanged);
+    log_cb("onConfigurationChanged", (void *)c->onConfigurationChanged);
+    log_cb("onLowMemory", (void *)c->onLowMemory);
 }
 
-/* ANativeActivity_onCreate + full lifecycle + idle loop */
 static void *ndk_game_thread(void *arg) {
     (void)arg;
 
     l_info("[ndk] game thread start");
+    breadcrumb("game_thread_start");
 
     uintptr_t sym = find_so_symbol("ANativeActivity_onCreate");
     if (!sym) {
@@ -90,8 +101,10 @@ static void *ndk_game_thread(void *arg) {
     find_so_symbol("android_main");
     find_so_symbol("JNI_OnLoad");
 
-    l_info("[ndk] allocating ANativeActivity (%u bytes)...",
-           (unsigned)sizeof(ANativeActivity));
+    l_info("[ndk] sizeof(ANativeActivity)=%u sizeof(callbacks)=%u",
+           (unsigned)sizeof(ANativeActivity),
+           (unsigned)sizeof(ANativeActivityCallbacks));
+
     ANativeActivity *activity = (ANativeActivity *)calloc(1, sizeof(ANativeActivity));
     if (!activity) {
         l_fatal("[ndk] calloc(ANativeActivity) failed");
@@ -114,6 +127,7 @@ static void *ndk_game_thread(void *arg) {
     activity->sdkVersion = 19;
     activity->instance = NULL;
     activity->assetManager = NULL;
+    activity->obbPath = DATA_PATH;
 
     l_info("[ndk] activity=%p callbacks=%p", (void *)activity, (void *)activity->callbacks);
     l_info("[ndk] internalDataPath=%s", activity->internalDataPath);
@@ -123,72 +137,98 @@ static void *ndk_game_thread(void *arg) {
 
     ANativeActivity_createFunc *onCreate = (ANativeActivity_createFunc *)sym;
 
-    l_info("[ndk] >>> ANativeActivity_onCreate(activity, NULL, 0) @ 0x%08X",
+    breadcrumb("before_onCreate");
+    l_info("[ndk] >>> ANativeActivity_onCreate @ 0x%08X",
            (unsigned)sym);
     onCreate(activity, NULL, 0);
     l_success("[ndk] <<< ANativeActivity_onCreate returned");
+    breadcrumb("after_onCreate");
+
+    /*
+     * native_app_glue often starts android_main on another thread here.
+     * Give it a moment; if that thread crashes, the coredump/log stop point
+     * is clearer. Also write step file so we know onCreate finished even if
+     * the process dies mid-log.
+     */
+    l_info("[ndk] waiting 3s for possible android_main thread...");
+    sceKernelDelayThread(3 * 1000 * 1000);
+    l_success("[ndk] still alive after 3s post-onCreate");
+    breadcrumb("after_onCreate_wait");
 
     log_activity_callbacks(activity);
+    breadcrumb("after_callbacks_dump");
 
     if (activity->callbacks->onStart) {
-        l_info("[ndk] >>> onStart");
+        breadcrumb("before_onStart");
+        l_info("[ndk] >>> onStart @ %p", (void *)activity->callbacks->onStart);
         activity->callbacks->onStart(activity);
         l_success("[ndk] <<< onStart OK");
+        breadcrumb("after_onStart");
     } else {
         l_warn("[ndk] onStart is NULL — skip");
     }
 
     if (activity->callbacks->onResume) {
-        l_info("[ndk] >>> onResume");
+        breadcrumb("before_onResume");
+        l_info("[ndk] >>> onResume @ %p", (void *)activity->callbacks->onResume);
         activity->callbacks->onResume(activity);
         l_success("[ndk] <<< onResume OK");
+        breadcrumb("after_onResume");
     } else {
         l_warn("[ndk] onResume is NULL — skip");
     }
 
-    AInputQueue *input_queue = NULL;
     if (activity->callbacks->onInputQueueCreated) {
+        breadcrumb("before_input_queue");
         l_info("[ndk] AInputQueue_create...");
-        input_queue = AInputQueue_create();
+        AInputQueue *input_queue = AInputQueue_create();
         l_info("[ndk] input_queue=%p >>> onInputQueueCreated", (void *)input_queue);
         activity->callbacks->onInputQueueCreated(activity, input_queue);
         l_success("[ndk] <<< onInputQueueCreated OK");
+        breadcrumb("after_input_queue");
     } else {
         l_warn("[ndk] onInputQueueCreated is NULL — skip");
     }
 
     ANativeWindow *window = NULL;
     if (activity->callbacks->onNativeWindowCreated) {
+        breadcrumb("before_window_created");
         l_info("[ndk] ANativeWindow_create...");
         window = ANativeWindow_create();
         l_info("[ndk] window=%p >>> onNativeWindowCreated", (void *)window);
         activity->callbacks->onNativeWindowCreated(activity, window);
         l_success("[ndk] <<< onNativeWindowCreated OK");
+        breadcrumb("after_window_created");
     } else {
         l_warn("[ndk] onNativeWindowCreated is NULL — skip");
     }
 
     if (activity->callbacks->onNativeWindowResized && window) {
+        breadcrumb("before_window_resized");
         l_info("[ndk] >>> onNativeWindowResized");
         activity->callbacks->onNativeWindowResized(activity, window);
         l_success("[ndk] <<< onNativeWindowResized OK");
     }
 
     if (activity->callbacks->onWindowFocusChanged) {
+        breadcrumb("before_focus");
         l_info("[ndk] >>> onWindowFocusChanged(1)");
         activity->callbacks->onWindowFocusChanged(activity, 1);
         l_success("[ndk] <<< onWindowFocusChanged OK");
+        breadcrumb("after_focus");
     } else {
         l_warn("[ndk] onWindowFocusChanged is NULL — skip");
     }
 
     if (activity->callbacks->onNativeWindowRedrawNeeded && window) {
+        breadcrumb("before_redraw");
         l_info("[ndk] >>> onNativeWindowRedrawNeeded");
         activity->callbacks->onNativeWindowRedrawNeeded(activity, window);
         l_success("[ndk] <<< onNativeWindowRedrawNeeded OK");
     }
 
-    l_success("[ndk] lifecycle sequence finished — idle loop (gl_swap)");
+    l_success("[ndk] lifecycle sequence finished — idle loop");
+    breadcrumb("idle_loop");
 
     unsigned frame = 0;
     while (1) {
@@ -205,12 +245,11 @@ static void *ndk_game_thread(void *arg) {
     return NULL;
 }
 
-/* Try pthread with smaller stacks; on EAGAIN fall back to main thread. */
 static void run_ndk_path(void) {
     static const size_t stacks[] = {
-        2 * 1024 * 1024,  /* 2 MB */
-        1 * 1024 * 1024,  /* 1 MB */
-        512 * 1024,       /* 512 KB */
+        2 * 1024 * 1024,
+        1 * 1024 * 1024,
+        512 * 1024,
     };
 
     for (unsigned i = 0; i < sizeof(stacks) / sizeof(stacks[0]); i++) {
