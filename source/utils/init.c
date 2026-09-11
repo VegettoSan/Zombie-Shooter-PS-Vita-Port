@@ -33,6 +33,14 @@
 // Same address used by mc3-vita / gdash-vita / most so_loader ports
 #define LOAD_ADDRESS 0x98000000
 
+/*
+ * init_array[16] crashes on real hardware (fn=0x98460DCD, offset +0x460DCD).
+ * Confirmed by log.txt + last_init.txt from device testing.
+ * Skipping it is a temporary workaround until we reverse / patch that ctor.
+ */
+#define SKIP_INIT_INDEX 16u
+#define SKIP_INIT_OFFSET 0x00460DCDu
+
 extern so_module so_mod;
 
 /*
@@ -50,7 +58,7 @@ static void write_last_init_breadcrumb(uint32_t index, uint32_t total, uintptr_t
 
 /*
  * Same as so_util's so_initialize(), but logs every entry so a crash pinpoints
- * which .init_array constructor is fatal.
+ * which .init_array constructor is fatal. Also skips known-bad entries.
  */
 static void so_initialize_logged(so_module *mod) {
     uint32_t total = mod->num_init_array;
@@ -75,10 +83,20 @@ static void so_initialize_logged(so_module *mod) {
         }
 
         uintptr_t addr = (uintptr_t)fn;
+        uintptr_t offset = addr - (uintptr_t)LOAD_ADDRESS;
+
+        /* Known crash: index 16 / +0x460DCD on real Vita */
+        if (i == SKIP_INIT_INDEX || offset == SKIP_INIT_OFFSET) {
+            l_warn("init_array[%u/%u] SKIP known-bad ctor fn=0x%08X offset=0x%08X",
+                   (unsigned)i, (unsigned)total,
+                   (unsigned)addr, (unsigned)offset);
+            write_last_init_breadcrumb(i, total, addr);
+            continue;
+        }
+
         l_info("init_array[%u/%u] CALL fn=0x%08X (offset from LOAD=0x%08X)",
                (unsigned)i, (unsigned)total,
-               (unsigned)addr,
-               (unsigned)(addr - (uintptr_t)LOAD_ADDRESS));
+               (unsigned)addr, (unsigned)offset);
 
         /* Breadcrumb BEFORE the call — survives hard crash */
         write_last_init_breadcrumb(i, total, addr);
@@ -89,7 +107,7 @@ static void so_initialize_logged(so_module *mod) {
         write_last_init_breadcrumb(i, total, addr); /* mark completed */
     }
 
-    l_success("All %u init_array entries finished.", (unsigned)total);
+    l_success("All init_array entries finished (with known skips). total=%u", (unsigned)total);
 }
 
 void soloader_init_all() {
@@ -225,7 +243,7 @@ void soloader_init_all() {
     so_flush_caches(&so_mod);
     l_success("SO caches flushed.");
 
-    l_info("Running SO init arrays (logged per entry)...");
+    l_info("Running SO init arrays (logged per entry, skip known-bad)...");
     so_initialize_logged(&so_mod);
     l_success("SO initialized.");
 
