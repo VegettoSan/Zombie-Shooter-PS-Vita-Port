@@ -24,6 +24,7 @@
 #include <psp2/apputil.h>
 #include <psp2/kernel/clib.h>
 #include <psp2/power.h>
+#include <psp2/io/fcntl.h>
 
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
@@ -33,6 +34,63 @@
 #define LOAD_ADDRESS 0x98000000
 
 extern so_module so_mod;
+
+/*
+ * Write a tiny breadcrumb file so we know the last init_array index even if
+ * the process crashes before log.txt is fully flushed.
+ */
+static void write_last_init_breadcrumb(uint32_t index, uint32_t total, uintptr_t fn) {
+    char buf[256];
+    int n = sceClibSnprintf(buf, sizeof(buf),
+                            "index=%u/%u fn=0x%08X\n",
+                            (unsigned)index, (unsigned)total, (unsigned)fn);
+    if (n > 0)
+        file_save(DATA_PATH "last_init.txt", (const uint8_t *)buf, (size_t)n);
+}
+
+/*
+ * Same as so_util's so_initialize(), but logs every entry so a crash pinpoints
+ * which .init_array constructor is fatal.
+ */
+static void so_initialize_logged(so_module *mod) {
+    uint32_t total = mod->num_init_array;
+
+    l_info("init_array count = %u", (unsigned)total);
+    if (total == 0) {
+        l_warn("No init_array entries — nothing to run.");
+        return;
+    }
+
+    if (!mod->init_array) {
+        l_fatal("init_array pointer is NULL but num_init_array=%u", (unsigned)total);
+        return;
+    }
+
+    for (uint32_t i = 0; i < total; i++) {
+        void (*fn)(void) = mod->init_array[i];
+
+        if (!fn || fn == (void (*)(void))-1) {
+            l_info("init_array[%u/%u] SKIP (null or -1)", (unsigned)i, (unsigned)total);
+            continue;
+        }
+
+        uintptr_t addr = (uintptr_t)fn;
+        l_info("init_array[%u/%u] CALL fn=0x%08X (offset from LOAD=0x%08X)",
+               (unsigned)i, (unsigned)total,
+               (unsigned)addr,
+               (unsigned)(addr - (uintptr_t)LOAD_ADDRESS));
+
+        /* Breadcrumb BEFORE the call — survives hard crash */
+        write_last_init_breadcrumb(i, total, addr);
+
+        fn();
+
+        l_success("init_array[%u/%u] RETURNED OK", (unsigned)i, (unsigned)total);
+        write_last_init_breadcrumb(i, total, addr); /* mark completed */
+    }
+
+    l_success("All %u init_array entries finished.", (unsigned)total);
+}
 
 void soloader_init_all() {
     l_info("=== Zombie Shooter Vita Port - soloader_init_all() start ===");
@@ -167,8 +225,8 @@ void soloader_init_all() {
     so_flush_caches(&so_mod);
     l_success("SO caches flushed.");
 
-    l_info("Running SO init arrays...");
-    so_initialize(&so_mod);
+    l_info("Running SO init arrays (logged per entry)...");
+    so_initialize_logged(&so_mod);
     l_success("SO initialized.");
 
     l_info("OpenGL preload...");
