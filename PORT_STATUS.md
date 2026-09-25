@@ -1,13 +1,13 @@
 # Estado del port de Zombie Shooter para PS Vita
 
-Actualizado: 2026-09-24. Todo el trabajo y los artefactos permanecen locales. El mapa de evidencia APK/JADX/SO está en `PORTING_PLAN.md`.
+Actualizado: 2026-09-25. Todo el trabajo y los artefactos permanecen locales. El mapa de evidencia APK/JADX/SO está en `PORTING_PLAN.md`.
 
 ## Iteración de hardware actual
 
-- **Current boot stage:** `log_0007.log` supera ambos logos y `LOADING`, y queda en pantalla negra sin crash. El usuario observó unos 5 FPS durante la carga y 9 FPS después.
-- **Bloqueo observado:** `AssetPackManager_init` rechaza la Activity porque `IsInstanceOf(activity, android/content/Context)` responde falso; siguen 2.808 avisos `BundleManager not initialized` y numerosos `showWait` ausentes. El error AES persiste.
-- **Cambio de esta iteración:** FalsoJNI reconoce sólo esa Activity como `Context`, según la llamada exacta del log. También se prepara `.gitignore` y los parches de los dos submódulos para subir el código manualmente.
-- **Siguiente prueba:** instalar el VPK Debug nuevo y devolver el log. Pregunta: ¿se inicializa AssetPackManager o aparece la siguiente llamada JNI faltante, y llega al menú?
+- **Current boot stage:** `log_0008.log` supera ambos logos y `LOADING`, y queda en pantalla negra sin crash.
+- **Bloqueo observado:** la Activity ya pasa `IsInstanceOf(Context)`, pero `AssetPackManagerFactory.getInstance(Context)` no existe en FalsoJNI y `commonAssets` carece de ubicación. Además, 790 archivos que Vita no pudo abrir existen en el árbol local actual.
+- **Cambio de esta iteración:** se creó `build-session-debug/vita-data.zip` con los 2.432 assets del APK base y la biblioteca Android, para extraer en `ux0:data/`. `config.es.apk` y `data/res` no aportan los assets pedidos por el motor.
+- **Siguiente prueba:** copiar el nuevo árbol a Vita, reutilizar el VPK Debug y comprobar si desaparecen las aperturas fallidas de `vid/115.vid` y `vid/empty.vid`, y si aparece el menú.
 
 ## Estado verificable
 
@@ -23,13 +23,13 @@ Actualizado: 2026-09-24. Todo el trabajo y los artefactos permanecen locales. El
 | VitaGL/EGL | LOGOS VERIFICADOS; MENÚ PENDIENTE | VitaGL dibuja los logos Sigma y del juego, y `LOADING`; después queda negro. El mapeo de nombres GLES compactos se verificó en hardware. |
 | Audio | ENLAZADO, NO PROBADO | OpenSL ES de VitaSDK y codecs requeridos se enlazan; `slCreateEngine` y los IID usados están resueltos. |
 | Input | COLA CREADA; CRASH DE JOYSTICK SUPERADO EN HARDWARE | `onInputQueueCreated` retorna correctamente. El dump de `log_0002` localiza un puntero nulo de MotionAPIV14 en un evento joystick. La resolución dinámica corregida pasó la prueba `log_0003`; el mapping físico durante gameplay aún requiere prueba. |
-| Assets | VERIFICADO | 2,432 archivos. Comparación contra el APK base: 0 faltantes, 0 extra, 0 tamaños distintos y 0 CRC distintos. |
+| Assets | LOCAL VERIFICADO; VITA PENDIENTE | Los 2.432 archivos locales coinciden con el APK base en nombre y CRC. `log_0008.log` falla en 790 rutas que ahora existen localmente; `commonAssets` sigue ausente. Véase `docs/ASSET_LAYOUT.md`. |
 | Filesystem | VERIFICADO ESTÁTICAMENTE | Ruta central: `ux0:data/zombieshooter/`; contiene `libzombie_shooter.so` y `assets/`. `ANativeActivity` usa esta ruta como internal/external/OBB y un `AAssetManager` no nulo. |
 | Build Debug | BUILD VERIFIED | `build-session-debug/zombie_shooter.vpk`; build SoftFP y ZIP íntegro; SHA-256 `d454277099364f2b3b018328d3079e0d95d0bd4d53d123fee30da9cafe1db43f`. |
 | Build Release | BUILD VERIFIED | `build-session-release/zombie_shooter.vpk`; build SoftFP y ZIP íntegro; SHA-256 `f4feb9baa2a9b51a996d09e72fd417a564eceffff1e27366639cbaa5043f517f`. |
 | VPK | VPK VERIFIED | Ambos VPK pasan `unzip -t`; contienen `eboot.bin`, `param.sfo` y LiveArea. Título `ZOMB00001`. |
 | Vita3K | NO USADO | Esta iteración está destinada exclusivamente a PS Vita real. |
-| Vita real | LOADING SUPERADO; PANTALLA NEGRA | `log_0007.log` llega más lejos sin crash; el nuevo reconocimiento de `Context` sigue sin prueba física. |
+| Vita real | LOADING SUPERADO; PANTALLA NEGRA | `log_0008.log` confirma el reconocimiento de `Context`, pero aún falta Play Asset Delivery y comprobar la copia completa de assets en Vita. |
 | Boot / Render / Menú / Gameplay | LOGOS Y LOADING VERIFICADOS; MENÚ Y JUEGO PENDIENTES | Loader, VitaGL y NativeActivity avanzan; todavía no hay menú ni gameplay confirmados. |
 
 ## Cambios técnicos principales

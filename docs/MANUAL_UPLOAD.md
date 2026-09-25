@@ -11,7 +11,9 @@ PORTING_PLAN.md
 PORT_STATUS.md
 port_progress.md
 docs/MANUAL_UPLOAD.md
+docs/ASSET_LAYOUT.md
 patches/
+scripts/package_vita_data.py
 source/dynlib.c
 source/java.c
 source/main.c

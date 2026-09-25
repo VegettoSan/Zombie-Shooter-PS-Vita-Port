@@ -1,5 +1,13 @@
 # Progreso del port
 
+## Checkpoint actual: rutas de assets faltantes en Vita
+
+- Vita real `log_0008.log`: `IsInstanceOf(activity, android/content/Context): true` confirma el parche anterior. Luego falta `AssetPackManagerFactory.getInstance(Context)` en FalsoJNI; el manager queda nulo y `commonAssets` se consulta repetidamente. Pantalla negra tras `LOADING`, sin crash; 1.503 errores `showWait` y 215 `Wrong AES key length`.
+- De 1.256 rutas directas distintas que `AAssetManager_open` no pudo abrir en Vita, 790 existen en el `data/assets` local actual. El APK base y ese árbol local coinciden exactamente en nombres y CRC de sus 2.432 assets. La copia en Vita probablemente está incompleta, pero falta comprobarlo allí.
+- Las 466 rutas restantes no existen localmente; 396 pertenecen al paquete `commonAssets;fast-follow`. `config.es.apk` no trae assets. Los 1.133 archivos de `data/res` son recursos Android, sin lectura nativa observada en este log.
+- Cambio de este checkpoint: `scripts/package_vita_data.py` produce `build-session-debug/vita-data.zip` con `zombieshooter/assets/` y `libzombie_shooter.so` para extraer en `ux0:data/`. No se modificó el loader mientras se comprueba la copia de datos. ZIP de 2.433 entradas íntegro; los VPK Debug y Release anteriores permanecen íntegros.
+- Prueba siguiente: copiar el ZIP de datos a Vita, reutilizar el VPK Debug y comprobar que `vid/115.vid` y `vid/empty.vid` abren. Si el menú sigue negro, el siguiente límite es Play Asset Delivery y los archivos `commonAssets` ausentes.
+
 ## Checkpoint actual: carga superada; prueba de Context para AssetPackManager
 
 - Vita real `log_0007.log`: el juego sale de `LOADING` y queda en negro sin crash; ~5 FPS durante la carga y ~9 FPS después. El log de VitaGL muestra avisos de shaders, sin fallo fatal.
