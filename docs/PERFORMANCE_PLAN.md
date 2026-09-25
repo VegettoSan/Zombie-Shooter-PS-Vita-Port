@@ -2,21 +2,56 @@
 
 Actualizado: 2026-09-25.
 
-Este documento define el orden recomendado para subir FPS sin mezclar demasiadas variables ni perder la capacidad de atribuir cada mejora/regresión a una causa concreta.
+Este documento define el orden vigente para subir FPS sin mezclar variables ni perder la capacidad de atribuir cada mejora o regresión a una causa concreta.
 
-## Estado de partida
+El historial cronológico de pruebas reales está en `docs/HARDWARE_TEST_LOG.md`.
 
-- Vita real alcanza el tutorial, el touch responde y el audio se reproduce correctamente.
-- El usuario confirmó que el parche de `IBufferQueue_Clear()` superó el bloqueo anterior: puede caminar por el tutorial, escuchar sonidos, salir al menú principal y volver a intentar entrar.
-- Cadencia observada: aproximadamente **1–7 FPS** en la build de diagnóstico.
-- `eglSwapBuffers` ronda ~0,2 ms, por lo que el tiempo no está concentrado en el present.
-- Existe un problema separado pendiente de análisis: tras volver a entrar al tutorial desde el menú, faltan algunas imágenes/texturas y después ocurre un crash. El usuario conserva el log y `.psp2dmp`; no se debe mezclar ese bug con los cambios de rendimiento hasta revisar esos archivos.
+## Estado actual confirmado
+
+- Vita real alcanza el tutorial, touch funciona y el audio se reproduce.
+- El fix de `IBufferQueue_Clear()` ya superó el bloqueo de audio principal en hardware.
+- El usuario puede caminar por el tutorial y volver al menú principal.
+- Existe un bug separado de segunda entrada al tutorial: faltan recursos y después ocurre un crash; está pendiente de análisis con log + `.psp2dmp` reales.
+- `eglSwapBuffers` se había medido alrededor de `0,2 ms`; por sí solo no explica frames de cientos de milisegundos.
+- La build Release con **MSAA NONE** siguió aproximadamente a **7 FPS al iniciar**, **4 FPS en `LOADING`** y `LOADING` tardó **casi 5 minutos**.
+- Por tanto, quitar MSAA 4× **no produjo una mejora significativa** y no debe seguir tratándose como la hipótesis principal.
+- Después de esa prueba se descubrió que Release todavía mantenía alto tráfico de `sceClibPrintf()` desde FalsoNDK, FalsoJNI y `SO_UTIL_VERBOSE`; una Release realmente silenciosa está preparada y pendiente de prueba física.
 
 ## Regla principal
 
-Optimizar en pruebas A/B controladas, una variable importante por vez.
+Optimizar mediante pruebas A/B controladas:
+
+```text
+una variable importante
+→ build
+→ misma escena / mismo procedimiento
+→ Vita real
+→ registrar resultado
+→ decidir el siguiente cambio
+```
 
 No habilitar grupos de speedhacks simultáneamente. Conservar siempre una build anterior conocida para comparar.
+
+## Baseline de comparación actual
+
+Build probada:
+
+```text
+Release
+960×544
+MSAA NONE
+Pre-release: vita-test-4-121929e
+```
+
+Resultado:
+
+```text
+inicio  ≈ 7 FPS
+LOADING ≈ 4 FPS
+carga   ≈ 5 min
+```
+
+Este baseline es más útil que el antiguo rango genérico 1–7 FPS para las próximas pruebas de carga.
 
 ## Fase 0 — audio: COMPLETADA para el bloqueo principal
 
@@ -28,91 +63,162 @@ sound::SfxBuffer::play
 → cond wait
 ```
 
-La variante local de OpenSL ES limita esa espera a 100 ms y el usuario confirmó en Vita real que los sonidos funcionan y que `footsteps.wav` ya no detiene indefinidamente el juego.
+La variante local de OpenSL ES limita esa espera a 100 ms y el usuario confirmó en Vita real que los sonidos funcionan y `footsteps.wav` ya no detiene indefinidamente el juego.
 
-Esto no significa que el backend de audio esté completamente optimizado: si aparecen muchos timeouts de 100 ms, aún pueden afectar FPS. Por tanto, conservar la métrica de timeouts cuando se perfile una build Debug, pero el bloqueo ya no debe impedir comenzar la optimización de frame rate.
+No revertir este fix. Si aparecen muchos timeouts de 100 ms, medir count/total/max como una posible fuente de latencia residual.
 
-## Fase 1 — baseline de rendimiento / coste del diagnóstico
+## Fase 1 — Release realmente silenciosa: PRUEBA ACTUAL
 
-Medir siempre la misma zona del tutorial durante al menos 30 segundos.
+### Hallazgo
 
-Registrar cuando la build lo permita:
+Reducir `l_info/l_debug` del loader no bastaba. Había tres rutas adicionales:
 
-- FPS medio y rango.
-- `present frames` / `fps_x10`.
-- `swap_avg_us` / `swap_max_us`.
-- edad máxima entre presents.
-- número y tiempo acumulado de log syncs.
-- número/tiempo acumulado de timeouts de OpenSL ES.
+1. FalsoNDK: `ALOGD/ALOGW/ALOGE` terminaban en `sceClibPrintf()` mediante su `fndk_log()` débil.
+2. FalsoJNI: Release podía seguir emitiendo warnings.
+3. `SO_UTIL_VERBOSE=1` estaba definido globalmente.
 
-Comparar:
+Durante `LOADING`, especialmente con tracing de assets, ese tráfico puede ser muy costoso.
 
-1. Debug diagnóstico actual.
-2. Release normal.
-3. Una configuración `ZOMBIE_PERF_BUILD` de bajo overhead.
+### Estado de código preparado
 
-### Importante: logging
+Release ahora:
 
-La build de diagnóstico define `DEBUG_SOLOADER` y `SO_UTIL_VERBOSE=1`, y el logger hace `sceClibPrintf` + escritura a archivo para cada línea habilitada. Aunque los sync normales ya se agrupan, eso puede distorsionar bastante un juego que ahora produce mucha instrumentación.
-
-La build `Perf` debe:
-
-- quitar `DEBUG_SOLOADER`/`SO_UTIL_VERBOSE` de las rutas calientes;
-- conservar errores/fatales;
-- compilar el código del port con optimización alta;
-- construir VitaGL sin su capa de comprobaciones de debug;
-- servir sólo para medir rendimiento/estabilidad, mientras Debug sigue siendo la build para dumps y trazas detalladas.
-
-## Fase 2 — eliminar MSAA 4x innecesario
-
-Estado actual:
-
-```c
-vglInitExtended(0, 960, 544, 6 * 1024 * 1024,
-                SCE_GXM_MULTISAMPLE_4X);
+```text
+logger del port: sólo [PERF] + error/fatal necesarios
+FalsoNDK: fatal únicamente
+FalsoJNI: FALSOJNI_DEBUG_NO
+so_util: sin SO_UTIL_VERBOSE
 ```
 
-Pero el puente EGL anuncia:
+Debug conserva el diagnóstico completo.
+
+### Prueba requerida
+
+Usar sólo Release y registrar:
+
+```text
+FPS al iniciar
+FPS durante LOADING
+tiempo total de LOADING
+FPS tutorial 30–60 s
+```
+
+Comparar contra:
+
+```text
+7 FPS / 4 FPS / ~5 min
+```
+
+### Interpretación
+
+- Mejora grande de tiempo de carga/FPS → logging era un cuello importante.
+- Mejora pequeña → logging contribuía, pero no dominaba.
+- Casi sin cambio → pasar inmediatamente a I/O + waits/CPU; no seguir quitando calidad gráfica a ciegas.
+
+## Fase 2 — MSAA: COMPLETADA COMO A/B
+
+Cambio probado:
+
+```text
+SCE_GXM_MULTISAMPLE_4X
+→ SCE_GXM_MULTISAMPLE_NONE
+```
+
+El bridge EGL anuncia:
 
 ```text
 EGL_SAMPLE_BUFFERS = 0
 EGL_SAMPLES        = 0
 ```
 
-La primera optimización gráfica A/B debe ser:
+Resultado en hardware: no hubo salto significativo; la Release quedó alrededor de 7 FPS al inicio y 4 FPS en `LOADING`.
 
-```c
-SCE_GXM_MULTISAMPLE_NONE
+### Decisión
+
+Mantener `SCE_GXM_MULTISAMPLE_NONE` porque evita un coste que el juego no solicita, pero **no atribuirle el problema de rendimiento principal**.
+
+No volver a repetir esta prueba salvo que cambie sustancialmente el renderer.
+
+## Fase 3 — profiling de I/O y esperas
+
+Si la Release silenciosa sigue muy lenta, ésta pasa a ser la prioridad inmediata.
+
+Instrumentar agregados por ventanas de varios segundos, no logs por llamada.
+
+### Assets / filesystem
+
+Medir:
+
+```text
+AAssetManager_open: count / total_us / max_us
+AAsset_read:        count / bytes / total_us / max_us
+AAsset_seek:        count / total_us / max_us
+fopen/read/seek equivalentes si el engine usa rutas directas
 ```
 
-Razones:
+También registrar:
 
-- elimina un coste de multisampling que el juego ni siquiera cree tener;
-- reduce ancho de banda y trabajo de fragmentos;
-- es mucho más controlable que activar varios speedhacks.
+- número de assets buffered vs streamed;
+- fallos de apertura;
+- tiempo total en `sceIo*`/bridge libc cuando sea posible;
+- descriptores/handles si reaparece agotamiento.
 
-Probar la misma zona del tutorial con MSAA 4x y NONE. Conservar NONE si mejora FPS y no introduce defectos relevantes.
+La pantalla `LOADING` de casi 5 minutos hace esta fase especialmente prioritaria.
 
-## Fase 3 — clocks, sin pisar governors externos
+### Esperas / sincronización
 
-No fijar clocks a ciegas dentro del port mientras se use PSVshell u otro governor, porque un valor hardcodeado puede incluso bajar un perfil externo más alto.
+Medir sólo waits largos o agregados:
+
+```text
+pthread_cond_wait / timedwait
+poll / epoll / looper waits
+sleep / usleep / nanosleep wrappers
+OpenSL Clear timeout count / total_us / max_us
+cualquier bounded wait añadido por compatibilidad
+```
+
+No asumir que un wait es incorrecto sólo porque aparece; comparar frecuencia y tiempo acumulado.
+
+## Fase 4 — clocks: CPU vs GPU
+
+No fijar clocks dentro del port mientras se use PSVshell u otro governor.
 
 Primero registrar al inicio:
 
-- `scePowerGetArmClockFrequency()`
-- `scePowerGetBusClockFrequency()`
-- `scePowerGetGpuClockFrequency()`
-- `scePowerGetGpuXbarClockFrequency()`
+```text
+scePowerGetArmClockFrequency()
+scePowerGetBusClockFrequency()
+scePowerGetGpuClockFrequency()
+scePowerGetGpuXbarClockFrequency()
+```
 
-Después hacer una prueba A/B con un perfil alto conocido y el mismo recorrido del tutorial.
+Luego hacer una A/B manteniendo todo lo demás igual.
 
-Interpretación aproximada:
+Interpretación:
 
-- gran mejora al subir CPU, poca al subir GPU → cuello CPU/engine/wrappers;
-- gran mejora al subir GPU → cuello gráfico;
-- casi ninguna mejora → esperas/I/O/audio/sincronización probablemente dominan.
+- mejora grande al subir CPU, poca al subir GPU → CPU/engine/wrappers;
+- mejora grande al subir GPU → cuello gráfico;
+- casi ninguna mejora → waits/I/O/sincronización probablemente dominan.
 
-## Fase 4 — memoria VitaGL / heap
+No mezclar esta prueba con cambios de código.
+
+## Fase 5 — profiling CPU del frame
+
+Si I/O no explica el bajo FPS durante gameplay, medir trabajo de frame mediante contadores/agregados:
+
+```text
+glTexImage2D / glTexSubImage2D
+glBufferData / glBufferSubData
+glCompileShader / glLinkProgram
+draw calls por frame
+cambios de estado relevantes
+input events procesados
+OpenSL callbacks/enqueues
+```
+
+VitaGL ofrece `HAVE_PROFILING=1`; usar sólo en Debug/perfilado porque añade overhead.
+
+## Fase 6 — memoria VitaGL / heap
 
 El loader reserva actualmente:
 
@@ -120,72 +226,54 @@ El loader reserva actualmente:
 int _newlib_heap_size_user = 256 * 1024 * 1024;
 ```
 
-Y VitaGL se inicia con un `ram_threshold` de 6 MiB. Antes de cambiar tamaños, registrar:
+Y VitaGL se inicia con `ram_threshold` de 6 MiB.
+
+Antes de cambiar tamaños medir:
 
 - memoria libre antes de VitaGL;
 - `vglMemTotal(VGL_MEM_RAM)` / `vglMemFree(VGL_MEM_RAM)`;
 - VRAM total/libre;
-- avisos de circular pool/allocations que caigan en VRAM;
-- fallos o ciclos de garbage collection.
+- circular pool / allocations / GC;
+- fallos o stalls de memoria.
 
-MetalSyntax documentó en otro port que un heap newlib de 256 MiB puede dejar a VitaGL sin el pool esperado. Zombie Shooter sí renderiza, así que no asumir el mismo fallo; medir primero.
+MetalSyntax documentó en otro port que un heap newlib de 256 MiB podía dejar a VitaGL sin el pool esperado. Zombie Shooter sí renderiza, así que no copiar esa solución sin evidencia local.
 
-Sólo después considerar:
+## Fase 7 — shader cache
 
-- reducir heap newlib;
-- `vglInitWithCustomSizes`;
-- ajustar pools.
-
-## Fase 5 — shader cache
-
-El proyecto no activa actualmente el cache automático de shaders de VitaGL.
-
-Probar más adelante:
+Más adelante probar:
 
 ```text
 HAVE_SHADER_CACHE=1
 ```
 
-con una ruta específica bajo:
+con cache bajo:
 
 ```text
 ux0:data/zombieshooter/shader_cache/
 ```
 
-Objetivo: reducir stutters de compilación/recompilación. No esperar que esto por sí solo arregle un FPS sostenido de 1–7.
+Objetivo: reducir stutters de compilación/recompilación. No esperar que por sí solo arregle 4 FPS sostenidos en `LOADING`.
 
-## Fase 6 — profiling dirigido del frame
+## Fase 8 — speedhacks VitaGL, uno por vez
 
-Si después de logging + MSAA el FPS sigue bajo, instrumentar agregados, NO logs por llamada.
+Sólo después de tener baseline con logging mínimo y evidencia de que el coste gráfico/driver merece esta ruta.
 
-Medir por ventanas de varios segundos:
-
-- `IBufferQueue_Clear`: count / total_us / max_us.
-- OpenSL enqueue/callbacks relevantes.
-- `AAsset_open/read/seek`: count / bytes / total_us / max_us.
-- `glTexImage2D` / `glTexSubImage2D`.
-- `glBufferData` / `glBufferSubData`.
-- `glCompileShader` / `glLinkProgram`.
-- draw count por frame.
-- waits/polls/condvars que superen un umbral alto.
-
-VitaGL también ofrece `HAVE_PROFILING=1` para tiempo CPU dentro de draw calls; usarlo sólo en una build diagnóstica si aporta datos accionables.
-
-## Fase 7 — speedhacks VitaGL, uno por vez
-
-Sólo después de tener baseline estable.
-
-Candidatos razonables para A/B:
+Primer candidato razonable:
 
 ```text
 HAVE_VERTEX_LAYOUT_CACHE=1
+```
+
+Después, cada uno por separado:
+
+```text
 DRAW_SPEEDHACK=2
 BUFFERS_SPEEDHACK=1
 SAMPLERS_SPEEDHACK=1
 CIRCULAR_POOL_SPEEDHACK=1
 ```
 
-Luego, con más cautela:
+Más adelante, con más cautela:
 
 ```text
 DRAW_SPEEDHACK=1
@@ -197,49 +285,68 @@ MATH_SPEEDHACK=1
 PRIMITIVES_SPEEDHACK=1
 ```
 
-`NO_DEBUG=1` se puede usar en la build Perf antes de estos speedhacks porque elimina comprobaciones de VitaGL, pero no debe confundirse con un arreglo funcional: si una regresión sólo ocurre sin comprobaciones, volver a Debug para investigarla.
+VitaGL advierte que varios speedhacks pueden causar glitches o crashes. Nunca activarlos todos a la vez.
 
-Los propios docs de VitaGL avisan que varios speedhacks pueden causar crashes o glitches. Nunca habilitarlos todos simultáneamente.
+## Fase 9 — resolución interna
 
-## Fase 8 — resolución interna
+Sólo si las mediciones demuestran cuello GPU persistente.
 
-Sólo si las mediciones prueban un cuello GPU persistente después de quitar MSAA y ajustar clocks.
-
-Una resolución interna menor con upscale puede dar una mejora grande, pero Zombie Shooter ya asume 960×544 en el bridge EGL/NativeWindow; bajar resolución exige revisar viewport, FBOs, touch y query de surface. No es la primera optimización.
-
-## Prioridad recomendada actual
+Bajar resolución afecta potencialmente:
 
 ```text
-1. Perf build: quitar overhead de tracing
-2. MSAA 4x -> NONE
-3. Medir clocks / CPU vs GPU
-4. Memoria/pools VitaGL
-5. Shader cache
-6. Profiling dirigido
-7. Speedhacks uno por uno
-8. Resolución interna si sigue GPU-bound
+viewport
+FBOs
+NativeWindow/EGL queries
+touch mapping
+UI scaling
 ```
 
-El crash de reentrada al tutorial se mantiene en una pista separada y debe analizarse con el log/dump real antes de tocar recursos de forma especulativa.
+Dado que MSAA NONE no produjo un salto claro, bajar resolución **no es la siguiente prueba lógica**.
+
+## Prioridad vigente
+
+```text
+1. Probar Release realmente silenciosa
+2. I/O + waits/sleeps/sync profiling
+3. A/B de clocks CPU vs GPU
+4. Profiling CPU/frame
+5. Memoria/pools VitaGL
+6. Shader cache
+7. Speedhacks uno por uno
+8. Resolución interna sólo si se prueba GPU-bound
+```
+
+En paralelo, pero separado de estas pruebas:
+
+```text
+analizar log + .psp2dmp del crash de segunda entrada al tutorial
+```
 
 ## Criterio de éxito intermedio
 
-Antes de perseguir 30/60 FPS, la meta inmediata es:
+Antes de perseguir 30/60 FPS:
 
 ```text
-- primer tutorial estable durante varios minutos
-- audio continuo sin congelación
-- >15 FPS sostenidos como primer salto verificable
-- después apuntar a 20/30 FPS con profiling real
+primer tutorial estable varios minutos
+audio continuo
+LOADING muy por debajo de ~5 min
+>15 FPS sostenidos como primer salto real
+luego objetivo 20/30 FPS con profiling
 ```
 
-Cada mejora debe quedar documentada en `port_progress.md` con:
+## Formato obligatorio para cada resultado
+
+Actualizar `docs/HARDWARE_TEST_LOG.md` con:
 
 ```text
-build / cambio
+build / commit / tag
+cambio aislado
 FPS antes
 FPS después
+tiempo LOADING antes/después
 misma escena de prueba
-regresión visual o funcional
-estado: pending hardware / hardware confirmed
+regresión visual/funcional
+estado: pending hardware / real Vita verified / no meaningful improvement / regression
+conclusión soportada
+siguiente prueba
 ```
