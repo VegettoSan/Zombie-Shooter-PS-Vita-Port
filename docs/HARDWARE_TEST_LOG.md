@@ -156,7 +156,7 @@ Después de la prueba MSAA NONE se revisaron las rutas de logging y se detectó 
 3. FalsoJNI sin override de Release usa por defecto `FALSOJNI_DEBUG_WARN`, y los warnings imprimen por consola.
 4. `SO_UTIL_VERBOSE=1` estaba definido globalmente, no sólo en Debug.
 
-Este hallazgo encaja mejor con una pantalla de carga extremadamente lenta que el MSAA, pero todavía requiere prueba física A/B.
+Este hallazgo justificó una Release silenciosa para separar el coste de logging del resto de la carga.
 
 ---
 
@@ -185,42 +185,113 @@ Commits relevantes de esta preparación/corrección:
 9baebfa6d8b6df4e0666d45e0f85a788b706f006
 ```
 
-### Build generada
+### Build probada
 
 GitHub Actions run #6 completó correctamente Debug + Release y publicó:
 
 ```text
 tag: vita-test-6-86055f8
 commit: 86055f83e8b3877323c2c571a223e3b045d104a0
-archivo de prueba: Zombie-Shooter-Vita-Release.vpk
+archivo probado: Zombie-Shooter-Vita-Release.vpk
 nota: FPS test - quiet Release retry
+```
+
+### Resultado en Vita real — PSVshell al máximo
+
+El usuario hizo la prueba con el perfil de overclock de PSVshell al máximo.
+
+```text
+logos Sigma Team / juego: empieza ~1 FPS
+luego:                    llega hasta ~7 FPS
+LOADING:                  ~2–4 FPS
+tiempo en LOADING:        ~6 minutos
+resultado final:          crash antes de entrar al tutorial
+```
+
+Durante `LOADING`, PSVshell mostraba:
+
+```text
+MEM:  365 MB / 365 MB
+VMEM: 112 MB / 112 MB
+PHY:   26 MB /  26 MB
 ```
 
 ### Estado
 
-**BUILD VERIFIED / PENDING HARDWARE.**
+**REAL VITA TESTED / NO MEANINGFUL PERFORMANCE IMPROVEMENT / CRASH DURING LOADING.**
 
-### Métricas a comparar
+### Conclusión soportada
 
-Usar `Zombie-Shooter-Vita-Release.vpk` del tag anterior y registrar:
+- Quitar el logging de Release no produjo una mejora importante de FPS ni del tiempo de carga.
+- Llevar los clocks al máximo tampoco resolvió el problema; por tanto, falta de frecuencia bruta no parece ser la explicación dominante de los 1–7 FPS.
+- El crash de esta ejecución ocurrió durante la primera carga, después de unos 6 minutos. No debe confundirse automáticamente con el crash conocido de segunda entrada al tutorial.
+
+### Interpretación de PSVshell verificada contra su código
+
+PSVshell dibuja la cifra izquierda como `total - free` y la derecha como `total`. Por tanto, los valores `365/365`, `112/112` y `26/26` significan que esos espacios estaban reportados como completamente asignados/reservados desde la perspectiva del sistema.
+
+Correspondencia:
 
 ```text
-FPS al iniciar
-FPS durante LOADING
-tiempo total de LOADING hasta tutorial
-FPS en la misma zona del primer tutorial
+MEM  = main/user RAM
+VMEM = CDRAM
+PHY  = physically contiguous RAM
 ```
 
-Baseline inmediato para comparar:
+Esto NO demuestra por sí solo que VitaGL se haya quedado internamente sin memoria, porque VitaGL reserva grandes memblocks y luego subasigna dentro de ellos.
+
+### Hallazgo en la configuración actual de VitaGL
+
+El port usa:
+
+```c
+vglInitExtended(0, 960, 544, 6 * 1024 * 1024,
+                SCE_GXM_MULTISAMPLE_NONE);
+```
+
+En la revisión de VitaGL fijada por el proyecto, `vglInitExtended()` termina usando `vglInitWithCustomThreshold()` y reserva aproximadamente:
 
 ```text
-MSAA NONE + Release anterior:
-inicio  ≈ 7 FPS
-LOADING ≈ 4 FPS
-carga   ≈ 5 min
+RAM:     toda la USER RAM libre menos 6 MiB
+CDRAM:   toda la CDRAM libre (threshold 0)
+PHYCONT: toda la PHYCONT libre (threshold 0)
 ```
 
-Si la build silenciosa mejora mucho el tiempo de carga/FPS, el logging era un cuello importante. Si prácticamente no cambia, el siguiente frente debe ser medir I/O, waits/sleeps y tiempo CPU del engine antes de activar speedhacks gráficos.
+Por eso el 100% de PSVshell es coherente con la política actual de reserva y no es todavía prueba de una fuga.
+
+### Siguiente prueba controlada — telemetría de memoria
+
+Antes de reducir heap/pools se mantiene exactamente la misma política de memoria y se añade únicamente telemetría agregada:
+
+```text
+sceKernelGetFreeMemorySize:
+  USER / CDRAM / PHYCONT libres del sistema
+
+VitaGL:
+  vglMemFree / vglMemTotal para RAM
+  vglMemFree / vglMemTotal para VRAM/CDRAM
+  vglMemFree / vglMemTotal para PHYCONT
+```
+
+Se registra antes de inicializar VitaGL, justo después y cada ~5 s junto a `[PERF]` durante render.
+
+Commit de instrumentación:
+
+```text
+168d08834c83aadb849c0bb5bff283e764927357
+```
+
+**PENDING BUILD / PENDING HARDWARE.**
+
+No cambiar todavía `_newlib_heap_size_user = 256 MiB`, el threshold de 6 MiB ni los tamaños de pools. Primero distinguir:
+
+```text
+A) PSVshell 100%, pero vglMemFree todavía alto
+   → reserva anticipada; buscar headroom externo / heap / I/O / waits.
+
+B) PSVshell 100% y vglMemFree cae cerca de cero
+   → agotamiento real de pools; después ajustar/rebalancear memoria.
+```
 
 ---
 
@@ -333,8 +404,6 @@ vita-test-6-86055f8
 commit: 86055f83e8b3877323c2c571a223e3b045d104a0
 ```
 
-Esta es la build que debe usarse para la prueba A/B de Release silenciosa. El éxito de compilación NO confirma mejora de FPS; eso queda pendiente de Vita real.
-
 No eliminar los shims de GCC15/getentropy sin volver a comprobar que la imagen nightly ya resolvió ambos problemas.
 
 ---
@@ -343,7 +412,10 @@ No eliminar los shims de GCC15/getentropy sin volver a comprobar que la imagen n
 
 - Audio `IBufferQueue_Clear`: fix confirmado en hardware; no revertir por limpieza/refactor.
 - MSAA NONE: ya probado; no esperar que por sí solo arregle los 1–7 FPS.
-- Segunda entrada al tutorial: bug real, causa todavía no demostrada; analizar log/dump antes de tocar recursos.
+- Quiet Release: probada con PSVshell al máximo; no produjo mejora significativa y terminó en crash durante primera carga tras ~6 min.
+- PSVshell 100% MEM/VMEM/PHY no equivale automáticamente a `vglMemFree()==0`; medir los pools internos antes de cambiar tamaños.
+- No reducir `_newlib_heap_size_user`, thresholds o pools de VitaGL sin leer la telemetría de memoria de la siguiente prueba.
+- Segunda entrada al tutorial: bug real, causa todavía no demostrada; analizar log/dump antes de tocar recursos por ese bug.
 - Debug = diagnóstico completo. Release = gameplay/performance con tracing mínimo.
 - `fndk_log()` tiene un único propietario: `source/main.c`. No crear una segunda definición.
 - No crear una tercera build `Perf` salvo que exista una necesidad nueva claramente justificada; el flujo actual mantiene sólo Debug y Release.
