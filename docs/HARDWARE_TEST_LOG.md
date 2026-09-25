@@ -185,13 +185,24 @@ Commits relevantes de esta preparación/corrección:
 9baebfa6d8b6df4e0666d45e0f85a788b706f006
 ```
 
+### Build generada
+
+GitHub Actions run #6 completó correctamente Debug + Release y publicó:
+
+```text
+tag: vita-test-6-86055f8
+commit: 86055f83e8b3877323c2c571a223e3b045d104a0
+archivo de prueba: Zombie-Shooter-Vita-Release.vpk
+nota: FPS test - quiet Release retry
+```
+
 ### Estado
 
-**PENDING BUILD + PENDING HARDWARE.**
+**BUILD VERIFIED / PENDING HARDWARE.**
 
 ### Métricas a comparar
 
-Usar el próximo `Zombie-Shooter-Vita-Release.vpk` que compile exitosamente y registrar:
+Usar `Zombie-Shooter-Vita-Release.vpk` del tag anterior y registrar:
 
 ```text
 FPS al iniciar
@@ -293,13 +304,36 @@ Causa: al intentar silenciar FalsoNDK se añadió una segunda implementación fu
 
 Corrección: mantener `source/main.c::fndk_log()` como única implementación. `source/reimpl/fndk_log.c` queda sin símbolo y documenta explícitamente que no debe añadir otro bridge.
 
-Estado de la corrección:
-
 ```text
-commit: 9baebfa6d8b6df4e0666d45e0f85a788b706f006
-BUILD: PENDING WORKFLOW
+commit del fix: 9baebfa6d8b6df4e0666d45e0f85a788b706f006
+BUILD: corregido y verificado en run #6
 HARDWARE: PENDING
 ```
+
+**Run #6 — quiet Release retry**
+
+**BUILD VERIFIED / WORKFLOW VERIFIED.**
+
+```text
+SoftFP/toolchain              SUCCESS
+patches FalsoJNI/FalsoNDK     SUCCESS
+GCC15 compatibility           SUCCESS
+_getentropy_r compatibility   SUCCESS
+Debug VPK                     SUCCESS
+Release VPK                   SUCCESS
+metadata                      SUCCESS
+artifact backup               SUCCESS
+Pre-release                   SUCCESS
+```
+
+Pre-release generado:
+
+```text
+vita-test-6-86055f8
+commit: 86055f83e8b3877323c2c571a223e3b045d104a0
+```
+
+Esta es la build que debe usarse para la prueba A/B de Release silenciosa. El éxito de compilación NO confirma mejora de FPS; eso queda pendiente de Vita real.
 
 No eliminar los shims de GCC15/getentropy sin volver a comprobar que la imagen nightly ya resolvió ambos problemas.
 
