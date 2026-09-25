@@ -55,8 +55,8 @@ static void log_memory_snapshot(const char *phase, int include_vgl) {
     size_t ram_total = vglMemTotal(VGL_MEM_RAM);
     size_t vram_free = vglMemFree(VGL_MEM_VRAM);
     size_t vram_total = vglMemTotal(VGL_MEM_VRAM);
-    size_t phy_free = vglMemFree(VGL_MEM_PHYCONT);
-    size_t phy_total = vglMemTotal(VGL_MEM_PHYCONT);
+    size_t phy_free = vglMemFree(VGL_MEM_SLOW);
+    size_t phy_total = vglMemTotal(VGL_MEM_SLOW);
 
     l_info("[PERF] mem phase=%s sys_ret=%d sys_free_kib user=%u cdram=%u phy=%u vgl_free_total_kib ram=%u/%u vram=%u/%u phy=%u/%u",
            phase, ret, sys_user, sys_cdram, sys_phy,
