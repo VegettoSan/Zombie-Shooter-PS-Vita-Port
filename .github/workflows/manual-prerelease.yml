@@ -108,6 +108,19 @@ jobs:
 
           echo "FalsoJNI/FalsoNDK project patches applied."
 
+      - name: Apply GCC 15 FalsoNDK compatibility fix
+        run: |
+          set -euo pipefail
+
+          # The pinned FalsoNDK ASensor.cpp uses errno/EAGAIN/EINTR without
+          # including <cerrno>. Older toolchains happened to compile it; GCC 15
+          # correctly rejects it. Keep this CI-only compatibility shim small and
+          # explicit instead of changing the pinned submodule revision.
+          if ! grep -q '^#include <cerrno>$' lib/falso_ndk/android/ASensor.cpp; then
+            sed -i '/^#include <algorithm>$/a #include <cerrno>' lib/falso_ndk/android/ASensor.cpp
+          fi
+          grep -n '^#include <cerrno>$' lib/falso_ndk/android/ASensor.cpp
+
       - name: Build Debug VPK
         run: |
           set -euo pipefail
