@@ -11,10 +11,106 @@ index b600e3d..c4934b8 100644
  
  void ALOGE(const char * fmt, ...) {
 diff --git a/android/AAssetManager.cpp b/android/AAssetManager.cpp
-index 3e61b41..691f93a 100644
+index 3e61b41..01a0d04 100644
 --- a/android/AAssetManager.cpp
 +++ b/android/AAssetManager.cpp
-@@ -80,10 +80,11 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+@@ -1,11 +1,13 @@
+ #include "android/AAssetManager.h"
+ 
+ #include <psp2/kernel/threadmgr.h>
++#include <psp2/io/stat.h>
+ #include <malloc.h>
+ #include <cstring>
+ #include <cstdio>
+ #include <string>
+ #include <fcntl.h>
++#include <cerrno>
+ 
+ #ifdef USE_SCELIBC_IO
+ #include <shim/libc_bridge.h>
+@@ -21,6 +23,8 @@ typedef struct assetManager {
+ typedef struct aAsset {
+     char * filename;
+     FILE* f;
++    unsigned char *buffer;
++    size_t position;
+     size_t bytesRead;
+     size_t fileSize;
+     bool opened = false;
+@@ -49,6 +53,8 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+     auto * a = new aAsset;
+     a->filename = (char *) malloc(realp.length() + 1);
+     strcpy(a->filename, realp.c_str());
++    a->buffer = nullptr;
++    a->position = 0;
+     a->bytesRead = 0;
+ 
+ #ifdef USE_SCELIBC_IO
+@@ -58,6 +64,17 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ #endif
+ 
+     if (!a->f) {
++        int open_errno = errno;
++        if (!strstr(filename, "i18n/") && !strstr(filename, "i18n\\")) {
++            static unsigned failure_count = 0;
++            unsigned count = __sync_add_and_fetch(&failure_count, 1);
++            if (count <= 4 || (count & (count - 1)) == 0) {
++                SceIoStat stat;
++                int stat_result = sceIoGetstat(realp.c_str(), &stat);
++                ALOGW("[ASSET] open failed #%u: %s errno=%d stat=0x%x",
++                      count, realp.c_str(), open_errno, stat_result);
++            }
++        }
+         free(a->filename);
+         delete a;
+         a = nullptr;
+@@ -72,6 +89,45 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+         fseek(a->f, 0, SEEK_SET);
+ #endif
+         a->opened = true;
++
++        // The engine keeps many assets open at once. Vita's stdio file slots
++        // run out first on .vid files and later on menu images and definitions.
++        // Keep small read-only assets in memory and release their FILE handles.
++        // Larger non-.vid files stay streamed to bound memory use.
++        const char *extension = strrchr(a->filename, '.');
++        bool is_vid = extension && strcmp(extension, ".vid") == 0;
++        if (a->fileSize <= 256 * 1024 || (is_vid && a->fileSize <= 2 * 1024 * 1024)) {
++            unsigned char *buffer = (unsigned char *)malloc(a->fileSize ? a->fileSize : 1);
++            if (buffer) {
++#ifdef USE_SCELIBC_IO
++                size_t loaded = sceLibcBridge_fread(buffer, 1, a->fileSize, a->f);
++#else
++                size_t loaded = fread(buffer, 1, a->fileSize, a->f);
++#endif
++                if (loaded == a->fileSize) {
++#ifdef USE_SCELIBC_IO
++                    sceLibcBridge_fclose(a->f);
++#else
++                    fclose(a->f);
++#endif
++                    a->f = nullptr;
++                    a->opened = false;
++                    a->buffer = buffer;
++                    static unsigned buffered_count = 0;
++                    unsigned count = __sync_add_and_fetch(&buffered_count, 1);
++                    if (count <= 4 || (count % 64) == 0)
++                        ALOGD("[ASSET] buffered #%u: %s (%u bytes)",
++                              count, a->filename, (unsigned)a->fileSize);
++                } else {
++                    free(buffer);
++#ifdef USE_SCELIBC_IO
++                    sceLibcBridge_fseek(a->f, 0, SEEK_SET);
++#else
++                    fseek(a->f, 0, SEEK_SET);
++#endif
++                }
++            }
++        }
+     }
+ 
+     ALOGD("AAssetManager_open<%p>(%p, %s, %i): %p", __builtin_return_address(0), mgr, realp.c_str(), mode, a);
+@@ -80,10 +136,11 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
  }
  
  void AAsset_close(AAsset* asset) {
@@ -28,7 +124,13 @@ index 3e61b41..691f93a 100644
          free(a->filename);
          if (a->opened) {
  #ifdef USE_SCELIBC_IO
-@@ -97,15 +98,15 @@ void AAsset_close(AAsset* asset) {
+@@ -92,33 +149,51 @@ void AAsset_close(AAsset* asset) {
+             fclose(a->f);
+ #endif
+         }
++        free(a->buffer);
+         delete a;
+     }
  }
  
  int AAsset_read(AAsset* asset, void* buf, size_t count) {
@@ -41,13 +143,27 @@ index 3e61b41..691f93a 100644
  
      auto * a = (aAsset *) asset;
  
-     if (!a->opened) {
+-    if (!a->opened) {
++    if (!a->opened && !a->buffer) {
 +        ALOGW("AAsset_read called on closed asset: %s", a->filename);
          return -1;
      }
  
-@@ -116,7 +117,15 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
++    size_t ret;
++    if (a->buffer) {
++        size_t available = a->fileSize - a->position;
++        ret = count < available ? count : available;
++        if (ret) memcpy(buf, a->buffer + a->position, ret);
++        a->position += ret;
++    } else {
+ #ifdef USE_SCELIBC_IO
+-    size_t ret = sceLibcBridge_fread(buf, 1, count, a->f);
++        ret = sceLibcBridge_fread(buf, 1, count, a->f);
+ #else
+-    size_t ret = fread(buf, 1, count, a->f);
++        ret = fread(buf, 1, count, a->f);
  #endif
++    }
  
      if (ret > 0) {
 +        size_t previous = a->bytesRead;
@@ -61,8 +177,11 @@ index 3e61b41..691f93a 100644
 +        }
          return (int) ret;
      } else {
++        if (a->buffer) return 0;
  #ifdef USE_SCELIBC_IO
-@@ -126,6 +135,9 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+         if (sceLibcBridge_feof(a->f)) {
+ #else
+@@ -126,6 +201,9 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
  #endif
              return 0;
          } else {
@@ -71,6 +190,32 @@ index 3e61b41..691f93a 100644
 +                  (unsigned)a->fileSize);
              return -1;
          }
+     }
+@@ -140,6 +218,16 @@ off_t AAsset_seek(AAsset* asset, off_t offset, int whence) {
+ 
+     auto * a = (aAsset *) asset;
+ 
++    if (a->buffer) {
++        int64_t base = whence == SEEK_SET ? 0 :
++                       whence == SEEK_CUR ? (int64_t)a->position :
++                       whence == SEEK_END ? (int64_t)a->fileSize : -1;
++        int64_t next = base + offset;
++        if (base < 0 || next < 0 || next > (int64_t)a->fileSize) return -1;
++        a->position = (size_t)next;
++        return (off_t)next;
++    }
++
+     if (!a->opened) {
+         return -1;
+     }
+@@ -169,6 +257,8 @@ off_t AAsset_getRemainingLength(AAsset* asset) {
+ 
+     auto * a = (aAsset *) asset;
+ 
++    if (a->buffer) return (off_t)(a->fileSize - a->position);
++
+     if (!a->opened) {
+         return -1;
      }
 diff --git a/android/AInput.cpp b/android/AInput.cpp
 index 91f151d..09b0893 100644

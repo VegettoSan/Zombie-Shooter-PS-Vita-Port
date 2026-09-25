@@ -4,10 +4,10 @@ Actualizado: 2026-09-25. Todo el trabajo y los artefactos permanecen locales. El
 
 ## Iteración de hardware actual
 
-- **Current boot stage:** `log_0008.log` supera ambos logos y `LOADING`, y queda en pantalla negra sin crash.
-- **Bloqueo observado:** la Activity ya pasa `IsInstanceOf(Context)`, pero `AssetPackManagerFactory.getInstance(Context)` no existe en FalsoJNI y `commonAssets` carece de ubicación. Además, 790 archivos que Vita no pudo abrir existen en el árbol local actual.
-- **Cambio de esta iteración:** se creó `build-session-debug/vita-data.zip` con los 2.432 assets del APK base y la biblioteca Android, para extraer en `ux0:data/`. `config.es.apk` y `data/res` no aportan los assets pedidos por el motor.
-- **Siguiente prueba:** copiar el nuevo árbol a Vita, reutilizar el VPK Debug y comprobar si desaparecen las aperturas fallidas de `vid/115.vid` y `vid/empty.vid`, y si aparece el menú.
+- **Current boot stage:** `log_0010.log` muestra imágenes detrás de `LOADING`, pero la carga no termina y no hay crash.
+- **Bloqueo observado:** el buffer de `.vid` permitió abrir `vid/115.vid` y `menus/main.men`. Con 58 streams no `.vid` activos, fallan PNG del menú presentes en los datos y abiertos antes; el límite de handles reaparece.
+- **Cambio de esta iteración:** además de los `.vid`, se almacenan en memoria los assets de hasta 256 KiB; los grandes no `.vid` siguen en streaming. Se actualizó el parche del submódulo para la subida manual.
+- **Siguiente prueba:** instalar el VPK Debug nuevo sin volver a copiar datos; comprobar si abren `menus/img/2555_07.png` y `2544.png`, y si desaparece `LOADING`.
 
 ## Estado verificable
 
@@ -17,19 +17,19 @@ Actualizado: 2026-09-25. Todo el trabajo y los artefactos permanecen locales. El
 | SO utilizado | VERIFICADO | `data/libzombie_shooter.so`, 9,773,412 bytes, SHA-256 `5e5e2e1bbe86e126c3e2dce5ad97c2e9dc6282305ea7d3e24b49ee4769c5b5b7`. Coincide con el split APK ARM. |
 | ABI | VERIFICADO | Tanto el SO Android como `build-release/so_loader` declaran EABI5 soft-float. Toolchain: `/usr/local/vitasdk`, GCC 10.3.0, `-mfloat-abi=softfp`. No se usó `/usr/local/vitasdk-hardfp`. |
 | Entrypoint | VERIFICADO | `ANativeActivity_onCreate` (0x005296a9 en el SO). Manifest: `GameActivity` es `MAIN`/`LAUNCHER`, hereda de `CommonActivity` → `android.app.NativeActivity` y declara `android.app.lib_name=zombie_shooter`; JADX confirma que `onCreate/onStart/onResume` llaman a `super`. No hay `JNI_OnLoad`, `android_main` ni `Java_*` exportados. |
-| JNI | `quit()V` VERIFICADO EN HARDWARE; CONTEXT PENDIENTE | `getContentResolver` y `Settings.Secure.getString(android_id)` ya se llaman, pero `Wrong AES key length` persiste. La respuesta nueva de `IsInstanceOf(activity, Context)` requiere prueba física. |
+| JNI | CONTEXT VERIFICADO; PLAY ASSET DELIVERY PENDIENTE | `log_0009.log` confirma `IsInstanceOf(activity, Context): true`. `AssetPackManagerFactory.getInstance(Context)` sigue ausente; `Wrong AES key length` persiste. |
 | Imports | COBERTURA ESTÁTICA VERIFICADA | 412 símbolos undefined únicos del SO; 412/412 tienen entrada explícita en `dynlib.c`. Se añadieron wrappers Bionic/FORTIFY, red, señales, tiempo, eventfd/looper/input, pthread rwlock y símbolos de streams. La cobertura no demuestra semántica perfecta de todas las rutas. |
 | Constructores | VERIFICADO EN HARDWARE | Los constructores Protobuf 16/17 usaban punteros Android kuser `0xffff0fa0`/`0xffff0fc0` almacenados en `.data`; ahora se parchean ambos símbolos exportados. La ejecución real completa las 41 entradas de `.init_array`. |
 | VitaGL/EGL | LOGOS VERIFICADOS; MENÚ PENDIENTE | VitaGL dibuja los logos Sigma y del juego, y `LOADING`; después queda negro. El mapeo de nombres GLES compactos se verificó en hardware. |
 | Audio | ENLAZADO, NO PROBADO | OpenSL ES de VitaSDK y codecs requeridos se enlazan; `slCreateEngine` y los IID usados están resueltos. |
 | Input | COLA CREADA; CRASH DE JOYSTICK SUPERADO EN HARDWARE | `onInputQueueCreated` retorna correctamente. El dump de `log_0002` localiza un puntero nulo de MotionAPIV14 en un evento joystick. La resolución dinámica corregida pasó la prueba `log_0003`; el mapping físico durante gameplay aún requiere prueba. |
-| Assets | LOCAL VERIFICADO; VITA PENDIENTE | Los 2.432 archivos locales coinciden con el APK base en nombre y CRC. `log_0008.log` falla en 790 rutas que ahora existen localmente; `commonAssets` sigue ausente. Véase `docs/ASSET_LAYOUT.md`. |
+| Assets | VID VERIFICADOS; PNG PENDIENTES | `log_0010.log` lee más de 800 `.vid` con buffer y alcanza `menus/main.men`; después falla al reabrir PNG del menú con 58 streams no `.vid` activos. `commonAssets` sigue ausente. |
 | Filesystem | VERIFICADO ESTÁTICAMENTE | Ruta central: `ux0:data/zombieshooter/`; contiene `libzombie_shooter.so` y `assets/`. `ANativeActivity` usa esta ruta como internal/external/OBB y un `AAssetManager` no nulo. |
-| Build Debug | BUILD VERIFIED | `build-session-debug/zombie_shooter.vpk`; build SoftFP y ZIP íntegro; SHA-256 `d454277099364f2b3b018328d3079e0d95d0bd4d53d123fee30da9cafe1db43f`. |
-| Build Release | BUILD VERIFIED | `build-session-release/zombie_shooter.vpk`; build SoftFP y ZIP íntegro; SHA-256 `f4feb9baa2a9b51a996d09e72fd417a564eceffff1e27366639cbaa5043f517f`. |
+| Build Debug | BUILD VERIFIED | `build-session-debug/zombie_shooter.vpk`; build SoftFP y ZIP íntegro; SHA-256 `bcdbc3b0ef82eb9b75357bdde064fa5b50638a627208ea379c472c7052cf4fd8`. |
+| Build Release | BUILD VERIFIED | `build-session-release/zombie_shooter.vpk`; build SoftFP y ZIP íntegro; SHA-256 `4f44fb2632123ca4f098eeadc4ec0800f2935ff9185d935a8b8e8503aa7e7ed1`. |
 | VPK | VPK VERIFIED | Ambos VPK pasan `unzip -t`; contienen `eboot.bin`, `param.sfo` y LiveArea. Título `ZOMB00001`. |
 | Vita3K | NO USADO | Esta iteración está destinada exclusivamente a PS Vita real. |
-| Vita real | LOADING SUPERADO; PANTALLA NEGRA | `log_0008.log` confirma el reconocimiento de `Context`, pero aún falta Play Asset Delivery y comprobar la copia completa de assets en Vita. |
+| Vita real | LOADING CON IMÁGENES; MENÚ PENDIENTE | `log_0010.log` confirma el buffer de `.vid` y un nuevo límite de streams PNG. El buffer de assets pequeños sólo está verificado por build. |
 | Boot / Render / Menú / Gameplay | LOGOS Y LOADING VERIFICADOS; MENÚ Y JUEGO PENDIENTES | Loader, VitaGL y NativeActivity avanzan; todavía no hay menú ni gameplay confirmados. |
 
 ## Cambios técnicos principales

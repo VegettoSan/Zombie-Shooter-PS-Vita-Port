@@ -1,9 +1,23 @@
 # Progreso del port
 
+## Checkpoint actual: límite de streams durante la carga de menú
+
+- Vita real `log_0010.log`: el buffer de `.vid` funciona; `vid/115.vid` y `menus/main.men` abren y el usuario ve imágenes detrás de `LOADING`. No se repite `showWait`. La carga se detiene después de que `menus/img/2555_00.png` a `_06.png` abren, pero `_07.png` y archivos siguientes fallan aunque están en los datos y `_07.png` abrió antes.
+- Justo antes de ese fallo hay 58 streams activos **no `.vid`**: principalmente 27 PNG y 22 `.men`; por ello el límite de handles reaparece en otro tipo de asset. El log termina con heartbeats del hilo lifecycle y sin crash. `commonAssets` y el error AES siguen pendientes, pero no explican la secuencia exacta de fallas de archivos existentes.
+- Cambio: mantener en memoria todos los assets de hasta 256 KiB además de los `.vid` de hasta 2 MiB; los archivos grandes no `.vid` continúan en streaming. El subconjunto de assets pequeños del APK suma como máximo 46,2 MiB, y el resto de `.vid` añade menos de 20 MiB antes de duplicados. El buffer existente ya soporta lectura, seek y longitud restante.
+- Debug y Release compilan con SoftFP y ambos VPK pasan `unzip -t`. Pendente Vita real: confirmar que `menus/img/2555_07.png`, `_08.png`, `_09.png` y `2544.png` abren, y si desaparece LOADING.
+
+## Checkpoint actual: agotamiento de handles de assets
+
+- Vita real `log_0009.log`: `vid/empty.vid` abre y se lee completo, pero más tarde la misma ruta falla. Justo antes del primer fallo de `vid/115.vid` hay 59 `AAsset` abiertos sin cerrar (50 `.vid`), y desde ese punto no hay más aperturas exitosas; `menus/main.men` también falla aunque existe en el APK y en Vita se copió el mismo árbol. Esto contradice la hipótesis previa de una copia incompleta como explicación principal.
+- Causa probable, pendiente de confirmar en Vita: agotamiento de slots de `FILE*`/descriptores por los `.vid` que el motor mantiene abiertos. No se modifica la búsqueda de `commonAssets`, que continúa sin implementación ni archivos locales.
+- Cambio en FalsoNDK: cada `.vid` de hasta 2 MiB se carga en memoria al abrir y se cierra de inmediato su `FILE*`; `AAsset_read`, `AAsset_seek` y longitud restante funcionan sobre el buffer. Todos los `.vid` del APK son menores de 2 MiB. Si una apertura aún falla, se registran `errno` y `sceIoGetstat` de forma limitada para distinguir archivo ausente de límite de handles.
+- Debug y Release compilan con SoftFP. Próxima prueba: confirmar trazas `[ASSET] buffered .vid`, que `vid/115.vid` y `menus/main.men` abren, y observar si aparece el menú. El mismo ZIP de datos de la iteración anterior sirve.
+
 ## Checkpoint actual: rutas de assets faltantes en Vita
 
 - Vita real `log_0008.log`: `IsInstanceOf(activity, android/content/Context): true` confirma el parche anterior. Luego falta `AssetPackManagerFactory.getInstance(Context)` en FalsoJNI; el manager queda nulo y `commonAssets` se consulta repetidamente. Pantalla negra tras `LOADING`, sin crash; 1.503 errores `showWait` y 215 `Wrong AES key length`.
-- De 1.256 rutas directas distintas que `AAssetManager_open` no pudo abrir en Vita, 790 existen en el `data/assets` local actual. El APK base y ese árbol local coinciden exactamente en nombres y CRC de sus 2.432 assets. La copia en Vita probablemente está incompleta, pero falta comprobarlo allí.
+- De 1.256 rutas directas distintas que `AAssetManager_open` no pudo abrir en Vita, 790 existen en el `data/assets` local actual. El APK base y ese árbol local coinciden exactamente en nombres y CRC de sus 2.432 assets. `log_0009.log` mostró que algunas de esas rutas abren antes de dejar de abrirse; la hipótesis de una copia incompleta queda descartada como explicación principal.
 - Las 466 rutas restantes no existen localmente; 396 pertenecen al paquete `commonAssets;fast-follow`. `config.es.apk` no trae assets. Los 1.133 archivos de `data/res` son recursos Android, sin lectura nativa observada en este log.
 - Cambio de este checkpoint: `scripts/package_vita_data.py` produce `build-session-debug/vita-data.zip` con `zombieshooter/assets/` y `libzombie_shooter.so` para extraer en `ux0:data/`. No se modificó el loader mientras se comprueba la copia de datos. ZIP de 2.433 entradas íntegro; los VPK Debug y Release anteriores permanecen íntegros.
 - Prueba siguiente: copiar el ZIP de datos a Vita, reutilizar el VPK Debug y comprobar que `vid/115.vid` y `vid/empty.vid` abren. Si el menú sigue negro, el siguiente límite es Play Asset Delivery y los archivos `commonAssets` ausentes.
