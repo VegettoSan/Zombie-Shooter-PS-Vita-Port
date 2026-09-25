@@ -63,9 +63,9 @@ if (DUMP_COMPILED_SHADERS)
   endif()
 endif()
 
-# Detailed logging always enabled for diagnostics (hardware testing)
+# Keep the loader logger available in both configurations. logger.h strips the
+# high-volume traffic from Release while retaining the aggregated [PERF] lines.
 add_definitions(-DDEBUG_SOLOADER)
-add_definitions(-DSO_UTIL_VERBOSE=1)
 # add_definitions(-DDEBUG_OPENGL)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -84,11 +84,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=softfp -std=gnu++20 -Wno-wri
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    # Granular JNI/thread traces are for the hardware diagnostic VPK only.
-    add_definitions(-DFALSOJNI_DEBUGLEVEL=0 -DZOMBIE_THREAD_TRACE=1 -DZOMBIE_STALL_DUMP=1)
+    # Granular JNI/thread/so-loader traces are for the hardware diagnostic VPK only.
+    add_definitions(-DFALSOJNI_DEBUGLEVEL=0 -DSO_UTIL_VERBOSE=1 -DZOMBIE_THREAD_TRACE=1 -DZOMBIE_STALL_DUMP=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -g3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g3")
 else ()
+    # Release is the gameplay/FPS build. Debug exists for diagnostics, so do not
+    # let FalsoJNI warning/error traffic dominate loading and frame pacing here.
+    add_definitions(-DFALSOJNI_DEBUGLEVEL=4)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g1")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g1")
 endif()
@@ -99,6 +102,7 @@ set(SOURCES
     source/java.c
     source/patch.c
     source/reimpl/bionic_compat.c
+    source/reimpl/fndk_log.c
     source/reimpl/bits/_ctype.c
     source/reimpl/errno.c
     source/reimpl/io.c
@@ -263,7 +267,7 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 ${CMAKE_SOURCE_DIR}/extras/meminfo meminfo
                 ${CMAKE_SOURCE_DIR}/extras/urandom urandom
                 ${CMAKE_SOURCE_DIR}/extras/livearea/icon0.png sce_sys/icon0.png
-                ${CMAKE_SOURCE_DIR}/extras/livearea/pic0.png sce_sys/pic0.png
+                ${CMAKE_SOURCE_DIR}/extras/livearea/pic0.png sce_sys/livearea/contents/pic0.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/startup.png sce_sys/livearea/contents/startup.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/bg0.png sce_sys/livearea/contents/bg0.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/template.xml sce_sys/livearea/contents/template.xml
