@@ -13,6 +13,8 @@
 #ifndef SOLOADER_LOGGER_H
 #define SOLOADER_LOGGER_H
 
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,12 +27,34 @@ extern "C" {
 #define LT_SUCCESS 5
 #define LT_WAIT    6
 
-#ifdef DEBUG_SOLOADER
+/*
+ * Debug builds keep the full bring-up trace used for real-Vita crash triage.
+ * Release builds used to keep the same DEBUG_SOLOADER traffic, which meant
+ * thousands of sceClibPrintf/sceIoWrite calls while trying to measure FPS.
+ *
+ * CMake's Release configuration defines NDEBUG.  In that configuration retain
+ * only the aggregated [PERF] info lines; errors/fatals remain unconditional
+ * below.  This gives us a low-overhead A/B build without losing the five-second
+ * present cadence measurements already emitted by glutil.c/main.c.
+ */
+#if defined(DEBUG_SOLOADER) && !defined(NDEBUG)
 #define l_debug(...)   _log_print(LT_DEBUG,   __VA_ARGS__)
 #define l_info(...)    _log_print(LT_INFO,    __VA_ARGS__)
 #define l_warn(...)    _log_print(LT_WARN,    __VA_ARGS__)
 #define l_success(...) _log_print(LT_SUCCESS, __VA_ARGS__)
 #define l_wait(...)    _log_print(LT_WAIT,    __VA_ARGS__)
+#elif defined(DEBUG_SOLOADER) && defined(NDEBUG)
+#define ZOMBIE_RELEASE_KEEP_INFO(fmt) \
+    ((fmt) != NULL && strncmp((fmt), "[PERF]", 6) == 0)
+#define l_debug(...)
+#define l_info(fmt, ...) \
+    do { \
+        if (ZOMBIE_RELEASE_KEEP_INFO(fmt)) \
+            _log_print(LT_INFO, (fmt), ##__VA_ARGS__); \
+    } while (0)
+#define l_warn(...)
+#define l_success(...)
+#define l_wait(...)
 #else
 #define l_debug(...)
 #define l_info(...)
@@ -39,6 +63,7 @@ extern "C" {
 #define l_wait(...)
 #endif
 
+/* Errors and fatals are retained in every configuration. */
 #define l_error(...)   _log_print(LT_ERROR,   __VA_ARGS__)
 #define l_fatal(...)   _log_print(LT_FATAL,   __VA_ARGS__)
 
