@@ -4,11 +4,11 @@ Actualizado: 2026-09-25. El mapa de evidencia APK/JADX/SO está en `PORTING_PLAN
 
 ## Iteración de hardware actual
 
-- **Current boot stage:** Vita real supera los logos y `LOADING`, entra al nivel tutorial y el táctil responde (`log_0011.log`–`log_0013.log`).
-- **Problema funcional actual:** el juego corre aproximadamente a **1–7 FPS reales** y, al avanzar en el tutorial, el render puede quedar detenido durante minutos sin un crash espontáneo.
-- **Evidencia del bloqueo:** en el dump asociado a `log_0013.log`, el hilo que reproduce `wav/footsteps.wav` queda en `sound::SfxBuffer::play` → `IBufferQueue_Clear` → espera de condición, mientras el hilo `OpenSLES Playback` está dentro de `sceAudioOutOutput`. `eglSwapBuffers` mide aproximadamente 0,2 ms, por lo que el bajo FPS observado no se explica por el swap/present en sí.
-- **Cambio de esta iteración:** la build sustituye únicamente `IBufferQueue.o` de OpenSL ES por una variante donde `Clear()` espera como máximo 100 ms. Si el mixer no confirma el vaciado, la petición queda pendiente y se registra `[AUDIO]` en lugar de suspender indefinidamente el hilo del juego.
-- **Siguiente prueba física:** instalar el VPK Debug actual, entrar al tutorial, mover al personaje hasta disparar `footsteps.wav` y comprobar si los presents siguen avanzando. Devolver el `log_*.log` más reciente y un `.psp2dmp` nuevo sólo si vuelve a detenerse/crashear.
+- **Current boot stage:** Vita real supera los logos y `LOADING`, entra al nivel tutorial, reproduce audio, permite desplazarse por el tutorial, salir al menú principal y volver a intentar cargar el tutorial.
+- **Audio:** el cambio local de OpenSL ES que acota `IBufferQueue_Clear()` ya fue validado por el usuario en Vita real. Los sonidos se reproducen y `footsteps.wav` ya no deja el juego detenido indefinidamente.
+- **Rendimiento:** el tutorial sigue funcionando aproximadamente a **1–7 FPS reales**. `eglSwapBuffers` se había medido alrededor de 0,2 ms, por lo que el present por sí solo no explica la baja cadencia.
+- **Nuevo problema reproducible reportado:** después de salir del tutorial al menú principal y volver a entrar, algunas imágenes/texturas no cargan y posteriormente el juego crashea. El usuario conserva en PC el log y el crash dump de esa ejecución; la causa queda **pendiente de análisis con esos archivos**, por lo que no se atribuye todavía a assets, memoria, VitaGL ni lifecycle.
+- **Siguiente frente de trabajo:** avanzar optimizaciones de bajo riesgo que no cambien lifecycle/assets/audio mientras el crash de reentrada queda reservado para una sesión de Codex con el log y `.psp2dmp` reales.
 
 ## Estado verificable
 
@@ -21,18 +21,18 @@ Actualizado: 2026-09-25. El mapa de evidencia APK/JADX/SO está en `PORTING_PLAN
 | JNI | PARCIALMENTE VERIFICADO | `IsInstanceOf(activity, Context)` ya funciona en hardware. `AssetPackManagerFactory.getInstance(Context)`/Play Asset Delivery sigue incompleto y `Wrong AES key length` permanece abierto. |
 | Imports | COBERTURA ESTÁTICA VERIFICADA | Los 412 símbolos undefined únicos tienen entrada explícita en `dynlib.c`. Esto no garantiza semántica perfecta de todas las rutas. |
 | Constructores | VERIFICADO EN HARDWARE | Se completan las 41 entradas de `.init_array`; los punteros Android kuser usados por Protobuf ya se parchean. |
-| VitaGL/EGL | RENDER VERIFICADO | Logos, `LOADING` y el nivel tutorial se renderizan en Vita real. El mapeo compacto de nombres de VBO corrigió el truncado de nombres GLES. `eglSwapBuffers` no aparece como cuello de botella inmediato. |
-| Audio | BLOQUEO IDENTIFICADO; FIX PENDIENTE DE HARDWARE | OpenSL ES reproduce hasta el tutorial. El dump de `log_0013` identifica una espera indefinida en `IBufferQueue_Clear`; la build actual limita esa espera a 100 ms. |
+| VitaGL/EGL | RENDER VERIFICADO | Logos, `LOADING`, tutorial y menú principal se renderizan en Vita real. El mapeo compacto de nombres de VBO corrigió el truncado de nombres GLES. `eglSwapBuffers` no aparece como cuello de botella inmediato. |
+| Audio | FIX VERIFICADO EN HARDWARE | OpenSL ES reproduce audio durante gameplay y el bloqueo observado previamente en `IBufferQueue_Clear` dejó de impedir avanzar por el tutorial tras aplicar el timeout acotado. Queda pendiente optimizar/validar semántica a largo plazo, pero el bloqueo principal está superado. |
 | Input | TÁCTIL VERIFICADO; FÍSICO PENDIENTE | La cola de input funciona y el tutorial responde al táctil. El crash previo de MotionAPIV14 fue superado. Mapping físico completo aún no está confirmado durante gameplay. |
-| Assets | SUFICIENTES PARA TUTORIAL | Buffering de `.vid` y assets pequeños superó el agotamiento de handles y permitió entrar al tutorial. Siguen faltando rutas `commonAssets;fast-follow`. |
+| Assets | TUTORIAL/MENÚ VERIFICADOS; REENTRADA PENDIENTE | El primer ingreso al tutorial carga suficientes recursos y permite jugar. Al volver a entrar desde el menú, el usuario reporta imágenes/texturas ausentes antes de un crash; hace falta revisar el log/dump de esa ejecución antes de concluir la causa. |
 | Filesystem | VERIFICADO | Base `ux0:data/zombieshooter/` con `libzombie_shooter.so` y `assets/`; NativeActivity usa esa base para rutas internas/externas/OBB. |
 | Build Debug | BUILD VERIFIED | Se genera en `build-session-debug/zombie_shooter.vpk` con SoftFP y símbolos/diagnóstico. |
 | Build Release | BUILD VERIFIED | Se genera en `build-session-release/zombie_shooter.vpk` con SoftFP. |
 | VPK | VPK VERIFIED | El proyecto genera `eboot.bin`, `param.sfo` y LiveArea con Title ID `ZOMB00001`. |
 | Vita3K | NO USADO | El flujo de este port se valida en PS Vita real. |
-| Vita real | TUTORIAL VERIFICADO | Boot, logos, loading, entrada al tutorial y touch están confirmados. Rendimiento y estabilidad de audio siguen abiertos. |
-| Boot / Render / Menú / Gameplay | GAMEPLAY INICIAL VERIFICADO | Ya existe primer frame y se alcanza un nivel tutorial. Aún no se considera jugable por 1–7 FPS y el bloqueo de audio observado. |
-| Rendimiento | INVESTIGACIÓN ABIERTA | 1–7 FPS en tutorial. Swap ~0,2 ms; el cuello principal está fuera de `eglSwapBuffers`. Antes de aplicar speedhacks se debe separar coste de CPU/engine, audio, logging, I/O y GPU. |
+| Vita real | TUTORIAL + MENÚ VERIFICADOS | Boot, logos, loading, gameplay inicial, audio, touch y retorno al menú están confirmados. Reentrada al tutorial presenta recursos ausentes y crash pendiente de análisis. |
+| Boot / Render / Menú / Gameplay | GAMEPLAY INICIAL VERIFICADO | Ya existe primer frame, tutorial navegable y menú principal. Aún no se considera jugable por 1–7 FPS y el crash de reentrada. |
+| Rendimiento | INVESTIGACIÓN ABIERTA | 1–7 FPS en tutorial. Swap ~0,2 ms; el cuello principal está fuera de `eglSwapBuffers`. Se debe separar coste de CPU/engine, logging, I/O, GPU y cualquier espera residual de audio. |
 
 ## Cambios técnicos principales
 
@@ -46,7 +46,7 @@ Actualizado: 2026-09-25. El mapa de evidencia APK/JADX/SO está en `PORTING_PLAN
 - `lib/falso_ndk/android/AAssetManager.cpp`: buffering de `.vid` y assets pequeños para evitar agotamiento de handles.
 - `source/utils/glutil.c` / `source/reimpl/egl.c`: VitaGL único, contexto EGL persistente, instrumentación de cadence y traducción de nombres GLES compactos.
 - `source/utils/logger.c`: un log por ejecución, sync inmediato para errores y batching para trazas normales.
-- `lib/opensles_clear/IBufferQueue.c`: variante local de `IBufferQueue_Clear` con timeout acotado de 100 ms; pendiente validación física.
+- `lib/opensles_clear/IBufferQueue.c`: variante local de `IBufferQueue_Clear` con timeout acotado de 100 ms; su objetivo principal de evitar el bloqueo indefinido ya fue confirmado en Vita real.
 - `CMakeLists.txt`: build SoftFP, vitaGL vendorizada y sustitución únicamente de `IBufferQueue.o` dentro de OpenSL ES.
 
 ## Build reproducible
@@ -90,12 +90,12 @@ No hace falta volver a copiar los datos para cada VPK si el árbol de assets no 
 
 ## Problemas abiertos y prioridad
 
-1. **Validar el timeout de OpenSL ES** en hardware y comprobar que `footsteps.wav` ya no detenga el hilo del juego.
-2. **Perfilar el 1–7 FPS** sin asumir que el problema es `eglSwapBuffers`: separar CPU/engine, GPU, logging, asset I/O y audio.
-3. **Revisar configuración de VitaGL para rendimiento**, especialmente MSAA 4x a 960x544, memoria y flags de Release, mediante pruebas A/B controladas.
+1. **Subir FPS con cambios A/B de bajo riesgo**: separar primero coste de logging/Debug y luego eliminar el MSAA 4x que el bridge EGL no solicita.
+2. **Analizar el crash de reentrada al tutorial** usando el `log_*.log` y `.psp2dmp` reales que el usuario ya conserva; no aplicar fixes especulativos antes de leerlos.
+3. **Perfilar el 1–7 FPS** separando CPU/engine, GPU, asset I/O y esperas residuales; `eglSwapBuffers` por sí solo no es el cuello observado.
 4. Implementar sólo si resulta necesario la parte útil de Play Asset Delivery / `commonAssets;fast-follow` y resolver `Wrong AES key length` con evidencia.
-5. Confirmar controles físicos, audio continuo, saves y progresión una vez la cadencia de frame sea razonable.
+5. Confirmar controles físicos, saves y progresión una vez la cadencia de frame sea razonable.
 
-### Siguiente prueba
+### Próxima medición de rendimiento
 
-Instalar **Debug**, entrar al tutorial, mover al personaje hasta reproducir pasos y observar durante al menos 30–60 segundos. El objetivo inmediato es confirmar si aparecen mensajes `[AUDIO] OpenSLES buffer Clear timed out` y, sobre todo, si el contador `[PERF] present` continúa avanzando después del primer `footsteps.wav`.
+Usar una zona reproducible del primer tutorial durante 30–60 segundos. Mantener una build Debug para crashes y preparar una build Perf separada con tracing mínimo. Comparar después MSAA 4x contra `SCE_GXM_MULTISAMPLE_NONE` sin mezclar otros speedhacks.
