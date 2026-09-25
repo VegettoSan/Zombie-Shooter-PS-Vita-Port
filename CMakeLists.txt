@@ -23,6 +23,10 @@ set(VITA_MAKE_FSELF_FLAGS "${VITA_MAKE_FSELF_FLAGS} -a 0x2800000000000000")
 set(PSVITAIP "192.168.0.198" CACHE STRING "PSVita IP (for FTP access)")
 set(PARSECOREPATH "$ENV{PARSECOREPATH}" CACHE STRING "vita-parse-core main.py")
 
+# Build identity is embedded in every persistent Vita log. CI passes the short
+# Git commit; local builds default to "local".
+set(ZOMBIE_BUILD_ID "local" CACHE STRING "Build identifier written to Vita logs")
+
 # Game-specific definitions - Zombie Shooter
 set(DATA_PATH "ux0:data/zombieshooter/" CACHE STRING "Path to data (with trailing /)")
 set(SO_PATH "${DATA_PATH}libzombie_shooter.so" CACHE STRING "Path to .so")
@@ -50,7 +54,7 @@ elseif (${SHADER_FORMAT} STREQUAL "CG")
 elseif (${SHADER_FORMAT} STREQUAL "GXP")
   add_definitions(-DUSE_GXP_SHADERS)
 else()
-  message(FATAL_ERROR "SHADER_FORMAT option can only be one of: 'GLSL', 'CG', 'GXP'")
+  message(FATAL_ERROR "SHADER_FORMAT option can only be one of: GLSL, CG, GXP")
 endif()
 
 set(valid_dump_formats GLSL CG)
@@ -63,16 +67,25 @@ if (DUMP_COMPILED_SHADERS)
   endif()
 endif()
 
-# Keep the loader logger available in both configurations. logger.h strips the
-# high-volume traffic from Release while retaining the aggregated [PERF] lines.
+# Keep the loader logger compiled into both variants. logger.h now keys its
+# behavior from explicit ZOMBIE_*_BUILD definitions, never from NDEBUG.
 add_definitions(-DDEBUG_SOLOADER)
 # add_definitions(-DDEBUG_OPENGL)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(ZOMBIE_BUILD_VARIANT "Debug")
+  set(ZOMBIE_BUILD_DEFINE "ZOMBIE_DEBUG_BUILD=1")
+  set(ZOMBIE_FALSOJNI_DEBUGLEVEL 0)
   set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1")
-else()
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+  set(ZOMBIE_BUILD_VARIANT "Release")
+  set(ZOMBIE_BUILD_DEFINE "ZOMBIE_RELEASE_BUILD=1")
+  set(ZOMBIE_FALSOJNI_DEBUGLEVEL 4)
   set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 LOG_ERRORS=1")
+else()
+  message(FATAL_ERROR "Zombie Shooter supports exactly CMAKE_BUILD_TYPE=Debug or Release; got '${CMAKE_BUILD_TYPE}'")
 endif()
+message(STATUS "Zombie build variant=${ZOMBIE_BUILD_VARIANT} id=${ZOMBIE_BUILD_ID} FALSOJNI_DEBUGLEVEL=${ZOMBIE_FALSOJNI_DEBUGLEVEL}")
 
 # makes sincos, sincosf, etc. visible
 add_definitions(-D_GNU_SOURCE -D__POSIX_VISIBLE=999999)
@@ -85,13 +98,12 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Granular JNI/thread/so-loader traces are for the hardware diagnostic VPK only.
-    add_definitions(-DFALSOJNI_DEBUGLEVEL=0 -DSO_UTIL_VERBOSE=1 -DZOMBIE_THREAD_TRACE=1 -DZOMBIE_STALL_DUMP=1)
+    add_definitions(-DSO_UTIL_VERBOSE=1 -DZOMBIE_THREAD_TRACE=1 -DZOMBIE_STALL_DUMP=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -g3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g3")
-else ()
-    # Release is the gameplay/FPS build. Debug exists for diagnostics, so do not
-    # let FalsoJNI warning/error traffic dominate loading and frame pacing here.
-    add_definitions(-DFALSOJNI_DEBUGLEVEL=4)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Release is the gameplay/FPS build. FalsoJNI level and logger behavior are
+    # target-scoped below so a toolchain cannot silently turn Debug traffic on.
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g1")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g1")
 endif()
@@ -133,6 +145,15 @@ list(APPEND SOURCES
 endif()
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+
+# These definitions are intentionally target-scoped. Run #8 showed that a
+# Release VPK could still emit Debug-looking traffic, so CI now verifies these
+# exact flags before publishing a build.
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+    ${ZOMBIE_BUILD_DEFINE}
+    FALSOJNI_DEBUGLEVEL=${ZOMBIE_FALSOJNI_DEBUGLEVEL}
+    ZOMBIE_BUILD_VARIANT="${ZOMBIE_BUILD_VARIANT}"
+    ZOMBIE_BUILD_ID="${ZOMBIE_BUILD_ID}")
 
 add_subdirectory(lib/libc_bridge)
 add_dependencies(${CMAKE_PROJECT_NAME} SceLibcBridge)
