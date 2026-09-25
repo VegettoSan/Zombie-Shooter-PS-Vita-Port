@@ -27,6 +27,12 @@ void gl_preload();
 
 void gl_swap();
 
+void glGenBuffers_soloader(GLsizei n, GLuint *buffers);
+void glBindBuffer_soloader(GLenum target, GLuint buffer);
+void glDeleteBuffers_soloader(GLsizei n, const GLuint *buffers);
+void glGetIntegerv_soloader(GLenum pname, GLint *data);
+void glDrawElements_soloader(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices);
+
 void glCompileShader_soloader(GLuint shader);
 
 void glShaderSource_soloader(GLuint shader, GLsizei count,

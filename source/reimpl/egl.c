@@ -13,6 +13,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+static EGLContext current_context = NULL;
+
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor) {
     l_debug("eglInitialize(0x%x)", (int)dpy);
 
@@ -286,11 +288,16 @@ EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
 
 EGLBoolean eglMakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read,
                           EGLContext ctx) {
+    current_context = ctx;
     return EGL_TRUE;
 }
 
 EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx) {
-    if (ctx) free(ctx);
+    if (ctx) {
+        if (current_context == ctx)
+            current_context = NULL;
+        free(ctx);
+    }
     return EGL_TRUE;
 }
 
@@ -304,7 +311,7 @@ EGLBoolean eglTerminate(EGLDisplay dpy) {
 }
 
 EGLContext eglGetCurrentContext (void) {
-    return strdup("ctx");
+    return current_context;
 }
 
 char const * eglQueryString(EGLDisplay display, EGLint name) {

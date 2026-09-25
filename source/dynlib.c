@@ -48,6 +48,7 @@
 #include <SLES/OpenSLES_Android.h>
 
 #include "reimpl/errno.h"
+#include "reimpl/bionic_compat.h"
 #include "reimpl/io.h"
 #include "reimpl/log.h"
 #include "reimpl/mem.h"
@@ -59,6 +60,7 @@
 
 #ifdef NDK_PORT
 #include <falso_ndk/FalsoNDK.h>
+#include <falso_ndk/linux/fndk_eventfd.h>
 #endif
 
 const unsigned int __page_size = PAGE_SIZE;
@@ -130,6 +132,9 @@ extern const short *BIONIC_tolower_tab_;
 extern const short *BIONIC_toupper_tab_;
 
 static FILE __sF_fake[3];
+static FILE *bionic_stdin;
+static FILE *bionic_stdout;
+static FILE *bionic_stderr;
 
 void *dlsym_soloader(void * handle, const char * symbol);
 
@@ -220,6 +225,78 @@ so_default_dynlib default_dynlib[] = {
         { "dl_unwind_find_exidx", (uintptr_t)&ret0 }, // TODO: stub/impl
 
 
+        // Android/Bionic ABI compatibility
+        { "__FD_SET_chk", (uintptr_t)&__FD_SET_chk_soloader },
+        { "__cmsg_nxthdr", (uintptr_t)&__cmsg_nxthdr_soloader },
+        { "__ctype_get_mb_cur_max", (uintptr_t)&__ctype_get_mb_cur_max_soloader },
+        { "__fread_chk", (uintptr_t)&__fread_chk_soloader },
+        { "__fwrite_chk", (uintptr_t)&__fwrite_chk_soloader },
+        { "__memchr_chk", (uintptr_t)&__memchr_chk_soloader },
+        { "__memcpy_chk", (uintptr_t)&__memcpy_chk_soloader },
+        { "__memmove_chk", (uintptr_t)&__memmove_chk_soloader },
+        { "__memset_chk", (uintptr_t)&__memset_chk_soloader },
+        { "__poll_chk", (uintptr_t)&__poll_chk_soloader },
+        { "__read_chk", (uintptr_t)&__read_chk_soloader },
+        { "__register_atfork", (uintptr_t)&__register_atfork_soloader },
+        { "__strchr_chk", (uintptr_t)&__strchr_chk_soloader },
+        { "__strcpy_chk", (uintptr_t)&__strcpy_chk_soloader },
+        { "__strlen_chk", (uintptr_t)&__strlen_chk_soloader },
+        { "__strncpy_chk", (uintptr_t)&__strncpy_chk_soloader },
+        { "__strncpy_chk2", (uintptr_t)&__strncpy_chk2_soloader },
+        { "__vsnprintf_chk", (uintptr_t)&__vsnprintf_chk_soloader },
+        { "__vsprintf_chk", (uintptr_t)&__vsprintf_chk_soloader },
+        { "__write_chk", (uintptr_t)&__write_chk_soloader },
+        { "accept4", (uintptr_t)&accept4_soloader },
+        { "android_set_abort_message", (uintptr_t)&android_set_abort_message_soloader },
+        { "closelog", (uintptr_t)&closelog_soloader },
+        { "freeifaddrs", (uintptr_t)&freeifaddrs_soloader },
+        { "fseeko64", (uintptr_t)&fseeko64_soloader },
+        { "getauxval", (uintptr_t)&getauxval_soloader },
+        { "getentropy", (uintptr_t)&getentropy },
+        { "geteuid", (uintptr_t)&geteuid },
+        { "getifaddrs", (uintptr_t)&getifaddrs_soloader },
+        { "getnameinfo", (uintptr_t)&getnameinfo_soloader },
+        { "getpwuid_r", (uintptr_t)&getpwuid_r_soloader },
+        { "if_nametoindex", (uintptr_t)&if_nametoindex_soloader },
+        { "madvise", (uintptr_t)&madvise_soloader },
+        { "mlock", (uintptr_t)&mlock_soloader },
+        { "mprotect", (uintptr_t)&mprotect_soloader },
+        { "openlog", (uintptr_t)&openlog_soloader },
+        { "posix_memalign", (uintptr_t)&posix_memalign_soloader },
+        { "recvmmsg", (uintptr_t)&recvmmsg_soloader },
+        { "sendmmsg", (uintptr_t)&sendmmsg_soloader },
+        { "sigaltstack", (uintptr_t)&sigaltstack_soloader },
+        { "sigemptyset", (uintptr_t)&sigemptyset_soloader },
+        { "signal", (uintptr_t)&signal },
+        { "socketpair", (uintptr_t)&socketpair },
+        { "stderr", (uintptr_t)&bionic_stderr },
+        { "stdin", (uintptr_t)&bionic_stdin },
+        { "stdout", (uintptr_t)&bionic_stdout },
+        { "strcoll_l", (uintptr_t)&strcoll_l },
+        { "strftime_l", (uintptr_t)&strftime_l },
+        { "strptime", (uintptr_t)&strptime },
+        { "strtold_l", (uintptr_t)&strtold_l },
+        { "strtoll_l", (uintptr_t)&strtoll_l },
+        { "strtoull_l", (uintptr_t)&strtoull_l },
+        { "strxfrm_l", (uintptr_t)&strxfrm_l },
+        { "syslog", (uintptr_t)&syslog_soloader },
+        { "iswalpha_l", (uintptr_t)&iswalpha_l },
+        { "iswblank_l", (uintptr_t)&iswblank_l },
+        { "iswcntrl_l", (uintptr_t)&iswcntrl_l },
+        { "iswdigit_l", (uintptr_t)&iswdigit_l },
+        { "iswlower_l", (uintptr_t)&iswlower_l },
+        { "iswprint_l", (uintptr_t)&iswprint_l },
+        { "iswpunct_l", (uintptr_t)&iswpunct_l },
+        { "iswspace_l", (uintptr_t)&iswspace_l },
+        { "iswupper_l", (uintptr_t)&iswupper_l },
+        { "iswxdigit_l", (uintptr_t)&iswxdigit_l },
+        { "towlower_l", (uintptr_t)&towlower_l },
+        { "towupper_l", (uintptr_t)&towupper_l },
+        { "wcscoll_l", (uintptr_t)&wcscoll_l },
+        { "wcstold", (uintptr_t)&wcstold },
+        { "wcsxfrm_l", (uintptr_t)&wcsxfrm_l },
+
+
         // ctype
         { "_ctype_", (uintptr_t)&BIONIC_ctype_ },
         { "_tolower_tab_", (uintptr_t)&BIONIC_tolower_tab_ },
@@ -265,7 +342,10 @@ so_default_dynlib default_dynlib[] = {
         {"AConfiguration_delete", (uintptr_t)&AConfiguration_delete},
         {"AConfiguration_fromAssetManager", (uintptr_t)&AConfiguration_fromAssetManager},
         {"AConfiguration_getCountry", (uintptr_t)&AConfiguration_getCountry},
+        {"AConfiguration_getDensity", (uintptr_t)&AConfiguration_getDensity},
         {"AConfiguration_getLanguage", (uintptr_t)&AConfiguration_getLanguage},
+        {"AConfiguration_getScreenLong", (uintptr_t)&AConfiguration_getScreenLong},
+        {"AConfiguration_getScreenSize", (uintptr_t)&AConfiguration_getScreenSize},
         {"AConfiguration_new", (uintptr_t)&AConfiguration_new},
         {"AInputEvent_getDeviceId", (uintptr_t)&AInputEvent_getDeviceId},
         {"AInputEvent_getSource", (uintptr_t)&AInputEvent_getSource},
@@ -280,10 +360,14 @@ so_default_dynlib default_dynlib[] = {
         {"AKeyEvent_getKeyCode", (uintptr_t)&AKeyEvent_getKeyCode},
         {"ALooper_addFd", (uintptr_t)&ALooper_addFd},
         {"ALooper_pollAll", (uintptr_t)&ALooper_pollAll},
+        {"ALooper_pollOnce", (uintptr_t)&ALooper_pollOnce},
         {"ALooper_prepare", (uintptr_t)&ALooper_prepare},
         {"AMotionEvent_getAction", (uintptr_t)&AMotionEvent_getAction},
         {"AMotionEvent_getAxisValue", (uintptr_t)&AMotionEvent_getAxisValue},
+        {"AMotionEvent_getButtonState", (uintptr_t)&AMotionEvent_getButtonState},
+        {"AMotionEvent_getEventTime", (uintptr_t)&AMotionEvent_getEventTime_soloader},
         {"AMotionEvent_getPointerCount", (uintptr_t)&AMotionEvent_getPointerCount},
+        {"AMotionEvent_getPointerId", (uintptr_t)&AMotionEvent_getPointerId},
         {"AMotionEvent_getX", (uintptr_t)&AMotionEvent_getX},
         {"AMotionEvent_getY", (uintptr_t)&AMotionEvent_getY},
         {"ANativeActivity_finish", (uintptr_t)&ANativeActivity_finish},
@@ -291,6 +375,7 @@ so_default_dynlib default_dynlib[] = {
         {"ANativeWindow_getHeight", (uintptr_t)&ANativeWindow_getHeight},
         {"ANativeWindow_getWidth", (uintptr_t)&ANativeWindow_getWidth},
         {"ANativeWindow_setBuffersGeometry", (uintptr_t)&ANativeWindow_setBuffersGeometry},
+        {"eventfd", (uintptr_t)&fndk_eventfd},
 #endif
 
 
@@ -571,7 +656,7 @@ so_default_dynlib default_dynlib[] = {
         { "glAlphaFuncx", (uintptr_t)&glAlphaFuncx },
         { "glAttachShader", (uintptr_t)&glAttachShader },
         { "glBindAttribLocation", (uintptr_t)&glBindAttribLocation },
-        { "glBindBuffer", (uintptr_t)&glBindBuffer },
+        { "glBindBuffer", (uintptr_t)&glBindBuffer_soloader },
         { "glBindFramebuffer", (uintptr_t)&glBindFramebuffer },
         { "glBindFramebufferOES", (uintptr_t)&glBindFramebuffer },
         { "glBindRenderbuffer", (uintptr_t)&glBindRenderbuffer },
@@ -612,7 +697,7 @@ so_default_dynlib default_dynlib[] = {
         { "glCreateShader", (uintptr_t)&glCreateShader },
         { "glCullFace", (uintptr_t)&glCullFace },
         { "glCurrentPaletteMatrixOES", (uintptr_t)&ret0 },
-        { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers },
+        { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers_soloader },
         { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
         { "glDeleteFramebuffersOES", (uintptr_t)&glDeleteFramebuffers },
         { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
@@ -629,7 +714,7 @@ so_default_dynlib default_dynlib[] = {
         { "glDisableClientState", (uintptr_t)&glDisableClientState },
         { "glDisableVertexAttribArray", (uintptr_t)&glDisableVertexAttribArray },
         { "glDrawArrays", (uintptr_t)&glDrawArrays },
-        { "glDrawElements", (uintptr_t)&glDrawElements },
+        { "glDrawElements", (uintptr_t)&glDrawElements_soloader },
         { "glDrawTexfOES", (uintptr_t)&ret0 },
         { "glDrawTexfvOES", (uintptr_t)&ret0 },
         { "glDrawTexiOES", (uintptr_t)&ret0 },
@@ -656,7 +741,7 @@ so_default_dynlib default_dynlib[] = {
         { "glFrontFace", (uintptr_t)&glFrontFace },
         { "glFrustumf", (uintptr_t)&glFrustumf },
         { "glFrustumx", (uintptr_t)&glFrustumx },
-        { "glGenBuffers", (uintptr_t)&glGenBuffers },
+        { "glGenBuffers", (uintptr_t)&glGenBuffers_soloader },
         { "glGenerateMipmap", (uintptr_t)&glGenerateMipmap },
         { "glGenerateMipmapOES", (uintptr_t)&glGenerateMipmap },
         { "glGenFramebuffers", (uintptr_t)&glGenFramebuffers },
@@ -676,7 +761,7 @@ so_default_dynlib default_dynlib[] = {
         { "glGetFixedv", (uintptr_t)&ret0 },
         { "glGetFloatv", (uintptr_t)&glGetFloatv },
         { "glGetFramebufferAttachmentParameterivOES", (uintptr_t)&glGetFramebufferAttachmentParameteriv },
-        { "glGetIntegerv", (uintptr_t)&glGetIntegerv },
+        { "glGetIntegerv", (uintptr_t)&glGetIntegerv_soloader },
         { "glGetLightfv", (uintptr_t)&ret0 },
         { "glGetLightxv", (uintptr_t)&ret0 },
         { "glGetMaterialfv", (uintptr_t)&ret0 },
@@ -703,6 +788,7 @@ so_default_dynlib default_dynlib[] = {
         { "glIsBuffer", (uintptr_t)&ret0 },
         { "glIsRenderbuffer", (uintptr_t)&glIsRenderbuffer },
         { "glIsEnabled", (uintptr_t)&glIsEnabled },
+        { "glIsFramebuffer", (uintptr_t)&glIsFramebuffer },
         { "glIsFramebufferOES", (uintptr_t)&glIsFramebuffer },
         { "glIsRenderbufferOES", (uintptr_t)&glIsRenderbuffer },
         { "glIsTexture", (uintptr_t)&glIsTexture },
@@ -871,12 +957,17 @@ so_default_dynlib default_dynlib[] = {
         { "pthread_mutexattr_settype", (uintptr_t) &pthread_mutexattr_settype_soloader },
         { "pthread_mutexattr_setpshared", (uintptr_t) &ret0 },
         { "pthread_once", (uintptr_t)&pthread_once_soloader },
+        { "pthread_rwlock_destroy", (uintptr_t)&pthread_rwlock_destroy_soloader },
+        { "pthread_rwlock_init", (uintptr_t)&pthread_rwlock_init_soloader },
+        { "pthread_rwlock_rdlock", (uintptr_t)&pthread_rwlock_rdlock_soloader },
+        { "pthread_rwlock_unlock", (uintptr_t)&pthread_rwlock_unlock_soloader },
+        { "pthread_rwlock_wrlock", (uintptr_t)&pthread_rwlock_wrlock_soloader },
 
         { "pthread_self", (uintptr_t) &pthread_self_soloader },
         { "pthread_setname_np", (uintptr_t) &pthread_setname_np_soloader },
         { "pthread_setschedparam", (uintptr_t) &pthread_setschedparam_soloader },
         { "pthread_setspecific", (uintptr_t)&pthread_setspecific },
-        { "pthread_sigmask", (uintptr_t)&ret0 },
+        { "pthread_sigmask", (uintptr_t)&pthread_sigmask_soloader },
 
         { "sem_destroy", (uintptr_t) &sem_destroy_soloader },
         { "sem_getvalue", (uintptr_t) &sem_getvalue_soloader },
@@ -1019,7 +1110,7 @@ so_default_dynlib default_dynlib[] = {
 
         // Temp
         { "mkstemp", (uintptr_t)&mkstemp },
-        { "mktemp", (uintptr_t)&mktemp },
+        { "mktemp", (uintptr_t)&mktemp_soloader },
         { "tmpfile", (uintptr_t)&tmpfile },
         { "tmpnam", (uintptr_t)&tmpnam },
 
@@ -1071,7 +1162,7 @@ so_default_dynlib default_dynlib[] = {
         // Signals
         { "bsd_signal", (uintptr_t)&signal },
         { "raise", (uintptr_t)&raise },
-        { "sigaction", (uintptr_t)&sigaction },
+        { "sigaction", (uintptr_t)&sigaction_soloader },
 
 
         // Locale
@@ -1107,7 +1198,8 @@ so_default_dynlib default_dynlib[] = {
 void *dlsym_soloader(void * handle, const char * symbol) {
     for (int i = 0; i < sizeof(default_dynlib) / sizeof(default_dynlib[0]); i++) {
         if (strcmp(symbol, default_dynlib[i].symbol) == 0) {
-            return &default_dynlib[i].func;
+            l_info("dlsym: %s -> %p", symbol, (void *)default_dynlib[i].func);
+            return (void *)default_dynlib[i].func;
         }
     }
 
@@ -1119,6 +1211,9 @@ void resolve_imports(so_module* mod) {
     __sF_fake[0] = *stdin;
     __sF_fake[1] = *stdout;
     __sF_fake[2] = *stderr;
+    bionic_stdin = stdin;
+    bionic_stdout = stdout;
+    bionic_stderr = stderr;
 
     so_resolve(mod, default_dynlib, sizeof(default_dynlib), 0);
 }

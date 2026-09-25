@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 #include <sys/time.h>
+#include <stdint.h>
 
 #define PAGE_SIZE 4096
 
@@ -28,6 +29,18 @@ clock_t clock_soloader(void);
 int clock_gettime_soloader(clockid_t clock_id, struct timespec * tp);
 
 int clock_getres_soloader(clockid_t clock_id, struct timespec * res);
+
+/* Android ARM API 24 ABI: 4 words, unlike VitaSDK/newlib's sigaction. */
+typedef struct bionic_sigaction {
+    uintptr_t handler;
+    uint32_t mask;
+    uint32_t flags;
+    uintptr_t restorer;
+} bionic_sigaction;
+
+int sigaction_soloader(int signum, const bionic_sigaction *act,
+                       bionic_sigaction *oldact);
+int pthread_sigmask_soloader(int how, const uint32_t *set, uint32_t *oldset);
 
 int __system_property_get_soloader(const char *name, char *value);
 

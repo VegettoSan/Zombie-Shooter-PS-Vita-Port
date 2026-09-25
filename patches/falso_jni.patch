@@ -1,0 +1,119 @@
+diff --git a/FalsoJNI.c b/FalsoJNI.c
+index f2e22df..6bee232 100644
+--- a/FalsoJNI.c
++++ b/FalsoJNI.c
+@@ -181,7 +181,8 @@ jint PushLocalFrame(JNIEnv* env, jint capacity) {
+ jobject PopLocalFrame(JNIEnv* env, jobject result) {
+     fjni_logv_dbg("[JNI] PopLocalFrame(env, 0x%x): ignored", (int)result);
+     // Since we operate with global pointers everywhere, no need to scope them.
+-    return NULL;
++    // JNI requires the selected result reference to survive the popped frame.
++    return result;
+ }
+ 
+ jobject NewGlobalRef(JNIEnv* env, jobject obj) {
+@@ -267,7 +268,16 @@ jclass GetObjectClass(JNIEnv* env, jobject obj) {
+ }
+ 
+ jboolean IsInstanceOf(JNIEnv* env, jobject obj, jclass clazz) {
+-    fjni_logv_warn("[JNI] IsInstanceOf(env, 0x%x, 0x%x): not implemented", (int)obj, (int)clazz);
++    /* NativeActivity is a Context. Play Asset Delivery checks exactly this
++     * relationship before constructing its manager. FalsoJNI represents the
++     * activity by 0x42424242 and FindClass results by owned class-name strings. */
++    if (obj == (jobject)0x42424242 && clazz &&
++        clazz != (jclass)0x42424242 &&
++        strcmp((const char *)clazz, "android/content/Context") == 0) {
++        fjni_logv_info("[JNI] IsInstanceOf(activity, %s): true", "android/content/Context");
++        return JNI_TRUE;
++    }
++    fjni_logv_warn("[JNI] IsInstanceOf(env, 0x%x, 0x%x): false", (int)obj, (int)clazz);
+     return JNI_FALSE;
+ }
+ 
+diff --git a/FalsoJNI_Logger.c b/FalsoJNI_Logger.c
+index cfea61b..ea6e96a 100644
+--- a/FalsoJNI_Logger.c
++++ b/FalsoJNI_Logger.c
+@@ -16,6 +16,7 @@
+ 
+ #include "FalsoJNI_Logger.h"
+ #include "FalsoJNI.h"
++#include "utils/logger.h"
+ 
+ #include <psp2/kernel/clib.h>
+ #include <psp2/kernel/threadmgr.h>
+@@ -55,50 +56,46 @@ static char _fjni_log_buffer_2[2048];
+     va_end(list); \
+     sceClibPrintf(_fjni_log_buffer_2);
+ 
++static void fjni_log_persistent(int type, const char *fi, int li,
++                                const char *fn, const char *fmt,
++                                va_list args) {
++    char message[1536];
++    sceClibVsnprintf(message, sizeof(message), fmt, args);
++    _log_print(type, "[FalsoJNI][%s:%d][%s] %s", fi, li, fn, message);
++}
++
+ void _fjni_log_info(const char *fi, int li, const char *fn, const char* fmt, ...) {
+ #if FALSOJNI_DEBUGLEVEL <= FALSOJNI_DEBUG_INFO
+-    LOG_LOCK
+-
+-    sceClibSnprintf(_fjni_log_buffer_1, sizeof(_fjni_log_buffer_1) - 1,
+-                    "%s[INFO] %s%s\n", COLOR_BLUE, fmt, COLOR_END);
+-
+-    LOG_PRINT
+-    LOG_UNLOCK
++    va_list args;
++    va_start(args, fmt);
++    fjni_log_persistent(LT_INFO, fi, li, fn, fmt, args);
++    va_end(args);
+ #endif
+ }
+ 
+ void _fjni_log_warn(const char *fi, int li, const char *fn, const char* fmt, ...) {
+ #if FALSOJNI_DEBUGLEVEL <= FALSOJNI_DEBUG_WARN
+-    LOG_LOCK
+-
+-    sceClibSnprintf(_fjni_log_buffer_1, sizeof(_fjni_log_buffer_1) - 1,
+-                    "%s[WARN][%s:%d][%s] %s%s\n", COLOR_ORANGE, fi, li, fn, fmt, COLOR_END);
+-
+-    LOG_PRINT
+-    LOG_UNLOCK
++    va_list args;
++    va_start(args, fmt);
++    fjni_log_persistent(LT_WARN, fi, li, fn, fmt, args);
++    va_end(args);
+ #endif
+ }
+ 
+ void _fjni_log_debug(const char *fi, int li, const char *fn, const char* fmt, ...) {
+ #if FALSOJNI_DEBUGLEVEL <= FALSOJNI_DEBUG_ALL
+-    LOG_LOCK
+-
+-    sceClibSnprintf(_fjni_log_buffer_1, sizeof(_fjni_log_buffer_1) - 1,
+-                    "[DBG][%s:%d][%s] %s\n", fi, li, fn, fmt);
+-
+-    LOG_PRINT
+-    LOG_UNLOCK
++    va_list args;
++    va_start(args, fmt);
++    fjni_log_persistent(LT_DEBUG, fi, li, fn, fmt, args);
++    va_end(args);
+ #endif
+ }
+ 
+ void _fjni_log_error(const char *fi, int li, const char *fn, const char* fmt, ...) {
+ #if FALSOJNI_DEBUGLEVEL <= FALSOJNI_DEBUG_ERROR
+-    LOG_LOCK
+-
+-    sceClibSnprintf(_fjni_log_buffer_1, sizeof(_fjni_log_buffer_1) - 1,
+-                    "%s[ERROR][%s:%d][%s] %s%s\n", COLOR_RED, fi, li, fn, fmt, COLOR_END);
+-
+-    LOG_PRINT
+-    LOG_UNLOCK
++    va_list args;
++    va_start(args, fmt);
++    fjni_log_persistent(LT_ERROR, fi, li, fn, fmt, args);
++    va_end(args);
+ #endif
+ }

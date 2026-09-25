@@ -41,6 +41,13 @@ typedef struct {
     pthread_cond_t *real_ptr; // replaces `int volatile value;`
 } pthread_cond_t_bionic;
 
+// 32-bit Bionic reserves ten 32-bit words for pthread_rwlock_t. VitaSDK's
+// pthread implementation uses a pointer, which fits in the first word.
+typedef struct {
+    pthread_rwlock_t *real_ptr;
+    int32_t reserved[9];
+} pthread_rwlock_t_bionic;
+
 // pthread_t is same size on bionic and newlib
 int pthread_create_soloader(pthread_t *thread, const pthread_attr_t_bionic *attr, void *(*start)(void *), void *param);
 int pthread_kill_soloader(pthread_t thread, int sig);
@@ -75,6 +82,13 @@ int pthread_mutex_destroy_soloader(pthread_mutex_t_bionic *mutex);
 int pthread_mutex_lock_soloader(pthread_mutex_t_bionic *mutex);
 int pthread_mutex_trylock_soloader(pthread_mutex_t_bionic *mutex);
 int pthread_mutex_unlock_soloader(pthread_mutex_t_bionic *mutex);
+
+int pthread_rwlock_init_soloader(pthread_rwlock_t_bionic *lock,
+                                 const void *attr);
+int pthread_rwlock_destroy_soloader(pthread_rwlock_t_bionic *lock);
+int pthread_rwlock_rdlock_soloader(pthread_rwlock_t_bionic *lock);
+int pthread_rwlock_wrlock_soloader(pthread_rwlock_t_bionic *lock);
+int pthread_rwlock_unlock_soloader(pthread_rwlock_t_bionic *lock);
 
 int pthread_attr_init_soloader(pthread_attr_t_bionic *attr);
 int pthread_attr_destroy_soloader(pthread_attr_t_bionic *attr);

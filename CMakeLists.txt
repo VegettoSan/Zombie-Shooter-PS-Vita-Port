@@ -66,8 +66,6 @@ endif()
 # Detailed logging always enabled for diagnostics (hardware testing)
 add_definitions(-DDEBUG_SOLOADER)
 add_definitions(-DSO_UTIL_VERBOSE=1)
-# Uncomment later if needed:
-# add_definitions(-DFALSOJNI_DEBUGLEVEL=0)
 # add_definitions(-DDEBUG_OPENGL)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -86,6 +84,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=softfp -std=gnu++20 -Wno-wri
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # Granular JNI/thread traces are for the hardware diagnostic VPK only.
+    add_definitions(-DFALSOJNI_DEBUGLEVEL=0 -DZOMBIE_THREAD_TRACE=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -g3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g3")
 else ()
@@ -98,6 +98,7 @@ set(SOURCES
     source/dynlib.c
     source/java.c
     source/patch.c
+    source/reimpl/bionic_compat.c
     source/reimpl/bits/_ctype.c
     source/reimpl/errno.c
     source/reimpl/io.c

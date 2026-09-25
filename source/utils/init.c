@@ -19,6 +19,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include <psp2/appmgr.h>
 #include <psp2/apputil.h>
@@ -34,19 +35,15 @@
 #define LOAD_ADDRESS 0x98000000
 
 /*
- * Device testing showed:
- *   init 0..15 OK
- *   init 16 crashes at +0x460DCD
- *   after skipping 16, init 17 crashes at +0x461DFD (adjacent code)
+ * Constructors 16 and 17 previously crashed because protobuf's exported
+ * pLinuxKernelMemoryBarrier/pLinuxKernelCmpxchg pointers still contained the
+ * Android kuser addresses. kuser_patch() now fixes those .data pointers, so
+ * every constructor must run: protobuf descriptor registration and the other
+ * static subsystems are required by the game after ANativeActivity_onCreate.
  *
- * These are almost certainly static C++ constructors for the same subsystem
- * (addresses are ~4KB apart). Skipping them one-by-one wastes test cycles.
- *
- * Strategy: skip ALL remaining init_array entries from this index onward so we
- * can finish soloader_init_all() and see the *next* real failure (JNI / main).
- * Later: reverse the block at +0x460DCD in Ghidra and fix the root cause.
+ * Set this to a concrete index only for a targeted hardware diagnostic build.
  */
-#define SKIP_INIT_FROM_INDEX 16u
+#define SKIP_INIT_FROM_INDEX UINT32_MAX
 
 extern so_module so_mod;
 
@@ -59,14 +56,26 @@ static void write_last_init_breadcrumb(uint32_t index, uint32_t total, uintptr_t
         file_save(DATA_PATH "last_init.txt", (const uint8_t *)buf, (size_t)n);
 }
 
+static void write_init_complete_breadcrumb(uint32_t ran, uint32_t skipped,
+                                           uint32_t total) {
+    char buf[128];
+    int n = sceClibSnprintf(buf, sizeof(buf),
+                            "status=complete ran=%u skipped=%u total=%u\n",
+                            (unsigned)ran, (unsigned)skipped, (unsigned)total);
+    if (n > 0)
+        file_save(DATA_PATH "last_init.txt", (const uint8_t *)buf, (size_t)n);
+}
+
 static void so_initialize_logged(so_module *mod) {
     uint32_t total = mod->num_init_array;
     uint32_t ran = 0, skipped = 0;
 
-    l_info("init_array count = %u (will run 0..%u, skip from %u)",
-           (unsigned)total,
-           (unsigned)(SKIP_INIT_FROM_INDEX ? SKIP_INIT_FROM_INDEX - 1 : 0),
-           (unsigned)SKIP_INIT_FROM_INDEX);
+    if (SKIP_INIT_FROM_INDEX == UINT32_MAX)
+        l_info("init_array count = %u (running all constructors)",
+               (unsigned)total);
+    else
+        l_info("init_array count = %u (diagnostic skip from %u)",
+               (unsigned)total, (unsigned)SKIP_INIT_FROM_INDEX);
 
     if (total == 0) {
         l_warn("No init_array entries — nothing to run.");
@@ -110,6 +119,8 @@ static void so_initialize_logged(so_module *mod) {
     }
 
     l_success("init_array done: ran=%u skipped=%u total=%u", (unsigned)ran, (unsigned)skipped, (unsigned)total);
+    /* Do not leave the last constructor looking like the active crash site. */
+    write_init_complete_breadcrumb(ran, skipped, total);
 }
 
 void soloader_init_all() {
@@ -154,30 +165,35 @@ void soloader_init_all() {
     }
     l_success("kubridge module is loaded.");
 
-    l_info("Checking kubridge.skprx version (SHA1)...");
-    char *kubridge_hash = file_sha1sum("ux0:/tai/kubridge.skprx");
-    if (!kubridge_hash)
-        kubridge_hash = file_sha1sum("ur0:/tai/kubridge.skprx");
+    l_info("Checking kubridge.skprx version (SHA1, when path is visible)...");
+    const char *kubridge_path = NULL;
+    if (file_exists("ux0:/tai/kubridge.skprx"))
+        kubridge_path = "ux0:/tai/kubridge.skprx";
+    else if (file_exists("ur0:/tai/kubridge.skprx"))
+        kubridge_path = "ur0:/tai/kubridge.skprx";
 
-    if (!kubridge_hash) {
-        l_fatal("kubridge.skprx file not found on disk (ux0:/tai or ur0:/tai).");
-        fatal_error("Could not find kubridge.skprx file despite the plugin "
-                    "itself being active. Please put it in either ur0:/tai or "
-                    "ux0:/tai folder.");
+    char *kubridge_hash = kubridge_path ? file_sha1sum(kubridge_path) : NULL;
+    if (!kubridge_path) {
+        /* A loaded kernel plugin may come from a custom taiHEN path. */
+        l_warn("kubridge is loaded, but its file is not visible at ux0:/tai or ur0:/tai; SHA1 check skipped.");
+    } else if (!kubridge_hash) {
+        l_warn("kubridge is loaded from %s, but SHA1 could not be read; version check skipped.",
+               kubridge_path);
+    } else {
+        l_info("kubridge path: %s", kubridge_path);
+        l_info("kubridge SHA1: %s", kubridge_hash);
     }
-
-    l_info("kubridge SHA1: %s", kubridge_hash);
 
     const char *ver_01 = "v0.1 (TheFloW)";
     const char *ver_02 = "v0.2 (Bythos)";
     const char *ver_03 = "v0.3 (Bythos)";
     char *currently_installed_version = NULL;
 
-    if (strcmp(kubridge_hash, "E033D76A90C9B8F2D496735C2692AFD8C3ED32FE") == 0)
+    if (kubridge_hash && strcmp(kubridge_hash, "E033D76A90C9B8F2D496735C2692AFD8C3ED32FE") == 0)
         currently_installed_version = (char *)ver_01;
-    else if (strcmp(kubridge_hash, "6CFC985904F9BBE3A4F54DD96197F5DF3E523DCB") == 0)
+    else if (kubridge_hash && strcmp(kubridge_hash, "6CFC985904F9BBE3A4F54DD96197F5DF3E523DCB") == 0)
         currently_installed_version = (char *)ver_02;
-    else if (strcmp(kubridge_hash, "AFAC6077618245D87CFF9ED2819223E6BB2DE5F8") == 0)
+    else if (kubridge_hash && strcmp(kubridge_hash, "AFAC6077618245D87CFF9ED2819223E6BB2DE5F8") == 0)
         currently_installed_version = (char *)ver_03;
 
     if (currently_installed_version) {
@@ -189,8 +205,10 @@ void soloader_init_all() {
                     currently_installed_version);
     }
 
-    l_success("kubridge version check passed (not a known old build).");
-    free(kubridge_hash);
+    if (kubridge_hash) {
+        l_success("kubridge version check passed (not a known old build).");
+        free(kubridge_hash);
+    }
 
     l_info("Checking SO file exists: %s", SO_PATH);
     if (!file_exists(SO_PATH)) {
@@ -233,7 +251,7 @@ void soloader_init_all() {
     so_flush_caches(&so_mod);
     l_success("SO caches flushed.");
 
-    l_info("Running SO init arrays (0..15 only; skip 16+)...");
+    l_info("Running all SO init arrays...");
     so_initialize_logged(&so_mod);
     l_success("SO initialized.");
 

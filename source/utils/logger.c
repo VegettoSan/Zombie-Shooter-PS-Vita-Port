@@ -10,6 +10,7 @@
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/io/fcntl.h>
+#include <psp2/io/stat.h>
 
 #include <stdbool.h>
 #include <stdatomic.h>
@@ -28,12 +29,14 @@
 #define DATA_PATH "ux0:data/zombieshooter/"
 #endif
 
-#define LOG_FILE_PATH DATA_PATH "log.txt"
+#define LOG_DIR_PATH DATA_PATH "logs"
 
 static SceKernelLwMutexWork _log_mutex;
 static atomic_bool _log_mutex_ready = ATOMIC_VAR_INIT(false);
 static SceUID _log_fd = -1;
 static atomic_bool _log_file_ready = ATOMIC_VAR_INIT(false);
+static char _log_path[128];
+static unsigned _log_unsynced_lines;
 
 // Buffer A is used to adjust the format string (with colors for console).
 static char buffer_a[2048];
@@ -46,13 +49,33 @@ static void _log_open_file(void) {
     if (atomic_load_explicit(&_log_file_ready, memory_order_relaxed))
         return;
 
-    // Create directory if needed (best effort)
+    // Preserve each hardware run; a crash must not erase the previous trace.
     sceIoMkdir(DATA_PATH, 0777);
-
-    _log_fd = sceIoOpen(LOG_FILE_PATH, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0666);
+    sceIoMkdir(LOG_DIR_PATH, 0777);
+    for (unsigned run = 1; run <= 9999; ++run) {
+        SceIoStat stat;
+        sceClibSnprintf(_log_path, sizeof(_log_path),
+                        LOG_DIR_PATH "/log_%04u.log", run);
+        if (sceIoGetstat(_log_path, &stat) >= 0)
+            continue;
+        _log_fd = sceIoOpen(_log_path,
+                           SCE_O_WRONLY | SCE_O_CREAT | SCE_O_EXCL, 0666);
+        break;
+    }
+    if (_log_fd < 0) {
+        sceClibSnprintf(_log_path, sizeof(_log_path),
+                        DATA_PATH "log_fallback.txt");
+        _log_fd = sceIoOpen(_log_path,
+                           SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0666);
+    }
     if (_log_fd >= 0) {
-        const char *header = "=== Zombie Shooter Vita Port Log ===\n";
-        sceIoWrite(_log_fd, header, strlen(header));
+        char header[192];
+        int length = sceClibSnprintf(header, sizeof(header),
+                                    "=== Zombie Shooter Vita Port: %s ===\n",
+                                    _log_path);
+        if (length > 0)
+            sceIoWrite(_log_fd, header, (size_t)length);
+        sceIoSyncByFd(_log_fd, 0);
         atomic_store_explicit(&_log_file_ready, true, memory_order_relaxed);
     }
 }
@@ -125,8 +148,17 @@ void _log_print(int t, const char* fmt, ...) {
         char line[2200];
         int n = sceClibSnprintf(line, sizeof(line), "[%s] %s\n", tag, buffer_c);
         if (n > 0) {
-            sceIoWrite(_log_fd, line, (size_t)n);
-            // Flush is not strictly available; next write or close will persist.
+            size_t write_len = (size_t)n;
+            if (write_len >= sizeof(line))
+                write_len = sizeof(line) - 1;
+            sceIoWrite(_log_fd, line, write_len);
+            /* Per-line sync dominated the 14k-line loading trace on Vita.
+             * Keep warnings/errors crash-safe and checkpoint normal traces. */
+            if (t == LT_WARN || t == LT_ERROR || t == LT_FATAL ||
+                ++_log_unsynced_lines >= 32) {
+                sceIoSyncByFd(_log_fd, 0);
+                _log_unsynced_lines = 0;
+            }
         }
     }
 

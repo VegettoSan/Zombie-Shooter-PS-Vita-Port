@@ -1,0 +1,197 @@
+diff --git a/FalsoNDK_Utils.cpp b/FalsoNDK_Utils.cpp
+index b600e3d..c4934b8 100644
+--- a/FalsoNDK_Utils.cpp
++++ b/FalsoNDK_Utils.cpp
+@@ -44,6 +44,7 @@ __attribute__((noreturn))
+ void LOG_ALWAYS_FATAL(const char * fmt, ...) {
+     LOG_PRINT(FALSONDK_LOG_FATAL, fmt);
+     sceClibAbort();
++    __builtin_unreachable();
+ }
+ 
+ void ALOGE(const char * fmt, ...) {
+diff --git a/android/AAssetManager.cpp b/android/AAssetManager.cpp
+index 3e61b41..691f93a 100644
+--- a/android/AAssetManager.cpp
++++ b/android/AAssetManager.cpp
+@@ -80,10 +80,11 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ }
+ 
+ void AAsset_close(AAsset* asset) {
+-    ALOGD("AAsset_close<%p>(%p)", __builtin_return_address(0), asset);
+-
+     if (asset) {
+         auto * a = (aAsset *) asset;
++        ALOGD("AAsset_close<%p>(%p, %s, read=%u/%u)",
++              __builtin_return_address(0), asset, a->filename,
++              (unsigned)a->bytesRead, (unsigned)a->fileSize);
+         free(a->filename);
+         if (a->opened) {
+ #ifdef USE_SCELIBC_IO
+@@ -97,15 +98,15 @@ void AAsset_close(AAsset* asset) {
+ }
+ 
+ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+-    ALOGD("AAsset_read<%p>(%p, %p, %i)", __builtin_return_address(0), asset, buf, count);
+-
+     if (!asset) {
++        ALOGW("AAsset_read called with NULL asset");
+         return -1;
+     }
+ 
+     auto * a = (aAsset *) asset;
+ 
+     if (!a->opened) {
++        ALOGW("AAsset_read called on closed asset: %s", a->filename);
+         return -1;
+     }
+ 
+@@ -116,7 +117,15 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+ #endif
+ 
+     if (ret > 0) {
++        size_t previous = a->bytesRead;
+         a->bytesRead += ret;
++        // Tiny reads from the game's binary decoder are common. A line and
++        // synchronous disk flush for every byte can stall asset loading.
++        if ((previous >> 14) != (a->bytesRead >> 14)) {
++            ALOGD("AAsset_read progress %s: %u/%u bytes",
++                  a->filename, (unsigned)a->bytesRead,
++                  (unsigned)a->fileSize);
++        }
+         return (int) ret;
+     } else {
+ #ifdef USE_SCELIBC_IO
+@@ -126,6 +135,9 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+ #endif
+             return 0;
+         } else {
++            ALOGW("AAsset_read failed: %s at %u/%u bytes",
++                  a->filename, (unsigned)a->bytesRead,
++                  (unsigned)a->fileSize);
+             return -1;
+         }
+     }
+diff --git a/android/AInput.cpp b/android/AInput.cpp
+index 91f151d..09b0893 100644
+--- a/android/AInput.cpp
++++ b/android/AInput.cpp
+@@ -43,6 +43,8 @@ AInputQueue * AInputQueue_create() {
+ 
+     if (iq->mDispatchFd < 0) {
+         ALOGE("eventfd creation for AInputQueue failed: %s\n", strerror(errno));
++        delete iq;
++        return nullptr;
+     } else {
+         ALOGD("Created eventfd for AInputQueue: #%i", iq->mDispatchFd);
+     }
+@@ -264,6 +266,12 @@ float AMotionEvent_getY(const AInputEvent* motion_event, size_t pointer_index) {
+     return e->motion_y[pointer_index];
+ }
+ 
++int32_t AMotionEvent_getButtonState(const AInputEvent* motion_event) {
++    // Synthetic Vita motion events have no motion button bits. Pad buttons
++    // are delivered separately as AKeyEvent input.
++    return 0;
++}
++
+ float AMotionEvent_getAxisValue(const AInputEvent* motion_event,
+ int32_t axis, size_t pointer_index) {
+     if (!motion_event) return 0;
+diff --git a/android/AInput.h b/android/AInput.h
+index a4bb775..d7495f5 100644
+--- a/android/AInput.h
++++ b/android/AInput.h
+@@ -696,6 +696,9 @@ float AMotionEvent_getX(const AInputEvent *motion_event, size_t pointer_index);
+  */
+ float AMotionEvent_getY(const AInputEvent *motion_event, size_t pointer_index);
+ 
++/** Get the state of motion event buttons. Controller buttons use key events here. */
++int32_t AMotionEvent_getButtonState(const AInputEvent* motion_event);
++
+ /** Get the value of the request axis for the given pointer index. */
+ float AMotionEvent_getAxisValue(const AInputEvent* motion_event,
+                                 int32_t axis, size_t pointer_index);
+diff --git a/android/ANativeActivity.cpp b/android/ANativeActivity.cpp
+index efabbdf..f339b04 100644
+--- a/android/ANativeActivity.cpp
++++ b/android/ANativeActivity.cpp
+@@ -1,4 +1,5 @@
+ #include "android/ANativeActivity.h"
++#include "FalsoNDK_Utils.h"
+ 
+ #include <cstdlib>
+ #include <cerrno>
+@@ -9,5 +10,8 @@ void ANativeActivity_setWindowFlags(ANativeActivity* activity, uint32_t addFlags
+ }
+ 
+ void ANativeActivity_finish(ANativeActivity* activity) {
+-    free(activity);
++    // Android only asks the framework to finish here.  The NativeActivity and
++    // its callback table are framework-owned and remain valid through the
++    // subsequent pause/stop/destroy callbacks; freeing them here is a UAF.
++    ALOGW("ANativeActivity_finish(activity=%p): finish requested", activity);
+ }
+diff --git a/android/ANativeWindow.cpp b/android/ANativeWindow.cpp
+index 417bd71..ecf7668 100644
+--- a/android/ANativeWindow.cpp
++++ b/android/ANativeWindow.cpp
+@@ -1,35 +1,47 @@
+ #include "android/ANativeWindow.h"
+ 
+ #include <cstdlib>
+-#include <cstring>
+ #include <cstdio>
++#include <cerrno>
+ 
+ typedef struct nativeWindow {
+-    int dummy;
++    int32_t width;
++    int32_t height;
++    int32_t format;
++    int32_t refs;
+ } nativeWindow;
+ 
+ ANativeWindow * ANativeWindow_create() {
+-    nativeWindow win;
+-
+-    auto ret = (ANativeWindow *) malloc(sizeof(nativeWindow));
+-    memcpy(ret, &win, sizeof(nativeWindow));
+-
+-    return ret;
++    auto *win = static_cast<nativeWindow *>(calloc(1, sizeof(nativeWindow)));
++    if (!win) return nullptr;
++    win->width = 960;
++    win->height = 544;
++    win->format = 1; // AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
++    win->refs = 1;
++    return reinterpret_cast<ANativeWindow *>(win);
+ }
+ 
+ int32_t ANativeWindow_getWidth(ANativeWindow* window) {
+-    return 960;
++    if (!window) return -EINVAL;
++    return reinterpret_cast<nativeWindow *>(window)->width;
+ }
+ 
+ int32_t ANativeWindow_getHeight(ANativeWindow* window) {
+-    return 544;
++    if (!window) return -EINVAL;
++    return reinterpret_cast<nativeWindow *>(window)->height;
+ }
+ 
+ int32_t ANativeWindow_getFormat(ANativeWindow* window) {
+-    return 1; // AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
++    if (!window) return -EINVAL;
++    return reinterpret_cast<nativeWindow *>(window)->format;
+ }
+ 
+ int32_t ANativeWindow_setBuffersGeometry(ANativeWindow* window,
+                                          int32_t width, int32_t height, int32_t format) {
++    if (!window || ((width == 0) != (height == 0))) return -EINVAL;
++    auto *win = reinterpret_cast<nativeWindow *>(window);
++    win->width = width ? width : 960;
++    win->height = height ? height : 544;
++    win->format = format ? format : 1;
+     return 0;
+ }

@@ -18,6 +18,7 @@
 
 #include "utils/utils.h"
 #include "utils/logger.h"
+#include "utils/so_trace.h"
 
 #define PTHR_MAX_OBJECTS 1024
 
@@ -167,20 +168,107 @@ PTHR_INLINE int _cond_t_static_init(pthread_cond_t_bionic * cond, const pthread_
     return ret;
 }
 
-int pthread_create_soloader(pthread_t *thread, const pthread_attr_t_bionic *attr, void *(*start)(void *), void *param) {
+PTHR_INLINE int _rwlock_t_static_init(pthread_rwlock_t_bionic *lock) {
+    if (isObjectInitialized(lock)) return 0;
+
+    lock->real_ptr = malloc(sizeof(pthread_rwlock_t));
+    if (!lock->real_ptr) return ENOMEM;
+
+    int ret = pthread_rwlock_init(lock->real_ptr, NULL);
+    if (ret == 0) {
+        rememberObject(lock);
+    } else {
+        free(lock->real_ptr);
+        lock->real_ptr = NULL;
+        l_error("rwlock initialization for %p has failed", lock);
+    }
+    return ret;
+}
+
+#ifdef ZOMBIE_THREAD_TRACE
+typedef struct traced_thread_start {
+    void *(*entry)(void *);
+    void *argument;
+    unsigned sequence;
+} traced_thread_start;
+
+static atomic_uint traced_thread_sequence = ATOMIC_VAR_INIT(1);
+
+static void log_thread_address(const char *label, uintptr_t address) {
+    uintptr_t offset = 0;
+    if (so_trace_offset(address, &offset))
+        l_info("[thread] %s=%p (so+0x%08X)", label, (void *)address,
+               (unsigned)offset);
+    else
+        l_info("[thread] %s=%p (outside SO)", label, (void *)address);
+}
+
+static void *traced_thread_entry(void *opaque) {
+    traced_thread_start local = *(traced_thread_start *)opaque;
+    free(opaque);
+
+    l_info("[thread] #%u START self=0x%08X arg=%p", local.sequence,
+           (unsigned)(uintptr_t)pthread_self(), local.argument);
+    log_thread_address("entry", (uintptr_t)local.entry);
+    void *result = local.entry(local.argument);
+    l_info("[thread] #%u END result=%p", local.sequence, result);
+    return result;
+}
+#endif
+
+int pthread_create_soloader(pthread_t *thread, const pthread_attr_t_bionic *attr,
+                            void *(*start)(void *), void *param) {
+    if (!thread || !start)
+        return EINVAL;
+
+#ifdef ZOMBIE_THREAD_TRACE
+    traced_thread_start *trace = malloc(sizeof(*trace));
+    if (!trace)
+        return ENOMEM;
+    trace->entry = start;
+    trace->argument = param;
+    trace->sequence = atomic_fetch_add_explicit(&traced_thread_sequence, 1,
+                                                 memory_order_relaxed);
+    unsigned sequence = trace->sequence;
+
+    uintptr_t caller = (uintptr_t)__builtin_return_address(0);
+    l_info("[thread] #%u CREATE arg=%p attr=%p", sequence, param,
+           (const void *)attr);
+    log_thread_address("creator", caller);
+    log_thread_address("requested entry", (uintptr_t)start);
+#endif
+
     int ret;
 
     if (!attr) {
         pthread_attr_t a;
         pthread_attr_init(&a);
         pthread_attr_setstacksize(&a, 512 * 1024);
+#ifdef ZOMBIE_THREAD_TRACE
+        ret = pthread_create(thread, &a, traced_thread_entry, trace);
+#else
         ret = pthread_create(thread, &a, start, param);
+#endif
         pthread_attr_destroy(&a);
     } else{
         _attr_t_static_init((pthread_attr_t_bionic *) attr);
         pthread_attr_setstacksize(attr->real_ptr, 512 * 1024);
+#ifdef ZOMBIE_THREAD_TRACE
+        ret = pthread_create(thread, attr->real_ptr, traced_thread_entry, trace);
+#else
         ret = pthread_create(thread, attr->real_ptr, start, param);
+#endif
     }
+
+#ifdef ZOMBIE_THREAD_TRACE
+    if (ret != 0) {
+        l_error("[thread] #%u CREATE failed: %d", sequence, ret);
+        free(trace);
+    } else {
+        l_info("[thread] #%u CREATED handle=0x%08X stack=512KB",
+               sequence, (unsigned)(uintptr_t)*thread);
+    }
+#endif
 
     return ret;
 }
@@ -214,10 +302,25 @@ int pthread_mutex_init_soloader(pthread_mutex_t_bionic *uid, const pthread_mutex
 int pthread_mutex_destroy_soloader(pthread_mutex_t_bionic *mutex)
 {
     if (!mutex) return 0;
-    forgetObject(mutex);
-    int ret = pthread_mutex_destroy(mutex->real_ptr);
-    if (mutex->real_ptr) free(mutex->real_ptr);
-    mutex->real_ptr = 0x0;
+
+    // A Bionic mutex with a static initializer is a complete, valid object
+    // even if it was never locked.  In that case no Vita pthread object was
+    // allocated, so there is nothing for newlib to destroy.
+    if (!isObjectInitialized(mutex)) {
+#ifdef ZOMBIE_THREAD_TRACE
+        l_info("[thread] mutex destroy skipped (Bionic static/uninitialized) mutex=%p",
+               (void *)mutex);
+#endif
+        return 0;
+    }
+
+    pthread_mutex_t *real_ptr = mutex->real_ptr;
+    int ret = pthread_mutex_destroy(real_ptr);
+    if (ret == 0) {
+        forgetObject(mutex);
+        free(real_ptr);
+        mutex->real_ptr = NULL;
+    }
     return ret;
 }
 
@@ -240,6 +343,41 @@ int pthread_mutex_unlock_soloader(pthread_mutex_t_bionic *mutex)
     if (!mutex) return EINVAL;
     if (!mutex->real_ptr) return EINVAL;
     return pthread_mutex_unlock(mutex->real_ptr);
+}
+
+int pthread_rwlock_init_soloader(pthread_rwlock_t_bionic *lock,
+                                 const void *attr) {
+    (void) attr; // Bionic and newlib rwlock attributes have different ABIs.
+    if (!lock) return EINVAL;
+    return _rwlock_t_static_init(lock);
+}
+
+int pthread_rwlock_destroy_soloader(pthread_rwlock_t_bionic *lock) {
+    if (!lock || !isObjectInitialized(lock)) return 0;
+    int ret = pthread_rwlock_destroy(lock->real_ptr);
+    if (ret == 0) {
+        forgetObject(lock);
+        free(lock->real_ptr);
+        lock->real_ptr = NULL;
+    }
+    return ret;
+}
+
+int pthread_rwlock_rdlock_soloader(pthread_rwlock_t_bionic *lock) {
+    if (!lock) return EINVAL;
+    int ret = _rwlock_t_static_init(lock);
+    return ret == 0 ? pthread_rwlock_rdlock(lock->real_ptr) : ret;
+}
+
+int pthread_rwlock_wrlock_soloader(pthread_rwlock_t_bionic *lock) {
+    if (!lock) return EINVAL;
+    int ret = _rwlock_t_static_init(lock);
+    return ret == 0 ? pthread_rwlock_wrlock(lock->real_ptr) : ret;
+}
+
+int pthread_rwlock_unlock_soloader(pthread_rwlock_t_bionic *lock) {
+    if (!lock || !isObjectInitialized(lock)) return EINVAL;
+    return pthread_rwlock_unlock(lock->real_ptr);
 }
 
 int pthread_join_soloader(pthread_t thread, void **value_ptr)
@@ -270,10 +408,18 @@ int pthread_cond_init_soloader(pthread_cond_t_bionic *cond,
 int pthread_cond_destroy_soloader(pthread_cond_t_bionic *cond)
 {
     if (!cond) return 0;
-    forgetObject(cond);
-    int ret = pthread_cond_destroy(cond->real_ptr);
-    if (cond->real_ptr) free(cond->real_ptr);
-    cond->real_ptr = 0x0;
+
+    // Match the lazy initialization used by the other condition-variable
+    // wrappers: a never-used Bionic static initializer needs no Vita cleanup.
+    if (!isObjectInitialized(cond)) return 0;
+
+    pthread_cond_t *real_ptr = cond->real_ptr;
+    int ret = pthread_cond_destroy(real_ptr);
+    if (ret == 0) {
+        forgetObject(cond);
+        free(real_ptr);
+        cond->real_ptr = NULL;
+    }
     return ret;
 }
 
@@ -382,10 +528,21 @@ pthread_t pthread_self_soloader()
 
 int pthread_once_soloader(volatile int *once_control, void (*init_routine)(void)) {
     if (!once_control || !init_routine)
-        return -1;
-    if (__sync_lock_test_and_set(once_control, 1) == 0)
-        (*init_routine)();
-    return 0;
+        return EINVAL;
+
+    // Bionic uses 0 = not started, 1 = running and 2 = complete. The old
+    // test-and-set implementation returned to competing threads while the
+    // initializer was still running and never published the complete state.
+    for (;;) {
+        int state = __atomic_load_n(once_control, __ATOMIC_ACQUIRE);
+        if (state == 2) return 0;
+        if (state == 0 && __sync_bool_compare_and_swap(once_control, 0, 1)) {
+            (*init_routine)();
+            __atomic_store_n(once_control, 2, __ATOMIC_RELEASE);
+            return 0;
+        }
+        sched_yield();
+    }
 }
 
 #ifndef MAX_TASK_COMM_LEN

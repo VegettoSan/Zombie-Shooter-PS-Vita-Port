@@ -17,9 +17,12 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/rtc.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <pthread.h>
 
 #include "utils/utils.h"
 #include "utils/logger.h"
+#include "utils/so_trace.h"
 
 #define BIONIC_CLOCK_REALTIME           0
 #define BIONIC_CLOCK_MONOTONIC          1
@@ -82,8 +85,77 @@ clock_t clock_soloader(void) {
     return sceKernelGetProcessTimeLow();
 }
 
-int sigaction(int signum, const struct sigaction * act, struct sigaction * oldact) {
-    l_warn("sigaction(%i, ...): not implemented", signum);
+/*
+ * The loaded library uses Bionic's 32-bit ARM layout.  Passing that object to
+ * VitaSDK's sigaction would reinterpret different flags/layout and would also
+ * attempt to install an Android handler that expects a Linux ucontext.  Keep a
+ * deterministic compatibility registry instead.  This is enough for the
+ * game's CrashCatcher RAII object to save and restore its previous action.
+ */
+#define BIONIC_NSIG 32
+_Static_assert(sizeof(bionic_sigaction) == 16,
+               "Android ARM sigaction ABI must be 16 bytes");
+
+static bionic_sigaction bionic_signal_actions[BIONIC_NSIG];
+static bool bionic_signal_action_valid[BIONIC_NSIG];
+static pthread_mutex_t bionic_signal_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void log_signal_address(const char *label, uintptr_t address) {
+    uintptr_t offset = 0;
+    if (so_trace_offset(address, &offset))
+        l_info("[signal] %s=%p (so+0x%08X)", label, (void *)address,
+               (unsigned)offset);
+    else
+        l_info("[signal] %s=%p (outside SO)", label, (void *)address);
+}
+
+int sigaction_soloader(int signum, const bionic_sigaction *act,
+                       bionic_sigaction *oldact) {
+    uintptr_t caller = (uintptr_t)__builtin_return_address(0);
+
+    l_info("[signal] sigaction(sig=%d, act=%p, oldact=%p)", signum,
+           (const void *)act, (void *)oldact);
+    log_signal_address("caller", caller);
+    if (act) {
+        log_signal_address("handler", act->handler);
+        l_info("[signal] action mask=0x%08X flags=0x%08X restorer=%p",
+               (unsigned)act->mask, (unsigned)act->flags,
+               (void *)act->restorer);
+    }
+
+    if (signum <= 0 || signum >= BIONIC_NSIG) {
+        errno = EINVAL;
+        l_error("[signal] invalid Android signal number: %d", signum);
+        return -1;
+    }
+
+    pthread_mutex_lock(&bionic_signal_mutex);
+    if (oldact) {
+        if (bionic_signal_action_valid[signum])
+            *oldact = bionic_signal_actions[signum];
+        else
+            memset(oldact, 0, sizeof(*oldact)); /* SIG_DFL */
+    }
+    if (act) {
+        bionic_signal_actions[signum] = *act;
+        bionic_signal_action_valid[signum] = true;
+    }
+    pthread_mutex_unlock(&bionic_signal_mutex);
+
+    return 0;
+}
+
+int pthread_sigmask_soloader(int how, const uint32_t *set, uint32_t *oldset) {
+    uintptr_t caller = (uintptr_t)__builtin_return_address(0);
+    uintptr_t offset = 0;
+    if (oldset)
+        *oldset = 0;
+    if (so_trace_offset(caller, &offset))
+        l_info("[signal] pthread_sigmask(how=%d set=%p old=%p) caller=so+0x%08X",
+               how, (const void *)set, (void *)oldset, (unsigned)offset);
+    else
+        l_info("[signal] pthread_sigmask(how=%d set=%p old=%p) caller=%p",
+               how, (const void *)set, (void *)oldset, (void *)caller);
     return 0;
 }
 
