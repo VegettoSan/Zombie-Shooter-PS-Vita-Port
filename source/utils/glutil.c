@@ -52,7 +52,7 @@ void gl_init() {
     }
 
     /* The EGL bridge advertises EGL_SAMPLE_BUFFERS=0 / EGL_SAMPLES=0, so the
-     * game does not request multisampling.  Do not force 4x MSAA underneath it:
+     * game does not request multisampling. Do not force 4x MSAA underneath it:
      * that only adds fragment/bandwidth cost on Vita and makes FPS comparisons
      * misleading. */
     vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
@@ -394,7 +394,7 @@ void load_shader(GLuint shader, const char * string, size_t length) {
         char *buffer;
         size_t size;
 
-        file_load(path, (uint8_t **) &buffer, &size);
+        file_load(cg_path, (uint8_t **) &buffer, &size);
 
         glShaderSource(shader, 1, &string, &size);
         strcpy(next_shader_fname, gxp_path);
