@@ -186,9 +186,36 @@ if(NDK_PORT)
                         )
 endif()
 
+# Replace only IBufferQueue.o in the SDK OpenSL ES archive.  The game's
+# SfxBuffer::play calls Clear, and the SDK's unbounded mixer wait can suspend
+# the game thread when Vita audio output stops acknowledging buffers.
+set(OPEN_SLES_CLEAR_DIR ${CMAKE_SOURCE_DIR}/lib/opensles_clear)
+set(OPEN_SLES_CLEAR_OBJ ${CMAKE_BINARY_DIR}/IBufferQueue.o)
+set(OPEN_SLES_PATCHED_LIB ${CMAKE_BINARY_DIR}/libOpenSLES_zombie.a)
+file(GLOB OPEN_SLES_CLEAR_HEADERS ${OPEN_SLES_CLEAR_DIR}/*.h)
+add_custom_command(
+  OUTPUT ${OPEN_SLES_CLEAR_OBJ}
+  COMMAND ${CMAKE_C_COMPILER} -std=gnu17 -O3
+          -I${OPEN_SLES_CLEAR_DIR}
+          -I${VITASDK}/arm-vita-eabi/include
+          -DUSE_OUTPUTMIXEXT -DUSE_SDL -DUSE_SNDFILE
+          -c ${OPEN_SLES_CLEAR_DIR}/IBufferQueue.c -o ${OPEN_SLES_CLEAR_OBJ}
+  DEPENDS ${OPEN_SLES_CLEAR_DIR}/IBufferQueue.c ${OPEN_SLES_CLEAR_HEADERS}
+  VERBATIM)
+add_custom_command(
+  OUTPUT ${OPEN_SLES_PATCHED_LIB}
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${VITASDK}/arm-vita-eabi/lib/libOpenSLES.a ${OPEN_SLES_PATCHED_LIB}
+  COMMAND ${CMAKE_AR} r ${OPEN_SLES_PATCHED_LIB} ${OPEN_SLES_CLEAR_OBJ}
+  COMMAND ${CMAKE_RANLIB} ${OPEN_SLES_PATCHED_LIB}
+  DEPENDS ${OPEN_SLES_CLEAR_OBJ}
+  VERBATIM)
+add_custom_target(opensles_clear_archive DEPENDS ${OPEN_SLES_PATCHED_LIB})
+add_dependencies(${CMAKE_PROJECT_NAME} opensles_clear_archive)
+
 target_link_libraries(${CMAKE_PROJECT_NAME}
                       -Wl,--whole-archive pthread -Wl,--no-whole-archive
-                      OpenSLES
+                      ${OPEN_SLES_PATCHED_LIB}
                       sndfile
                       mp3lame
                       mpg123

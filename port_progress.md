@@ -1,5 +1,12 @@
 # Progreso del port
 
+## Checkpoint actual: espera infinita al vaciar la cola OpenSL ES
+
+- Vita real `log_0013.log`: el watchdog Debug causó deliberadamente el dump tras 45 segundos sin un present. Los últimos tres `AAsset_read` de `wav/footsteps.wav` retornaron correctamente. La pausa ocurre después de la lectura, no dentro de ella.
+- En `psp2core-1790320198-0x0000fb3453-eboot.bin.psp2dmp`, el hilo que reproduce el efecto está en `sound::SfxBuffer::play` (SO + `0x4d3b0a`) → `IBufferQueue_Clear` → `object_cond_wait`; el hilo `OpenSLES Playback` está dentro de `sceAudioOutOutput`. El hilo del bucle Android espera eventos. La función `IBufferQueue_Clear` del OpenSL ES de VitaSDK esperaba la confirmación del mezclador sin límite.
+- Cambio único: sustituir sólo `IBufferQueue.o` del archivo OpenSL ES durante la build. `Clear` espera como máximo 100 ms, deja el pedido de vaciado pendiente para conservar la propiedad de los buffers y registra `[AUDIO]` si expira. La causa por la que `sceAudioOutOutput` no regresa en ese momento aún requiere prueba física.
+- Debug y Release compilan con SoftFP; ambos VPK generados. Siguiente prueba: entrar al tutorial, mover el personaje hasta disparar `footsteps.wav` y comprobar si los presents continúan y si aparecen timeouts `[AUDIO]`. Los 5–7 FPS previos siguen sin explicación suficiente; no se afirma que este cambio los mejore.
+
 ## Checkpoint actual: congelación del render durante el tutorial
 
 - Vita real `log_0012.log`: `eglSwapBuffers` tarda ~0,2 ms, pero la cadencia real cae a 1–4 FPS. Hay pausas de 29 y 18 segundos que se recuperan. Tras abrir `wav/footsteps.wav`, los presents se detienen en 1154 durante al menos 157 segundos; el hilo lifecycle sigue vivo y la cola de input continúa recibiendo/consumiendo eventos. PSVshell también deja de actualizar su contador. El cuello de botella no está dentro de `eglSwapBuffers`.

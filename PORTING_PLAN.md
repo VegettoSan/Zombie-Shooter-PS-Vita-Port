@@ -8,7 +8,7 @@
 
 ## Próximo checkpoint
 
-La Vita real ya supera `LOADING` y muestra un nivel tutorial (`log_0011.log` y `log_0012.log`). El táctil responde, pero el juego corre a 1–4 FPS reales y el render acaba detenido durante minutos. `eglSwapBuffers` tarda sólo ~0,2 ms; los presents se detienen mientras el lifecycle y la cola de input siguen vivos. La última lectura visible de `footsteps.wav` acaba al final del chunk de audio, pero el punto exacto de bloqueo requiere el dump de hilos del siguiente Debug.
+La Vita real ya supera `LOADING` y muestra un nivel tutorial (`log_0011.log`–`log_0013.log`). El táctil responde, pero el juego corre a 1–7 FPS reales y el render acaba detenido durante minutos. `eglSwapBuffers` tarda sólo ~0,2 ms. El dump de `log_0013.log` sitúa la espera del efecto `footsteps.wav` en `IBufferQueue_Clear`, mientras `OpenSLES Playback` está en `sceAudioOutOutput`. El checkpoint siguiente acota esa espera a 100 ms; pendiente comprobar en Vita si el tutorial continúa después de mover al personaje. La causa del rendimiento bajo sigue abierta.
 
 La prueba `log_0008.log` confirma que FalsoJNI ya responde verdadero a `IsInstanceOf(activity, android/content/Context)`. La inicialización de Play Asset Delivery avanza hasta `AssetPackManagerFactory.getInstance(Context)`, que FalsoJNI no implementa; devuelve un manager nulo y las consultas a `commonAssets` no obtienen ubicación. Aparecen 1.503 errores `showWait`. `Wrong AES key length` persiste (215 veces); su causa sigue abierta.
 

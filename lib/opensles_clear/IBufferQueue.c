@@ -1,0 +1,330 @@
+/*
+ * Copyright (C) 2010 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* BufferQueue implementation */
+
+#include "sles_allinclusive.h"
+#include <time.h>
+
+/* Port logger; bounded messages keep runtime logs useful. */
+extern void _log_print(int level, const char *format, ...);
+
+
+/** Determine the state of the audio player or audio recorder associated with a buffer queue.
+ *  Note that PLAYSTATE and RECORDSTATE values are equivalent (where PLAYING == RECORDING).
+ */
+
+static SLuint32 getAssociatedState(IBufferQueue *this)
+{
+    SLuint32 state;
+    switch (InterfaceToObjectID(this)) {
+    case SL_OBJECTID_AUDIOPLAYER:
+        state = ((CAudioPlayer *) this->mThis)->mPlay.mState;
+        break;
+    case SL_OBJECTID_AUDIORECORDER:
+        state = ((CAudioRecorder *) this->mThis)->mRecord.mState;
+        break;
+    default:
+        // unreachable, but just in case we will assume it is stopped
+        assert(SL_BOOLEAN_FALSE);
+        state = SL_PLAYSTATE_STOPPED;
+        break;
+    }
+    return state;
+}
+
+void IBufferQueue_ReleaseArrayBuffers(IBufferQueue *this)
+{
+    if ((NULL == this) || (NULL == this->mArray)) {
+        return;
+    }
+
+    for (unsigned i = 0; i < this->mNumBuffers + 1; ++i) {
+        BufferHeader_release(&this->mArray[i]);
+    }
+}
+
+SLresult IBufferQueue_Enqueue(SLBufferQueueItf self, const void *pBuffer, SLuint32 size)
+{
+    SL_ENTER_INTERFACE
+    //SL_LOGV("IBufferQueue_Enqueue(%p, %p, %lu)", self, pBuffer, size);
+
+    // Note that Enqueue while a Clear is pending is equivalent to Enqueue followed by Clear
+    
+    if (NULL == pBuffer || 0 == size) {
+        result = SL_RESULT_PARAMETER_INVALID;
+    } else {
+        IBufferQueue *this = (IBufferQueue *) self;
+        interface_lock_exclusive(this);
+        BufferHeader *oldRear = this->mRear, *newRear;
+        if ((newRear = oldRear + 1) == &this->mArray[this->mNumBuffers + 1]) {
+            newRear = this->mArray;
+        }
+        if (newRear == this->mFront) {
+            result = SL_RESULT_BUFFER_INSUFFICIENT;
+        } else {
+            int num_cycles = (&_opensles_user_freq!=NULL?_opensles_user_freq:44100) * 1000 / this->samplerate;
+            int multiplier = 1;
+            void *ownedBuffer = NULL;
+            if (this->channels == 1)
+                multiplier *= 2;
+            if (this->bps == 8)
+                multiplier *= 2;
+            if (num_cycles != 1 || this->channels == 1 || this->bps == 8) {
+                ownedBuffer = calloc(1, size * num_cycles * multiplier);
+                if (NULL == ownedBuffer) {
+                    interface_unlock_exclusive(this);
+                    result = SL_RESULT_RESOURCE_ERROR;
+                    goto fail;
+                }
+                if (this->bps != 8) {
+                    if (this->channels == 2) { // PCM16 Stereo
+                        uint32_t *src = (uint32_t *)pBuffer;
+                        uint32_t *dst = (uint32_t *)ownedBuffer;
+                        for (int j = 0; j < size; j += 4) {
+                            for (int i = 0; i < num_cycles; i++) {
+                                dst[i] = *src;
+                            }
+                            src++;
+                            dst += num_cycles;
+                        }
+                    } else { // PCM16 Mono
+                        uint16_t *src = (uint16_t *)pBuffer;
+                        uint16_t *dst = (uint16_t *)ownedBuffer;
+                        for (int j = 0; j < size; j += 2) {
+                            for (int i = 0; i < num_cycles; i++) {
+                                dst[i*2] = *src;
+                                dst[i*2+1] = *src;
+                            }
+                            src++;
+                            dst += num_cycles * 2;
+                        }
+                    }
+                } else {
+                    if (this->channels == 2) { // PCM8 Stereo
+                        uint8_t *src = (uint8_t *)pBuffer;
+                        int16_t *dst = (int16_t *)ownedBuffer;
+                        for (int j = 0; j < size; j += 2) {
+                            for (int i = 0; i < num_cycles; i++) {
+                                dst[i*2] = ((int16_t)src[0] - 0x80) << 8;
+                                dst[i*2+1] = ((int16_t)src[1] - 0x80) << 8;
+                            }
+                            src += 2;
+                            dst += num_cycles * 2;
+                        }
+                    } else { // PCM8 Mono
+                        uint8_t *src = (uint8_t *)pBuffer;
+                        int16_t *dst = (int16_t *)ownedBuffer;
+                        for (int j = 0; j < size; j++) {
+                            for (int i = 0; i < num_cycles; i++) {
+                                dst[i*2] = ((int16_t)*src - 0x80) << 8;
+                                dst[i*2+1] = ((int16_t)*src - 0x80) << 8;
+                            }
+                            src++;
+                            dst += num_cycles * 2;
+                        }
+                    }
+                }
+                pBuffer = ownedBuffer;
+            }
+            assert(NULL == oldRear->mOwnedBuffer);
+            oldRear->mBuffer = pBuffer;
+            oldRear->mSize = size * num_cycles * multiplier;
+            oldRear->mOwnedBuffer = ownedBuffer;
+            this->mRear = newRear;
+            ++this->mState.count;
+            if (SL_OBJECTID_AUDIOPLAYER == InterfaceToObjectID(this)) {
+                CAudioPlayer *audioPlayer = (CAudioPlayer *) this->mThis;
+                audioPlayer->mPlay.mHeadAtEnd = SL_BOOLEAN_FALSE;
+                audioPlayer->mPlay.mHeadStalled = SL_BOOLEAN_FALSE;
+            }
+            result = SL_RESULT_SUCCESS;
+        }
+        // set enqueue attribute if state is PLAYING and the first buffer is enqueued
+        interface_unlock_exclusive_attributes(this, ((SL_RESULT_SUCCESS == result) &&
+            (1 == this->mState.count) && (SL_PLAYSTATE_PLAYING == getAssociatedState(this))) ?
+            ATTR_ENQUEUE : ATTR_NONE);
+    }
+fail:
+    SL_LEAVE_INTERFACE
+}
+
+
+SLresult IBufferQueue_Clear(SLBufferQueueItf self)
+{
+    SL_ENTER_INTERFACE
+
+    result = SL_RESULT_SUCCESS;
+    IBufferQueue *this = (IBufferQueue *) self;
+    interface_lock_exclusive(this);
+
+#ifdef ANDROID
+    if (SL_OBJECTID_AUDIOPLAYER == InterfaceToObjectID(this)) {
+        CAudioPlayer *audioPlayer = (CAudioPlayer *) this->mThis;
+        // flush associated audio player
+        result = android_audioPlayer_bufferQueue_onClear(audioPlayer);
+        if (SL_RESULT_SUCCESS == result) {
+            IBufferQueue_ReleaseArrayBuffers(this);
+            this->mFront = &this->mArray[0];
+            this->mRear = &this->mArray[0];
+            this->mState.count = 0;
+            this->mState.playIndex = 0;
+            this->mSizeConsumed = 0;
+        }
+    }
+#endif
+
+#ifdef USE_OUTPUTMIXEXT
+    // mixer might be reading from the front buffer, so tread carefully here
+    // NTH asynchronous cancel instead of blocking until mixer acknowledges
+    this->mClearRequested = SL_BOOLEAN_TRUE;
+    /*
+     * The Vita audio thread may remain inside sceAudioOutOutput. In that
+     * state the mixer cannot acknowledge Clear, so the unbounded wait
+     * suspends the game thread. Leave the request pending on timeout:
+     * the mixer still owns the buffers and will clear them when it resumes.
+     */
+    struct timespec deadline;
+    int wait_result = clock_gettime(CLOCK_REALTIME, &deadline);
+    if (wait_result == 0) {
+        deadline.tv_nsec += 100000000L;
+        if (deadline.tv_nsec >= 1000000000L) {
+            ++deadline.tv_sec;
+            deadline.tv_nsec -= 1000000000L;
+        }
+        while (this->mClearRequested) {
+            IObject *object = InterfaceToIObject(this);
+            wait_result = pthread_cond_timedwait(&object->mCond,
+                                                 &object->mMutex, &deadline);
+            if (wait_result == ETIMEDOUT) {
+                static volatile unsigned clear_timeouts;
+                unsigned count = __sync_fetch_and_add(&clear_timeouts, 1);
+                if (count < 4 || (count % 128) == 0) {
+                    _log_print(2, "[AUDIO] OpenSLES buffer Clear timed out (count=%u); mixer acknowledgement pending", count + 1);
+                }
+                result = SL_RESULT_RESOURCE_ERROR;
+                break;
+            }
+            if (wait_result != 0 && wait_result != EINTR) {
+                _log_print(3, "[AUDIO] OpenSLES buffer Clear wait failed: %d", wait_result);
+                result = SL_RESULT_RESOURCE_ERROR;
+                break;
+            }
+        }
+    } else {
+        _log_print(3, "[AUDIO] OpenSLES buffer Clear clock_gettime failed");
+        result = SL_RESULT_RESOURCE_ERROR;
+    }
+#endif
+
+    interface_unlock_exclusive(this);
+
+    SL_LEAVE_INTERFACE
+}
+
+
+static SLresult IBufferQueue_GetState(SLBufferQueueItf self, SLBufferQueueState *pState)
+{
+    SL_ENTER_INTERFACE
+
+    // Note that GetState while a Clear is pending is equivalent to GetState before the Clear
+
+    if (NULL == pState) {
+        result = SL_RESULT_PARAMETER_INVALID;
+    } else {
+        IBufferQueue *this = (IBufferQueue *) self;
+        SLBufferQueueState state;
+        interface_lock_shared(this);
+    #ifdef __cplusplus // Avoid aggregate assignment trouble seen in C++ builds.
+        state.count = this->mState.count;
+        state.playIndex = this->mState.playIndex;
+#else
+        state = this->mState;
+#endif
+        interface_unlock_shared(this);
+        *pState = state;
+        result = SL_RESULT_SUCCESS;
+    }
+
+    SL_LEAVE_INTERFACE
+}
+
+
+SLresult IBufferQueue_RegisterCallback(SLBufferQueueItf self,
+    slBufferQueueCallback callback, void *pContext)
+{
+    SL_ENTER_INTERFACE
+
+    IBufferQueue *this = (IBufferQueue *) self;
+    interface_lock_exclusive(this);
+    // verify pre-condition that media object is in the SL_PLAYSTATE_STOPPED state
+    if (SL_PLAYSTATE_STOPPED == getAssociatedState(this)) {
+        this->mCallback = callback;
+        this->mContext = pContext;
+        result = SL_RESULT_SUCCESS;
+    } else {
+        result = SL_RESULT_PRECONDITIONS_VIOLATED;
+    }
+    interface_unlock_exclusive(this);
+
+    SL_LEAVE_INTERFACE
+}
+
+
+static const struct SLBufferQueueItf_ IBufferQueue_Itf = {
+    IBufferQueue_Enqueue,
+    IBufferQueue_Clear,
+    IBufferQueue_GetState,
+    IBufferQueue_RegisterCallback
+};
+
+void IBufferQueue_init(void *self)
+{
+    //SL_LOGV("IBufferQueue_init(%p) entering", self);
+    IBufferQueue *this = (IBufferQueue *) self;
+    this->mItf = &IBufferQueue_Itf;
+    this->mState.count = 0;
+    this->mState.playIndex = 0;
+    this->mCallback = NULL;
+    this->mContext = NULL;
+    this->mNumBuffers = 0;
+    this->mClearRequested = SL_BOOLEAN_FALSE;
+    this->mArray = NULL;
+    this->mFront = NULL;
+    this->mRear = NULL;
+#ifdef ANDROID
+    this->mSizeConsumed = 0;
+#endif
+    BufferHeader *bufferHeader = this->mTypical;
+    unsigned i;
+    for (i = 0; i < BUFFER_HEADER_TYPICAL+1; ++i, ++bufferHeader) {
+        BufferHeader_reset(bufferHeader);
+    }
+}
+
+
+/** \brief Free the buffer queue, if it was larger than typical.
+  * Called by CAudioPlayer_Destroy and CAudioRecorder_Destroy.
+  */
+
+void IBufferQueue_Destroy(IBufferQueue *this)
+{
+    IBufferQueue_ReleaseArrayBuffers(this);
+    if ((NULL != this->mArray) && (this->mArray != this->mTypical)) {
+        free(this->mArray);
+        this->mArray = NULL;
+    }
+}
