@@ -4,9 +4,18 @@ These instructions apply to the entire repository.
 
 ## Project goal
 
-Port the Android version of **Zombie Shooter** to **real PS Vita hardware** by loading and adapting the original ARM Android shared library rather than reimplementing the whole game. The immediate priority is correctness and playability; optimization comes later.
+Port the Android version of **Zombie Shooter** to **real PS Vita hardware** by loading and adapting the original ARM Android shared library rather than reimplementing the whole game. The immediate priority is correctness and playability; optimization follows measured evidence.
 
-For any Android→PS Vita porting, boot, JNI, renderer, asset, audio, input, crash, or loader task, **read `docs/METALSYNTAX_PORTING_GUIDE.md` before editing code**.
+For any Android→PS Vita porting, boot, JNI, renderer, asset, audio, input, crash, loader or performance task, read these before editing code:
+
+```text
+PORT_STATUS.md
+docs/HARDWARE_TEST_LOG.md
+docs/PERFORMANCE_PLAN.md
+docs/METALSYNTAX_PORTING_GUIDE.md
+```
+
+`docs/HARDWARE_TEST_LOG.md` is the persistent record of real-Vita results. Do not repeat a discarded experiment or revert a hardware-confirmed fix without new evidence.
 
 ## Work only on the local checkout
 
@@ -31,6 +40,19 @@ git cherry-pick
 git reset --hard
 git clean -fd
 ```
+
+Also do not use GitHub CLI or any API/tool to publish or trigger remote automation:
+
+```text
+gh workflow run
+gh run rerun
+gh release create/edit/upload
+GitHub Actions workflow_dispatch
+GitHub Releases / Pre-releases creation
+remote tag creation
+```
+
+The repository contains a manual GitHub Actions workflow that the **user** may run to build Debug + Release VPKs and publish a Pre-release. Codex may inspect that workflow when needed, but must not trigger it or publish anything.
 
 Git may be used for inspection only:
 
@@ -81,13 +103,15 @@ The user's normal HardFP SDK for other Vita projects is preserved at:
 
 **Never modify or replace `/usr/local/vitasdk-hardfp`.**
 
-Never reuse a CMake build directory created with a different VitaSDK ABI. If ABI/toolchain selection may have changed, delete and reconfigure `build/`.
+Never reuse a CMake build directory created with a different VitaSDK ABI. If ABI/toolchain selection may have changed, delete and reconfigure that build directory.
+
+The remote manual workflow uses the maintained `vitasdk/vitasdk-softfp:nightly` image and may have toolchain-specific compatibility shims that are not needed by the user's local GCC. Do not blindly move CI-only fixes into runtime code.
 
 ## Core porting rule: reproduce the real Android lifecycle
 
-Do not assume the current loader architecture is correct just because it reaches part of the game.
+The lifecycle is now strongly evidenced as NativeActivity, but any major lifecycle rewrite still requires verification against the local APK/XAPK and `.so`.
 
-Before making major boot/lifecycle changes, verify the original Android behavior from the local APK/XAPK and `.so` using some combination of:
+Before making major boot/lifecycle changes, verify original Android behavior from:
 
 ```text
 AndroidManifest.xml
@@ -99,23 +123,19 @@ strings
 Ghidra or targeted decompilation
 ```
 
-Determine whether the game actually uses:
+The confirmed path for the current game version is:
 
 ```text
-Java_* exported JNI methods
-JNI_OnLoad
-RegisterNatives
-ANativeActivity_onCreate / NativeActivity
-android_main
-GLSurfaceView / Renderer callbacks
-another engine-specific lifecycle
+GameActivity
+→ CommonActivity
+→ android.app.NativeActivity
+→ metadata android.app.lib_name=zombie_shooter
+→ ANativeActivity_onCreate
 ```
 
-Then reproduce that lifecycle in the Vita loader in the same semantic order.
+The SO does not export `JNI_OnLoad`, `android_main` or `Java_*` entrypoints.
 
-**The decompiled Android Java/native call order is the source of truth.**
-
-If the current `NDK_PORT`/NativeActivity path is wrong, keep working loader pieces that are valid and replace the bootstrap instead of patching fake callbacks indefinitely.
+**The decompiled Android Java/native call order remains the source of truth.**
 
 ## MetalSyntax methodology
 
@@ -139,7 +159,7 @@ Reuse architecture from another port only after establishing a real engine/ABI/l
 
 Treat JNI signatures and ARM ABI as correctness-critical.
 
-Confirm static vs instance methods and the exact argument/return types from Android source plus native disassembly when necessary. A function that appears to return normally can still corrupt registers/stack if its signature is wrong.
+Confirm static vs instance methods and exact argument/return types from Android source plus native disassembly when necessary. A function that appears to return normally can still corrupt registers/stack if its signature is wrong.
 
 Do not replace a full FalsoJNI environment with an underspecified fake if the game dereferences a broad JNI vtable.
 
@@ -149,7 +169,7 @@ For Android structs directly dereferenced by the `.so`, verify `sizeof`, `offset
 
 ## SO loading and patches
 
-Keep the loader stages explicit and observable:
+Keep loader stages explicit and observable:
 
 ```text
 load
@@ -169,16 +189,16 @@ Never apply an arbitrary runtime/binary patch merely because another game needed
 
 Determine these from the game before choosing an implementation:
 
-- **Graphics:** inspect actual GLES/EGL imports. GLES1 and GLES2 need different compatibility strategies.
-- **Assets:** determine whether the engine uses `AAssetManager`, JNI resource methods, direct `fopen`, APK/ZIP/OBB, `/sdcard`, `/data/data`, or proprietary archives. Do not assume `assets/` is enough.
-- **Audio:** identify OpenSL ES, AudioTrack, OpenAL, SDL, FMOD, engine mixer, Ogg/MP3/WAV, etc. before building a Vita backend.
-- **Input:** prefer the engine's direct/native gamepad API when available; use synthetic touch only when that is the real control path. Real touch and synthetic touch must share safe slot allocation.
+- **Graphics:** inspect actual GLES/EGL imports. Zombie Shooter is currently bridged through VitaGL/EGL and already renders real gameplay.
+- **Assets:** current NativeActivity path uses AAssetManager and game assets under `ux0:data/zombieshooter/`; preserve evidence around buffered vs streamed assets and do not speculate about the second-entry crash before reading its log/dump.
+- **Audio:** the game uses OpenSL ES. The bounded `IBufferQueue_Clear` workaround is hardware-confirmed and must not be reverted casually.
+- **Input:** prefer the engine's real gamepad path. Touch works. Physical Vita controls are detected as a controller but Xbox-style semantics are still pending verification/correction.
 
 Keep saves, game data, logs and caches logically separated under `ux0:data/zombieshooter/`.
 
 ## Debugging policy
 
-Use **one hardware-confirmed bug at a time**.
+Use **one hardware-confirmed bug or one measured performance variable at a time**.
 
 Preferred loop:
 
@@ -188,12 +208,13 @@ evidence
 → small change
 → build
 → physical Vita test
-→ new log/core dump
+→ new measurement/log/core dump
+→ update docs/HARDWARE_TEST_LOG.md
 ```
 
 Do not stack unrelated speculative patches before a hardware test unless static analysis proves they are independently necessary.
 
-Use a new persistent log file per run, e.g.:
+Use a new persistent log file per run:
 
 ```text
 ux0:data/zombieshooter/logs/log_<run-id>.log
@@ -205,86 +226,153 @@ Useful prefixes:
 
 ```text
 [BOOT] [SO] [JNI] [LIFE] [GL] [ASSET]
-[AUDIO] [INPUT] [THREAD] [PATCH] [WARN] [CRASH]
+[AUDIO] [INPUT] [THREAD] [PATCH] [PERF] [WARN] [CRASH]
 ```
 
-When a text log cannot root-cause a crash, ask for/use the real `.psp2dmp` and analyze it against the unstripped Debug ELF. For addresses inside a dynamically loaded game `.so`, resolve the offset from the known load base manually with `nm`/`objdump`/Ghidra rather than trusting a guessed base.
+When a text log cannot root-cause a crash, use the real `.psp2dmp` against the unstripped Debug ELF. For addresses inside the dynamically loaded game `.so`, resolve offsets from the known load base manually with `nm`/`objdump`/Ghidra rather than guessing.
 
-## Current known baseline
+## Current hardware-confirmed baseline
 
-Previous real-Vita testing reached approximately:
+Current real-Vita state as of 2026-09-25:
 
 ```text
-SO loaded
-SO relocated
-imports resolved
-41/41 init_array constructors returned
-OpenGL preload returned
-FalsoJNI initialized
-gl_init returned
-game/NDK thread created
-ANativeActivity_onCreate found and returned
-sigaction(SIGSEGV) warnings
-crash
+SO loads and relocates
+412 undefined imports have explicit static coverage
+41/41 init_array constructors return
+NativeActivity bootstrap reaches the game
+graphics render logos / LOADING / tutorial / menu
+touch works
+OpenSL ES audio plays
+bounded IBufferQueue_Clear fix is hardware-confirmed
+user can walk through tutorial and return to main menu
 ```
 
-This is a useful clue, not proof that NativeActivity is the correct lifecycle. Revalidate against the local APK/XAPK before spending major effort on NativeActivity internals.
+Known unresolved issues:
+
+```text
+very low performance
+second tutorial entry: missing images/textures then crash
+physical controller mapping not yet correct
+Play Asset Delivery/commonAssets incomplete
+Wrong AES key length still observed historically
+```
+
+Performance baseline from the Release MSAA-NONE test:
+
+```text
+startup ≈ 7 FPS
+LOADING ≈ 4 FPS
+LOADING ≈ 5 minutes
+```
+
+Important result already learned:
+
+```text
+MSAA 4x → NONE did NOT produce a meaningful performance improvement.
+```
+
+The next controlled performance variable is Release logging overhead. The current code prepares a quiet Release while keeping Debug verbose. See `docs/HARDWARE_TEST_LOG.md` and `docs/PERFORMANCE_PLAN.md` before proposing another graphics speedhack.
+
+The second-entry tutorial crash is a separate track. The user has a real log and `.psp2dmp` on their PC; inspect those before changing assets/lifecycle/memory for that bug.
 
 ## Build commands
 
-Debug bring-up:
+Debug diagnostic build:
 
 ```bash
 export VITASDK=/usr/local/vitasdk
 export PATH="$VITASDK/bin:$PATH"
 cd ~/Zombie-Shooter-PS-Vita-Port
-rm -rf build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j"$(nproc)" 2>&1 | tee build.log
+rm -rf build-session-debug
+cmake -S . -B build-session-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-session-debug -j"$(nproc)" 2>&1 | tee build-session-debug.log
 ```
 
-Release checkpoint:
+Release gameplay/performance build:
 
 ```bash
-rm -rf build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j"$(nproc)" 2>&1 | tee build.log
+rm -rf build-session-release
+cmake -S . -B build-session-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-session-release -j"$(nproc)" 2>&1 | tee build-session-release.log
 ```
 
 Verify actual outputs before claiming success:
 
 ```bash
-find build \( -iname '*.vpk' -o -iname 'eboot.bin' \) -type f
+find build-session-debug build-session-release \
+  \( -iname '*.vpk' -o -iname 'eboot.bin' \) -type f
 ```
+
+Expected VPKs:
+
+```text
+build-session-debug/zombie_shooter.vpk
+build-session-release/zombie_shooter.vpk
+```
+
+Do not invent or add a third `Perf` variant unless the user explicitly decides that Debug + Release are insufficient. The current intended workflow is exactly two VPKs.
 
 ## Verification vocabulary
 
-Distinguish these explicitly:
+Distinguish explicitly:
 
 ```text
 STATICALLY VERIFIED
 BUILD VERIFIED
 VPK VERIFIED
+PENDING HARDWARE
 REAL VITA VERIFIED
 GAMEPLAY VERIFIED
+NO MEANINGFUL IMPROVEMENT
+REGRESSION
 ```
 
 Never describe something as fixed merely because it compiles.
 
 ## Documentation while porting
 
-Keep or create concise project notes:
+Maintain these project notes:
 
 - `PORTING_PLAN.md`: confirmed ABI/engine/lifecycle/assets/audio/input map and current hypotheses.
-- `port_progress.md`: one bug entry at a time: symptom, evidence, root cause, change, verification state.
+- `PORT_STATUS.md`: concise current snapshot and priorities.
+- `port_progress.md`: technical bug-by-bug history accumulated during bring-up.
+- `docs/HARDWARE_TEST_LOG.md`: **mandatory chronological record of real-Vita tests and A/B results**.
+- `docs/PERFORMANCE_PLAN.md`: current evidence-driven optimization order.
 
-Do not turn either document into a transcript or giant speculative checklist.
+After any meaningful physical-Vita result, update `docs/HARDWARE_TEST_LOG.md` before starting a new unrelated hypothesis. Record:
+
+```text
+build / commit / tag
+isolated change
+measurement before / after
+real hardware result
+verification state
+supported conclusion
+next controlled test
+```
+
+Do not turn documents into raw transcripts. Record decisions and evidence that future sessions need.
 
 ## Optimization order
 
-Do not prioritize overclocking, NEON tuning, shader speedhacks, large caches, FBO downsampling, frame skipping, culling hacks or texture compression until the game reaches meaningful gameplay and the bottleneck has been measured.
+Use the current plan, not generic optimization advice.
 
-Correctness and reproducibility first; performance second.
+As of 2026-09-25:
+
+```text
+1. hardware-test the quiet Release
+2. if still slow, profile asset I/O + waits/sleeps/synchronization
+3. compare CPU vs GPU clocks without changing code
+4. profile CPU/frame work
+5. inspect VitaGL memory/pools
+6. shader cache if relevant
+7. VitaGL speedhacks one at a time
+8. internal resolution only if evidence shows GPU-bound
+```
+
+Do not repeat MSAA as the next experiment; it has already been tested without meaningful improvement.
+
+Do not prioritize large groups of speedhacks, frame skipping, culling hacks or texture changes before the current bottleneck is measured.
 
 ## End-of-task report
 
@@ -296,8 +384,9 @@ Most relevant external reference(s)
 Files changed
 Debug build status
 Release build status
-VPK path
+VPK paths
 Verification state
+Documentation updated
 Exact physical-Vita test to run next
 At most 1–3 logs/dumps to return
 ```
