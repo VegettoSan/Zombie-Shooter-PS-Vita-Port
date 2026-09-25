@@ -103,6 +103,64 @@ jobs:
           fi
           grep -n '^#include <cerrno>$' lib/falso_ndk/android/ASensor.cpp
 
+      - name: Analyze canonical game SO crash window
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          mkdir -p dist
+          SO=demo/libzombie_shooter.so
+          test -f "$SO"
+          test "$(stat -c %s "$SO")" -eq 9773412
+
+          sha256sum "$SO" > dist/so-reference.sha256.txt
+          arm-vita-eabi-nm -anC "$SO" > /tmp/zombie-so-nm.txt || true
+
+          {
+            echo "Zombie Shooter canonical SO crash-window analysis"
+            echo "File: $SO"
+            echo "Size: $(stat -c %s "$SO") bytes"
+            cat dist/so-reference.sha256.txt
+            echo
+            echo "Crash from real Vita dump:"
+            echo "PC  = 0x98515AE4 -> SO+0x00515AE4"
+            echo "LR  = 0x98515A5F -> SO+0x00515A5F"
+            echo "DFAR= 0x07D36E9C"
+            echo
+            echo "addr2line:"
+            arm-vita-eabi-addr2line -Cfipe "$SO" \
+              0x00515AE4 0x00515A5F 0x00515F5F 0x00515961 0x0050BB99 || true
+            echo
+            echo "Nearest named symbols (+/- 0x2000 around PC):"
+            python3 - <<'PY'
+          from pathlib import Path
+          target = 0x00515AE4
+          rows = []
+          for line in Path('/tmp/zombie-so-nm.txt').read_text(errors='replace').splitlines():
+              parts = line.split(maxsplit=2)
+              if len(parts) < 2:
+                  continue
+              try:
+                  addr = int(parts[0], 16)
+              except ValueError:
+                  continue
+              if abs(addr - target) <= 0x2000:
+                  rows.append((addr, line))
+          for _, line in rows:
+              print(line)
+          PY
+            echo
+            echo "Disassembly standard:"
+            arm-vita-eabi-objdump -d -C \
+              --start-address=0x00515900 --stop-address=0x00515C80 "$SO" || true
+            echo
+            echo "Disassembly forced Thumb (same window):"
+            arm-vita-eabi-objdump -D -C -M force-thumb \
+              --start-address=0x00515900 --stop-address=0x00515C80 "$SO" || true
+          } > dist/crash-zone-disasm.txt
+
+          echo "=== crash-zone-disasm.txt (first 220 lines) ==="
+          sed -n '1,220p' dist/crash-zone-disasm.txt
+
       - name: Build VitaSDK nightly getentropy compatibility object
         run: |
           set -euo pipefail
@@ -143,10 +201,22 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
+          short_sha="${GITHUB_SHA:0:7}"
           rm -rf build-ci-debug
           cmake -S . -B build-ci-debug \
             -DCMAKE_BUILD_TYPE=Debug \
+            -DZOMBIE_BUILD_ID="$short_sha" \
             -DCMAKE_EXE_LINKER_FLAGS="$GITHUB_WORKSPACE/ci_getentropy_compat.o"
+
+          echo "=== Debug compile definitions ==="
+          cat build-ci-debug/CMakeFiles/so_loader.dir/flags.make
+          grep -q 'ZOMBIE_DEBUG_BUILD=1' build-ci-debug/CMakeFiles/so_loader.dir/flags.make
+          grep -q 'FALSOJNI_DEBUGLEVEL=0' build-ci-debug/CMakeFiles/so_loader.dir/flags.make
+          if grep -q 'ZOMBIE_RELEASE_BUILD=1' build-ci-debug/CMakeFiles/so_loader.dir/flags.make; then
+            echo "ERROR: Debug configuration contains Release identity" >&2
+            exit 1
+          fi
+
           cmake --build build-ci-debug -j"$(nproc)" 2>&1 | tee build-ci-debug.log
           test -f build-ci-debug/zombie_shooter.vpk
           mkdir -p dist
@@ -156,14 +226,34 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
+          short_sha="${GITHUB_SHA:0:7}"
           rm -rf build-ci-release
           cmake -S . -B build-ci-release \
             -DCMAKE_BUILD_TYPE=Release \
+            -DZOMBIE_BUILD_ID="$short_sha" \
             -DCMAKE_EXE_LINKER_FLAGS="$GITHUB_WORKSPACE/ci_getentropy_compat.o"
+
+          echo "=== Release compile definitions ==="
+          cat build-ci-release/CMakeFiles/so_loader.dir/flags.make
+          grep -q 'ZOMBIE_RELEASE_BUILD=1' build-ci-release/CMakeFiles/so_loader.dir/flags.make
+          grep -q 'FALSOJNI_DEBUGLEVEL=4' build-ci-release/CMakeFiles/so_loader.dir/flags.make
+          if grep -q 'ZOMBIE_DEBUG_BUILD=1' build-ci-release/CMakeFiles/so_loader.dir/flags.make; then
+            echo "ERROR: Release configuration contains Debug identity" >&2
+            exit 1
+          fi
+
           cmake --build build-ci-release -j"$(nproc)" 2>&1 | tee build-ci-release.log
           test -f build-ci-release/zombie_shooter.vpk
           mkdir -p dist
           cp build-ci-release/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Release.vpk
+
+          {
+            echo "=== DEBUG flags ==="
+            cat build-ci-debug/CMakeFiles/so_loader.dir/flags.make
+            echo
+            echo "=== RELEASE flags ==="
+            cat build-ci-release/CMakeFiles/so_loader.dir/flags.make
+          } > dist/build-flags.txt
 
       - name: Generate build metadata
         id: meta
@@ -178,6 +268,7 @@ jobs:
           Run: ${GITHUB_RUN_NUMBER}
           Commit: ${GITHUB_SHA}
           Ref: ${GITHUB_REF_NAME}
+          Build ID embedded in logs: ${short_sha}
           SoftFP SDK: ${VITASDK}
           Docker image: vitasdk/vitasdk-softfp:nightly
           Assets included: NO (loader VPK only)
@@ -198,7 +289,10 @@ jobs:
             dist/Zombie-Shooter-Vita-Debug.vpk
             dist/Zombie-Shooter-Vita-Release.vpk
             dist/build-info.txt
+            dist/build-flags.txt
             dist/SHA256SUMS.txt
+            dist/so-reference.sha256.txt
+            dist/crash-zone-disasm.txt
 
       - name: Publish GitHub Pre-release
         uses: softprops/action-gh-release@v2
@@ -214,6 +308,7 @@ jobs:
 
             - Commit: `${{ github.sha }}`
             - Ref: `${{ github.ref_name }}`
+            - Embedded build ID: `${{ steps.meta.outputs.short_sha }}`
             - Toolchain: VitaSDK **SoftFP** (`nightly` channel)
             - Includes both **Debug** and **Release** VPKs
             - Does **not** include the proprietary Android APK/XAPK, `libzombie_shooter.so`, or game assets
