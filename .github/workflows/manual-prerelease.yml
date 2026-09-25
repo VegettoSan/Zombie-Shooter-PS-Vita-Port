@@ -63,7 +63,7 @@ jobs:
 
           required_files=(
             "$VITASDK/arm-vita-eabi/lib/libOpenSLES.a"
-            "$VITASDK/arm-vita-eabi/lib/libSceShaccCgExt_stub.a"
+            "$VITASDK/arm-vita-eabi/lib/libSceShaccCgExt.a"
             "$VITASDK/arm-vita-eabi/lib/libvitashark.a"
             "$VITASDK/arm-vita-eabi/lib/libmathneon.a"
             "$VITASDK/arm-vita-eabi/lib/libmpg123.a"
