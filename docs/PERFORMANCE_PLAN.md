@@ -6,20 +6,9 @@ Este documento define el orden vigente para subir FPS sin mezclar variables ni p
 
 El historial cronológico de pruebas reales está en `docs/HARDWARE_TEST_LOG.md`.
 
-## Estado actual confirmado
-
-- Vita real alcanza el tutorial, touch funciona y el audio se reproduce.
-- El fix de `IBufferQueue_Clear()` ya superó el bloqueo de audio principal en hardware.
-- El usuario puede caminar por el tutorial y volver al menú principal.
-- Existe un bug separado de segunda entrada al tutorial: faltan recursos y después ocurre un crash; está pendiente de análisis con log + `.psp2dmp` reales.
-- `eglSwapBuffers` se había medido alrededor de `0,2 ms`; por sí solo no explica frames de cientos de milisegundos.
-- La build Release con **MSAA NONE** siguió aproximadamente a **7 FPS al iniciar**, **4 FPS en `LOADING`** y `LOADING` tardó **casi 5 minutos**.
-- Por tanto, quitar MSAA 4× **no produjo una mejora significativa** y no debe seguir tratándose como la hipótesis principal.
-- Después de esa prueba se descubrió que Release todavía mantenía alto tráfico de `sceClibPrintf()` desde FalsoNDK, FalsoJNI y `SO_UTIL_VERBOSE`; una Release realmente silenciosa está preparada y pendiente de prueba física.
-
 ## Regla principal
 
-Optimizar mediante pruebas A/B controladas:
+Trabajar mediante pruebas A/B controladas:
 
 ```text
 una variable importante
@@ -30,20 +19,20 @@ una variable importante
 → decidir el siguiente cambio
 ```
 
-No habilitar grupos de speedhacks simultáneamente. Conservar siempre una build anterior conocida para comparar.
+No activar varios speedhacks a la vez. No cambiar heap, pools, resolución y clocks en una misma build.
 
-## Baseline de comparación actual
+## Estado actual confirmado
 
-Build probada:
+### Funcionalidad
 
-```text
-Release
-960×544
-MSAA NONE
-Pre-release: vita-test-4-121929e
-```
+- Vita real llega a logos, `LOADING`, tutorial y menú en builds anteriores.
+- Touch funciona.
+- Audio funciona; el fix de `IBufferQueue_Clear()` está REAL VITA VERIFIED y no debe revertirse.
+- Existe un crash separado en la segunda entrada al tutorial con texturas ausentes; su causa sigue pendiente de log + `.psp2dmp`.
 
-Resultado:
+### Rendimiento
+
+Baseline anterior con MSAA NONE:
 
 ```text
 inicio  ≈ 7 FPS
@@ -51,196 +40,188 @@ LOADING ≈ 4 FPS
 carga   ≈ 5 min
 ```
 
-Este baseline es más útil que el antiguo rango genérico 1–7 FPS para las próximas pruebas de carga.
-
-## Fase 0 — audio: COMPLETADA para el bloqueo principal
-
-El dump previo situó la espera en:
+Prueba de Release silenciosa + PSVshell al máximo:
 
 ```text
-sound::SfxBuffer::play
-→ IBufferQueue_Clear
-→ cond wait
+logos:    ~1 FPS inicialmente, luego hasta ~7 FPS
+LOADING:  ~2–4 FPS
+carga:    ~6 min
+resultado: crash durante primera carga
 ```
 
-La variante local de OpenSL ES limita esa espera a 100 ms y el usuario confirmó en Vita real que los sonidos funcionan y `footsteps.wav` ya no detiene indefinidamente el juego.
+Conclusiones soportadas:
 
-No revertir este fix. Si aparecen muchos timeouts de 100 ms, medir count/total/max como una posible fuente de latencia residual.
+- MSAA 4× → NONE no produjo una mejora significativa.
+- Quitar el logging pesado de Release tampoco produjo un salto significativo.
+- Llevar los clocks al máximo tampoco solucionó el bajo FPS ni la carga extremadamente larga.
+- Por tanto, no priorizar ahora fill-rate, resolución, más overclock ni speedhacks gráficos.
 
-## Fase 1 — Release realmente silenciosa: PRUEBA ACTUAL
+## Hallazgo de memoria — PRIORIDAD ACTUAL
 
-### Hallazgo
-
-Reducir `l_info/l_debug` del loader no bastaba. Había tres rutas adicionales:
-
-1. FalsoNDK: `ALOGD/ALOGW/ALOGE` terminaban en `sceClibPrintf()` mediante su `fndk_log()` débil.
-2. FalsoJNI: Release podía seguir emitiendo warnings.
-3. `SO_UTIL_VERBOSE=1` estaba definido globalmente.
-
-Durante `LOADING`, especialmente con tracing de assets, ese tráfico puede ser muy costoso.
-
-### Estado de código preparado
-
-Release ahora:
+Durante la última prueba, PSVshell mostró:
 
 ```text
-logger del port: sólo [PERF] + error/fatal necesarios
-FalsoNDK: fatal únicamente
-FalsoJNI: FALSOJNI_DEBUG_NO
-so_util: sin SO_UTIL_VERBOSE
+MEM:  365 / 365 MB
+VMEM: 112 / 112 MB
+PHY:   26 /  26 MB
 ```
 
-Debug conserva el diagnóstico completo.
+La semántica de PSVshell se verificó contra su código: la cifra izquierda es `total - free` y la derecha es `total`, por lo que los tres espacios estaban completamente asignados/reservados desde el punto de vista del sistema.
 
-### Prueba requerida
+Esto no implica todavía que los pools internos de VitaGL estén agotados.
 
-Usar sólo Release y registrar:
+### Por qué la configuración actual explica el 100% de PSVshell
 
-```text
-FPS al iniciar
-FPS durante LOADING
-tiempo total de LOADING
-FPS tutorial 30–60 s
+El port usa:
+
+```c
+vglInitExtended(0, 960, 544, 6 * 1024 * 1024,
+                SCE_GXM_MULTISAMPLE_NONE);
 ```
 
-Comparar contra:
+En la revisión de VitaGL fijada por el proyecto, `vglInitExtended()` usa thresholds y termina reservando aproximadamente:
 
 ```text
-7 FPS / 4 FPS / ~5 min
+USER RAM: toda la memoria libre menos 6 MiB
+CDRAM:    toda la memoria libre disponible
+PHYCONT:  toda la memoria libre disponible
+```
+
+VitaGL después subasigna desde esos bloques. Por eso PSVshell puede indicar 100% aunque todavía exista espacio libre dentro de VitaGL.
+
+Además el loader mantiene:
+
+```c
+int _newlib_heap_size_user = 256 * 1024 * 1024;
+```
+
+No modificar aún ninguno de estos valores.
+
+## Fase 1 — telemetría de memoria: PRUEBA ACTUAL
+
+Commit de instrumentación:
+
+```text
+168d08834c83aadb849c0bb5bff283e764927357
+```
+
+No cambia tamaños ni thresholds. Añade únicamente métricas `[PERF]`.
+
+### Antes de VitaGL
+
+Registrar:
+
+```text
+sceKernelGetFreeMemorySize:
+USER / CDRAM / PHYCONT libres
+```
+
+### Justo después de VitaGL
+
+Registrar:
+
+```text
+system free USER / CDRAM / PHYCONT
+vglMemFree / vglMemTotal:
+  VGL_MEM_RAM
+  VGL_MEM_VRAM
+  VGL_MEM_PHYCONT
+```
+
+### Runtime
+
+La misma fotografía se escribe aproximadamente cada 5 segundos junto al agregado de presents.
+
+Formato esperado:
+
+```text
+[PERF] mem phase=before_vgl ...
+[PERF] mem phase=after_vgl ...
+[PERF] mem phase=runtime ... vgl_free_total_kib ram=A/B vram=C/D phy=E/F
 ```
 
 ### Interpretación
 
-- Mejora grande de tiempo de carga/FPS → logging era un cuello importante.
-- Mejora pequeña → logging contribuía, pero no dominaba.
-- Casi sin cambio → pasar inmediatamente a I/O + waits/CPU; no seguir quitando calidad gráfica a ciegas.
-
-## Fase 2 — MSAA: COMPLETADA COMO A/B
-
-Cambio probado:
+Caso A:
 
 ```text
-SCE_GXM_MULTISAMPLE_4X
-→ SCE_GXM_MULTISAMPLE_NONE
+PSVshell 100%
+vglMemFree todavía alto/estable
 ```
 
-El bridge EGL anuncia:
+Interpretación: gran parte del 100% es reserva anticipada. Investigar después headroom externo, newlib heap, asignaciones fuera de VitaGL, I/O y waits.
+
+Caso B:
 
 ```text
-EGL_SAMPLE_BUFFERS = 0
-EGL_SAMPLES        = 0
+PSVshell 100%
+vglMemFree cae progresivamente cerca de 0 antes del crash
 ```
 
-Resultado en hardware: no hubo salto significativo; la Release quedó alrededor de 7 FPS al inicio y 4 FPS en `LOADING`.
+Interpretación: agotamiento real de uno o más pools. La siguiente A/B debe ajustar sólo el reparto/threshold correspondiente.
 
-### Decisión
+Caso C:
 
-Mantener `SCE_GXM_MULTISAMPLE_NONE` porque evita un coste que el juego no solicita, pero **no atribuirle el problema de rendimiento principal**.
+```text
+pool interno conserva espacio
+pero system free es ~0 y aparece un fallo de una asignación externa
+```
 
-No volver a repetir esta prueba salvo que cambie sustancialmente el renderer.
+Interpretación: VitaGL está reservando demasiado del espacio que necesita otro subsistema. Primer candidato posterior: aumentar únicamente el threshold de RAM de VitaGL, por ejemplo de 6 MiB a 32 MiB, pero sólo después de esta evidencia.
 
-## Fase 3 — profiling de I/O y esperas
+## Fase 2 — ajuste de memoria, sólo después de telemetría
 
-Si la Release silenciosa sigue muy lenta, ésta pasa a ser la prioridad inmediata.
+No ejecutar todavía.
 
-Instrumentar agregados por ventanas de varios segundos, no logs por llamada.
+Candidatos, uno por build:
 
-### Assets / filesystem
+1. Aumentar `ram_threshold` manteniendo CDRAM/PHYCONT iguales.
+2. Si el problema es VRAM/CDRAM interno, usar `vglInitWithCustomThreshold` o `vglInitWithCustomSizes` para reservar margen medido.
+3. Revisar `_newlib_heap_size_user = 256 MiB` sólo si la evidencia apunta al heap/user RAM.
+4. Buscar crecimiento monotónico de texturas/buffers si un pool cae continuamente hasta cero.
 
-Medir:
+Nunca reducir el heap o pools sólo porque PSVshell marque 100%; VitaGL reserva memoria por diseño.
+
+## Fase 3 — I/O y esperas
+
+Si la telemetría demuestra que hay memoria suficiente, pasar a profiling agregado de:
 
 ```text
 AAssetManager_open: count / total_us / max_us
 AAsset_read:        count / bytes / total_us / max_us
 AAsset_seek:        count / total_us / max_us
-fopen/read/seek equivalentes si el engine usa rutas directas
+fopen/read/seek equivalentes
 ```
 
-También registrar:
-
-- número de assets buffered vs streamed;
-- fallos de apertura;
-- tiempo total en `sceIo*`/bridge libc cuando sea posible;
-- descriptores/handles si reaparece agotamiento.
-
-La pantalla `LOADING` de casi 5 minutos hace esta fase especialmente prioritaria.
-
-### Esperas / sincronización
-
-Medir sólo waits largos o agregados:
+y:
 
 ```text
 pthread_cond_wait / timedwait
 poll / epoll / looper waits
-sleep / usleep / nanosleep wrappers
+sleep / usleep / nanosleep
 OpenSL Clear timeout count / total_us / max_us
-cualquier bounded wait añadido por compatibilidad
 ```
 
-No asumir que un wait es incorrecto sólo porque aparece; comparar frecuencia y tiempo acumulado.
+No hacer logs por llamada.
 
-## Fase 4 — clocks: CPU vs GPU
+## Fase 4 — CPU/frame
 
-No fijar clocks dentro del port mientras se use PSVshell u otro governor.
-
-Primero registrar al inicio:
-
-```text
-scePowerGetArmClockFrequency()
-scePowerGetBusClockFrequency()
-scePowerGetGpuClockFrequency()
-scePowerGetGpuXbarClockFrequency()
-```
-
-Luego hacer una A/B manteniendo todo lo demás igual.
-
-Interpretación:
-
-- mejora grande al subir CPU, poca al subir GPU → CPU/engine/wrappers;
-- mejora grande al subir GPU → cuello gráfico;
-- casi ninguna mejora → waits/I/O/sincronización probablemente dominan.
-
-No mezclar esta prueba con cambios de código.
-
-## Fase 5 — profiling CPU del frame
-
-Si I/O no explica el bajo FPS durante gameplay, medir trabajo de frame mediante contadores/agregados:
+Si memoria e I/O no explican el FPS sostenido:
 
 ```text
 glTexImage2D / glTexSubImage2D
 glBufferData / glBufferSubData
 glCompileShader / glLinkProgram
 draw calls por frame
-cambios de estado relevantes
-input events procesados
+state changes relevantes
 OpenSL callbacks/enqueues
 ```
 
-VitaGL ofrece `HAVE_PROFILING=1`; usar sólo en Debug/perfilado porque añade overhead.
+`eglSwapBuffers` ya se había medido alrededor de 0,2 ms, por lo que el present por sí solo no explica frames de cientos de milisegundos.
 
-## Fase 6 — memoria VitaGL / heap
+## Fase 5 — shader cache
 
-El loader reserva actualmente:
-
-```c
-int _newlib_heap_size_user = 256 * 1024 * 1024;
-```
-
-Y VitaGL se inicia con `ram_threshold` de 6 MiB.
-
-Antes de cambiar tamaños medir:
-
-- memoria libre antes de VitaGL;
-- `vglMemTotal(VGL_MEM_RAM)` / `vglMemFree(VGL_MEM_RAM)`;
-- VRAM total/libre;
-- circular pool / allocations / GC;
-- fallos o stalls de memoria.
-
-MetalSyntax documentó en otro port que un heap newlib de 256 MiB podía dejar a VitaGL sin el pool esperado. Zombie Shooter sí renderiza, así que no copiar esa solución sin evidencia local.
-
-## Fase 7 — shader cache
-
-Más adelante probar:
+Sólo después de resolver el cuello dominante de carga/frame:
 
 ```text
 HAVE_SHADER_CACHE=1
@@ -252,19 +233,19 @@ con cache bajo:
 ux0:data/zombieshooter/shader_cache/
 ```
 
-Objetivo: reducir stutters de compilación/recompilación. No esperar que por sí solo arregle 4 FPS sostenidos en `LOADING`.
+Esto puede reducir stutter de compilación, pero no se espera que explique por sí solo 2–4 FPS sostenidos durante `LOADING`.
 
-## Fase 8 — speedhacks VitaGL, uno por vez
+## Fase 6 — speedhacks VitaGL, uno por vez
 
-Sólo después de tener baseline con logging mínimo y evidencia de que el coste gráfico/driver merece esta ruta.
+No activar todavía.
 
-Primer candidato razonable:
+Primer candidato cuando exista evidencia de coste driver/gráfico:
 
 ```text
 HAVE_VERTEX_LAYOUT_CACHE=1
 ```
 
-Después, cada uno por separado:
+Después, por separado:
 
 ```text
 DRAW_SPEEDHACK=2
@@ -273,80 +254,40 @@ SAMPLERS_SPEEDHACK=1
 CIRCULAR_POOL_SPEEDHACK=1
 ```
 
-Más adelante, con más cautela:
+VitaGL advierte que speedhacks pueden introducir glitches/crashes. Nunca habilitarlos como paquete.
 
-```text
-DRAW_SPEEDHACK=1
-INDICES_DRAW_SPEEDHACK=1
-INDICES_SPEEDHACK=1
-TEXTURES_SPEEDHACK=1
-TEXTURE_UPLOADS_SPEEDHACK=1
-MATH_SPEEDHACK=1
-PRIMITIVES_SPEEDHACK=1
-```
+## Fase 7 — resolución interna
 
-VitaGL advierte que varios speedhacks pueden causar glitches o crashes. Nunca activarlos todos a la vez.
+Última opción si se demuestra un cuello GPU.
 
-## Fase 9 — resolución interna
-
-Sólo si las mediciones demuestran cuello GPU persistente.
-
-Bajar resolución afecta potencialmente:
-
-```text
-viewport
-FBOs
-NativeWindow/EGL queries
-touch mapping
-UI scaling
-```
-
-Dado que MSAA NONE no produjo un salto claro, bajar resolución **no es la siguiente prueba lógica**.
+Bajar resolución puede afectar viewport, FBOs, NativeWindow/EGL, touch y UI. La prueba de MSAA y la prueba con clocks máximos no justifican todavía esta ruta.
 
 ## Prioridad vigente
 
 ```text
-1. Probar Release realmente silenciosa
-2. I/O + waits/sleeps/sync profiling
-3. A/B de clocks CPU vs GPU
-4. Profiling CPU/frame
-5. Memoria/pools VitaGL
-6. Shader cache
-7. Speedhacks uno por uno
-8. Resolución interna sólo si se prueba GPU-bound
+1. Memory telemetry (sin cambiar tamaños)
+2. Ajuste de pools/headroom sólo si la telemetría lo demuestra
+3. I/O + waits/sync
+4. CPU/frame profiling
+5. Shader cache
+6. VitaGL speedhacks uno por uno
+7. Resolución interna sólo si se prueba GPU-bound
 ```
 
-En paralelo, pero separado de estas pruebas:
+En paralelo, pero separado:
 
 ```text
-analizar log + .psp2dmp del crash de segunda entrada al tutorial
+analizar log + .psp2dmp del crash conocido de segunda entrada al tutorial
 ```
 
 ## Criterio de éxito intermedio
 
-Antes de perseguir 30/60 FPS:
-
 ```text
-primer tutorial estable varios minutos
-audio continuo
-LOADING muy por debajo de ~5 min
+primera carga estable
+sin crecimiento de memoria hasta crash
+LOADING muy por debajo de ~5–6 min
 >15 FPS sostenidos como primer salto real
 luego objetivo 20/30 FPS con profiling
 ```
 
-## Formato obligatorio para cada resultado
-
-Actualizar `docs/HARDWARE_TEST_LOG.md` con:
-
-```text
-build / commit / tag
-cambio aislado
-FPS antes
-FPS después
-tiempo LOADING antes/después
-misma escena de prueba
-regresión visual/funcional
-estado: pending hardware / real Vita verified / no meaningful improvement / regression
-conclusión soportada
-siguiente prueba
-```
+Cada prueba real debe actualizar `docs/HARDWARE_TEST_LOG.md` antes de abrir otra hipótesis.
