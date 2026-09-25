@@ -30,6 +30,14 @@
 #define DATA_PATH "ux0:data/zombieshooter/"
 #endif
 
+#ifndef ZOMBIE_BUILD_VARIANT
+#define ZOMBIE_BUILD_VARIANT "Unknown"
+#endif
+
+#ifndef ZOMBIE_BUILD_ID
+#define ZOMBIE_BUILD_ID "local"
+#endif
+
 #define LOG_DIR_PATH DATA_PATH "logs"
 
 static SceKernelLwMutexWork _log_mutex;
@@ -77,10 +85,13 @@ static void _log_open_file(void) {
                            SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0666);
     }
     if (_log_fd >= 0) {
-        char header[192];
+        char header[320];
         int length = sceClibSnprintf(header, sizeof(header),
-                                    "=== Zombie Shooter Vita Port: %s ===\n",
-                                    _log_path);
+                                    "=== Zombie Shooter Vita Port: %s ===\n"
+                                    "=== BUILD variant=%s id=%s ===\n",
+                                    _log_path,
+                                    ZOMBIE_BUILD_VARIANT,
+                                    ZOMBIE_BUILD_ID);
         if (length > 0)
             sceIoWrite(_log_fd, header, (size_t)length);
         sceIoSyncByFd(_log_fd, 0);
