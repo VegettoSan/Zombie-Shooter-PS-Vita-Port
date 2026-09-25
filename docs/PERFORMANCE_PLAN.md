@@ -6,11 +6,11 @@ Este documento define el orden recomendado para subir FPS sin mezclar demasiadas
 
 ## Estado de partida
 
-- Vita real alcanza el tutorial y el touch responde.
-- Cadencia observada: aproximadamente 1–7 FPS en Debug.
+- Vita real alcanza el tutorial, el touch responde y el audio se reproduce correctamente.
+- El usuario confirmó que el parche de `IBufferQueue_Clear()` superó el bloqueo anterior: puede caminar por el tutorial, escuchar sonidos, salir al menú principal y volver a intentar entrar.
+- Cadencia observada: aproximadamente **1–7 FPS** en la build de diagnóstico.
 - `eglSwapBuffers` ronda ~0,2 ms, por lo que el tiempo no está concentrado en el present.
-- `log_0013` + `.psp2dmp` localizaron una espera en `sound::SfxBuffer::play` → `IBufferQueue_Clear`, con el hilo OpenSL ES dentro de `sceAudioOutOutput`.
-- La build actual limita `IBufferQueue_Clear` a 100 ms. Esa modificación aún requiere validación física.
+- Existe un problema separado pendiente de análisis: tras volver a entrar al tutorial desde el menú, faltan algunas imágenes/texturas y después ocurre un crash. El usuario conserva el log y `.psp2dmp`; no se debe mezclar ese bug con los cambios de rendimiento hasta revisar esos archivos.
 
 ## Regla principal
 
@@ -18,22 +18,25 @@ Optimizar en pruebas A/B controladas, una variable importante por vez.
 
 No habilitar grupos de speedhacks simultáneamente. Conservar siempre una build anterior conocida para comparar.
 
-## Fase 0 — cerrar el bloqueo de audio
+## Fase 0 — audio: COMPLETADA para el bloqueo principal
 
-Antes de tomar decisiones de FPS:
+El dump previo situó la espera en:
 
-1. Probar el Debug actual en Vita real.
-2. Entrar al tutorial y provocar `footsteps.wav`.
-3. Confirmar si `[PERF] present` sigue avanzando después de cualquier `[AUDIO] OpenSLES buffer Clear timed out`.
-4. Si el timeout aparece repetidamente, medir cuántas llamadas y cuánto tiempo total consume `IBufferQueue_Clear`.
+```text
+sound::SfxBuffer::play
+→ IBufferQueue_Clear
+→ cond wait
+```
 
-El timeout de 100 ms es un mecanismo de seguridad, no necesariamente la solución final. Si ocurre varias veces por segundo puede reducir por sí solo la cadencia del juego. En ese caso la solución correcta será hacer el clear realmente no bloqueante/asíncrono o corregir por qué el mixer no confirma, conservando la propiedad segura de los buffers.
+La variante local de OpenSL ES limita esa espera a 100 ms y el usuario confirmó en Vita real que los sonidos funcionan y que `footsteps.wav` ya no detiene indefinidamente el juego.
 
-## Fase 1 — baseline de rendimiento
+Esto no significa que el backend de audio esté completamente optimizado: si aparecen muchos timeouts de 100 ms, aún pueden afectar FPS. Por tanto, conservar la métrica de timeouts cuando se perfile una build Debug, pero el bloqueo ya no debe impedir comenzar la optimización de frame rate.
+
+## Fase 1 — baseline de rendimiento / coste del diagnóstico
 
 Medir siempre la misma zona del tutorial durante al menos 30 segundos.
 
-Registrar:
+Registrar cuando la build lo permita:
 
 - FPS medio y rango.
 - `present frames` / `fps_x10`.
@@ -42,18 +45,23 @@ Registrar:
 - número y tiempo acumulado de log syncs.
 - número/tiempo acumulado de timeouts de OpenSL ES.
 
-Comparar primero Debug vs Release SIN otros cambios funcionales.
+Comparar:
+
+1. Debug diagnóstico actual.
+2. Release normal.
+3. Una configuración `ZOMBIE_PERF_BUILD` de bajo overhead.
 
 ### Importante: logging
 
-Actualmente `DEBUG_SOLOADER` y `SO_UTIL_VERBOSE=1` se definen globalmente y el logger hace `sceClibPrintf` + escritura al archivo para cada línea. Aunque los sync normales ya se agrupan, una build de rendimiento debe medir cuánto distorsiona esto.
+La build de diagnóstico define `DEBUG_SOLOADER` y `SO_UTIL_VERBOSE=1`, y el logger hace `sceClibPrintf` + escritura a archivo para cada línea habilitada. Aunque los sync normales ya se agrupan, eso puede distorsionar bastante un juego que ahora produce mucha instrumentación.
 
-Crear posteriormente una configuración `Perf` o una opción CMake en la que:
+La build `Perf` debe:
 
-- sólo errores/fatales se escriban inmediatamente;
-- `[PERF]`, `[AUDIO]` y checkpoints importantes sigan disponibles;
-- trazas detalladas de JNI/assets/threads queden apagadas;
-- no se pierda la posibilidad de generar dump si el juego se bloquea.
+- quitar `DEBUG_SOLOADER`/`SO_UTIL_VERBOSE` de las rutas calientes;
+- conservar errores/fatales;
+- compilar el código del port con optimización alta;
+- construir VitaGL sin su capa de comprobaciones de debug;
+- servir sólo para medir rendimiento/estabilidad, mientras Debug sigue siendo la build para dumps y trazas detalladas.
 
 ## Fase 2 — eliminar MSAA 4x innecesario
 
@@ -85,9 +93,9 @@ Razones:
 
 Probar la misma zona del tutorial con MSAA 4x y NONE. Conservar NONE si mejora FPS y no introduce defectos relevantes.
 
-## Fase 3 — clocks, sin pisar PSVshell
+## Fase 3 — clocks, sin pisar governors externos
 
-No fijar clocks a ciegas dentro del port mientras se usa PSVshell u otro governor, porque un valor hardcodeado puede incluso bajar un perfil externo más alto.
+No fijar clocks a ciegas dentro del port mientras se use PSVshell u otro governor, porque un valor hardcodeado puede incluso bajar un perfil externo más alto.
 
 Primero registrar al inicio:
 
@@ -96,7 +104,7 @@ Primero registrar al inicio:
 - `scePowerGetGpuClockFrequency()`
 - `scePowerGetGpuXbarClockFrequency()`
 
-Después hacer una prueba A/B con un perfil alto conocido en PSVshell y el mismo recorrido del tutorial.
+Después hacer una prueba A/B con un perfil alto conocido y el mismo recorrido del tutorial.
 
 Interpretación aproximada:
 
@@ -120,7 +128,7 @@ Y VitaGL se inicia con un `ram_threshold` de 6 MiB. Antes de cambiar tamaños, r
 - avisos de circular pool/allocations que caigan en VRAM;
 - fallos o ciclos de garbage collection.
 
-MetalSyntax ya documentó en otro port que un heap newlib de 256 MiB puede dejar a VitaGL sin el pool esperado. Zombie Shooter sí renderiza, así que no asumir el mismo fallo; medir primero.
+MetalSyntax documentó en otro port que un heap newlib de 256 MiB puede dejar a VitaGL sin el pool esperado. Zombie Shooter sí renderiza, así que no asumir el mismo fallo; medir primero.
 
 Sólo después considerar:
 
@@ -148,7 +156,7 @@ Objetivo: reducir stutters de compilación/recompilación. No esperar que esto p
 
 ## Fase 6 — profiling dirigido del frame
 
-Si después de audio + logging + MSAA el FPS sigue bajo, instrumentar agregados, NO logs por llamada.
+Si después de logging + MSAA el FPS sigue bajo, instrumentar agregados, NO logs por llamada.
 
 Medir por ventanas de varios segundos:
 
@@ -187,10 +195,11 @@ TEXTURES_SPEEDHACK=1
 TEXTURE_UPLOADS_SPEEDHACK=1
 MATH_SPEEDHACK=1
 PRIMITIVES_SPEEDHACK=1
-NO_DEBUG=1
 ```
 
-Los propios docs de VitaGL avisan que varios de estos flags pueden causar crashes o glitches. Nunca habilitarlos todos simultáneamente.
+`NO_DEBUG=1` se puede usar en la build Perf antes de estos speedhacks porque elimina comprobaciones de VitaGL, pero no debe confundirse con un arreglo funcional: si una regresión sólo ocurre sin comprobaciones, volver a Debug para investigarla.
+
+Los propios docs de VitaGL avisan que varios speedhacks pueden causar crashes o glitches. Nunca habilitarlos todos simultáneamente.
 
 ## Fase 8 — resolución interna
 
@@ -198,13 +207,12 @@ Sólo si las mediciones prueban un cuello GPU persistente después de quitar MSA
 
 Una resolución interna menor con upscale puede dar una mejora grande, pero Zombie Shooter ya asume 960×544 en el bridge EGL/NativeWindow; bajar resolución exige revisar viewport, FBOs, touch y query de surface. No es la primera optimización.
 
-## Prioridad recomendada
+## Prioridad recomendada actual
 
 ```text
-0. Validar fix OpenSL ES
-1. Debug vs Release / coste de logging
+1. Perf build: quitar overhead de tracing
 2. MSAA 4x -> NONE
-3. Clocks medidos con PSVshell
+3. Medir clocks / CPU vs GPU
 4. Memoria/pools VitaGL
 5. Shader cache
 6. Profiling dirigido
@@ -212,13 +220,15 @@ Una resolución interna menor con upscale puede dar una mejora grande, pero Zomb
 8. Resolución interna si sigue GPU-bound
 ```
 
+El crash de reentrada al tutorial se mantiene en una pista separada y debe analizarse con el log/dump real antes de tocar recursos de forma especulativa.
+
 ## Criterio de éxito intermedio
 
 Antes de perseguir 30/60 FPS, la meta inmediata es:
 
 ```text
-- tutorial estable durante varios minutos
-- sin congelación de audio
+- primer tutorial estable durante varios minutos
+- audio continuo sin congelación
 - >15 FPS sostenidos como primer salto verificable
 - después apuntar a 20/30 FPS con profiling real
 ```
