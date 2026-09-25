@@ -1,0 +1,211 @@
+name: Manual Vita VPK Pre-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Optional test note shown in the pre-release"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zombie-vita-manual-prerelease
+  cancel-in-progress: false
+
+jobs:
+  build-and-prerelease:
+    name: Build Debug + Release VPKs
+    runs-on: ubuntu-latest
+    container:
+      image: vitasdk/vitasdk-softfp:latest
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      VITASDK: /home/user/vitasdk
+
+    steps:
+      - name: Checkout source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify SoftFP toolchain
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+
+          echo "VITASDK=$VITASDK"
+          arm-vita-eabi-gcc --version
+          arm-vita-eabi-g++ --version
+
+          FLOAT_ABI="$(arm-vita-eabi-gcc -Q --help=target 2>/dev/null | awk '/-mfloat-abi=/{print $2; exit}')"
+          echo "Detected -mfloat-abi=${FLOAT_ABI}"
+          if [ "$FLOAT_ABI" != "softfp" ]; then
+            echo "ERROR: This project requires a SoftFP VitaSDK, got: ${FLOAT_ABI:-unknown}" >&2
+            exit 1
+          fi
+
+      - name: Ensure required SoftFP packages
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+
+          required_files=(
+            "$VITASDK/arm-vita-eabi/lib/libOpenSLES.a"
+            "$VITASDK/arm-vita-eabi/lib/libSceShaccCgExt_stub.a"
+            "$VITASDK/arm-vita-eabi/lib/libvitaShaRK.a"
+            "$VITASDK/arm-vita-eabi/lib/libmathneon.a"
+            "$VITASDK/arm-vita-eabi/lib/libmpg123.a"
+            "$VITASDK/arm-vita-eabi/lib/libopus.a"
+            "$VITASDK/arm-vita-eabi/lib/libvorbis.a"
+            "$VITASDK/arm-vita-eabi/lib/libFLAC.a"
+          )
+
+          missing=0
+          for f in "${required_files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "Missing target library: $f"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -eq 1 ]; then
+            echo "Installing required packages from vitasdk-softfp/vdpm..."
+            rm -rf /tmp/vdpm-softfp
+            git clone --depth 1 https://github.com/vitasdk-softfp/vdpm /tmp/vdpm-softfp
+
+            packages=(
+              zlib
+              libogg
+              libvorbis
+              flac
+              opus
+              mpg123
+              libsndfile
+              lame
+              vitaShaRK
+              libmathneon
+              kubridge
+              opensles
+              SceShaccCgExt
+              taihen
+            )
+
+            for pkg in "${packages[@]}"; do
+              echo "==> Installing SoftFP package: $pkg"
+              /tmp/vdpm-softfp/vdpm -f "$pkg"
+            done
+          else
+            echo "Required SoftFP target libraries are already available."
+          fi
+
+      - name: Apply project patches to submodules
+        run: |
+          set -euo pipefail
+
+          git -C lib/falso_jni apply --check ../../patches/falso_jni.patch
+          git -C lib/falso_jni apply ../../patches/falso_jni.patch
+
+          git -C lib/falso_ndk apply --check ../../patches/falso_ndk.patch
+          git -C lib/falso_ndk apply ../../patches/falso_ndk.patch
+
+          echo "FalsoJNI/FalsoNDK project patches applied."
+
+      - name: Build Debug VPK
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+
+          rm -rf build-ci-debug
+          cmake -S . -B build-ci-debug -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build-ci-debug -j"$(nproc)" 2>&1 | tee build-ci-debug.log
+
+          test -f build-ci-debug/zombie_shooter.vpk
+          mkdir -p dist
+          cp build-ci-debug/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Debug.vpk
+
+      - name: Build Release VPK
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+
+          rm -rf build-ci-release
+          cmake -S . -B build-ci-release -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-ci-release -j"$(nproc)" 2>&1 | tee build-ci-release.log
+
+          test -f build-ci-release/zombie_shooter.vpk
+          mkdir -p dist
+          cp build-ci-release/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Release.vpk
+
+      - name: Generate build metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA:0:7}"
+          tag="vita-test-${GITHUB_RUN_NUMBER}-${short_sha}"
+
+          echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+          cat > dist/build-info.txt <<EOF
+          Zombie Shooter PS Vita manual test build
+          Run: ${GITHUB_RUN_NUMBER}
+          Commit: ${GITHUB_SHA}
+          Ref: ${GITHUB_REF_NAME}
+          SoftFP SDK: ${VITASDK}
+          Assets included: NO (loader VPK only)
+          Debug VPK: Zombie-Shooter-Vita-Debug.vpk
+          Release VPK: Zombie-Shooter-Vita-Release.vpk
+          EOF
+
+          sha256sum dist/Zombie-Shooter-Vita-Debug.vpk \
+                    dist/Zombie-Shooter-Vita-Release.vpk \
+                    > dist/SHA256SUMS.txt
+
+      - name: Upload workflow artifact backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zombie-Shooter-Vita-${{ steps.meta.outputs.tag }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            dist/Zombie-Shooter-Vita-Debug.vpk
+            dist/Zombie-Shooter-Vita-Release.vpk
+            dist/build-info.txt
+            dist/SHA256SUMS.txt
+
+      - name: Publish GitHub Pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Zombie Shooter Vita Test #${{ github.run_number }} (${{ steps.meta.outputs.short_sha }})
+          prerelease: true
+          draft: false
+          make_latest: false
+          body: |
+            Automated **manual test build** for real PS Vita hardware.
+
+            - Commit: `${{ github.sha }}`
+            - Ref: `${{ github.ref_name }}`
+            - Toolchain: VitaSDK **SoftFP**
+            - Includes both **Debug** and **Release** VPKs
+            - Does **not** include the proprietary Android APK/XAPK, `libzombie_shooter.so`, or game assets
+
+            Debug is intended for logs/crash investigation. Release is intended for normal gameplay/FPS testing.
+
+            Test note:
+            `${{ inputs.notes }}`
+          files: |
+            dist/Zombie-Shooter-Vita-Debug.vpk
+            dist/Zombie-Shooter-Vita-Release.vpk
+            dist/build-info.txt
+            dist/SHA256SUMS.txt
