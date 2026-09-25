@@ -21,14 +21,17 @@ jobs:
     name: Build Debug + Release VPKs
     runs-on: ubuntu-latest
     container:
-      image: vitasdk/vitasdk-softfp:latest
+      # VitaSDK currently publishes the maintained Android-port SoftFP channel
+      # under the nightly tag. Do not use the historical :latest image here.
+      image: vitasdk/vitasdk-softfp:nightly
 
     defaults:
       run:
         shell: bash
 
     env:
-      VITASDK: /home/user/vitasdk
+      # Current vitasdk-softfp Docker images expose the SDK here.
+      VITASDK: /usr/local/vitasdk
 
     steps:
       - name: Checkout source and pinned submodules
@@ -43,6 +46,7 @@ jobs:
           export PATH="$VITASDK/bin:$PATH"
 
           echo "VITASDK=$VITASDK"
+          test -x "$VITASDK/bin/arm-vita-eabi-gcc"
           arm-vita-eabi-gcc --version
           arm-vita-eabi-g++ --version
 
@@ -53,20 +57,22 @@ jobs:
             exit 1
           fi
 
-      - name: Ensure required SoftFP packages
+      - name: Verify required SoftFP packages
         run: |
           set -euo pipefail
-          export PATH="$VITASDK/bin:$PATH"
 
           required_files=(
             "$VITASDK/arm-vita-eabi/lib/libOpenSLES.a"
             "$VITASDK/arm-vita-eabi/lib/libSceShaccCgExt_stub.a"
-            "$VITASDK/arm-vita-eabi/lib/libvitaShaRK.a"
+            "$VITASDK/arm-vita-eabi/lib/libvitashark.a"
             "$VITASDK/arm-vita-eabi/lib/libmathneon.a"
             "$VITASDK/arm-vita-eabi/lib/libmpg123.a"
             "$VITASDK/arm-vita-eabi/lib/libopus.a"
             "$VITASDK/arm-vita-eabi/lib/libvorbis.a"
+            "$VITASDK/arm-vita-eabi/lib/libogg.a"
             "$VITASDK/arm-vita-eabi/lib/libFLAC.a"
+            "$VITASDK/arm-vita-eabi/lib/libsndfile.a"
+            "$VITASDK/arm-vita-eabi/lib/libmp3lame.a"
           )
 
           missing=0
@@ -77,35 +83,18 @@ jobs:
             fi
           done
 
-          if [ "$missing" -eq 1 ]; then
-            echo "Installing required packages from vitasdk-softfp/vdpm..."
-            rm -rf /tmp/vdpm-softfp
-            git clone --depth 1 https://github.com/vitasdk-softfp/vdpm /tmp/vdpm-softfp
-
-            packages=(
-              zlib
-              libogg
-              libvorbis
-              flac
-              opus
-              mpg123
-              libsndfile
-              lame
-              vitaShaRK
-              libmathneon
-              kubridge
-              opensles
-              SceShaccCgExt
-              taihen
-            )
-
-            for pkg in "${packages[@]}"; do
-              echo "==> Installing SoftFP package: $pkg"
-              /tmp/vdpm-softfp/vdpm -f "$pkg"
-            done
-          else
-            echo "Required SoftFP target libraries are already available."
+          if [ "$missing" -ne 0 ]; then
+            echo "ERROR: The full SoftFP image is missing one or more required target libraries." >&2
+            echo "Installed libraries matching the project dependencies:" >&2
+            find "$VITASDK/arm-vita-eabi/lib" -maxdepth 1 -type f \
+              \( -iname '*opensles*' -o -iname '*shacc*' -o -iname '*shark*' \
+                 -o -iname '*mathneon*' -o -iname '*mpg123*' -o -iname '*opus*' \
+                 -o -iname '*vorbis*' -o -iname '*ogg*' -o -iname '*flac*' \
+                 -o -iname '*sndfile*' -o -iname '*lame*' \) -print >&2 || true
+            exit 1
           fi
+
+          echo "All required SoftFP target libraries are present."
 
       - name: Apply project patches to submodules
         run: |
@@ -161,6 +150,7 @@ jobs:
           Commit: ${GITHUB_SHA}
           Ref: ${GITHUB_REF_NAME}
           SoftFP SDK: ${VITASDK}
+          Docker image: vitasdk/vitasdk-softfp:nightly
           Assets included: NO (loader VPK only)
           Debug VPK: Zombie-Shooter-Vita-Debug.vpk
           Release VPK: Zombie-Shooter-Vita-Release.vpk
@@ -196,7 +186,7 @@ jobs:
 
             - Commit: `${{ github.sha }}`
             - Ref: `${{ github.ref_name }}`
-            - Toolchain: VitaSDK **SoftFP**
+            - Toolchain: VitaSDK **SoftFP** (`nightly` channel)
             - Includes both **Debug** and **Release** VPKs
             - Does **not** include the proprietary Android APK/XAPK, `libzombie_shooter.so`, or game assets
 
