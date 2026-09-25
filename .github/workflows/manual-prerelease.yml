@@ -21,8 +21,6 @@ jobs:
     name: Build Debug + Release VPKs
     runs-on: ubuntu-latest
     container:
-      # VitaSDK currently publishes the maintained Android-port SoftFP channel
-      # under the nightly tag. Do not use the historical :latest image here.
       image: vitasdk/vitasdk-softfp:nightly
 
     defaults:
@@ -30,7 +28,6 @@ jobs:
         shell: bash
 
     env:
-      # Current vitasdk-softfp Docker images expose the SDK here.
       VITASDK: /usr/local/vitasdk
 
     steps:
@@ -44,12 +41,10 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-
           echo "VITASDK=$VITASDK"
           test -x "$VITASDK/bin/arm-vita-eabi-gcc"
           arm-vita-eabi-gcc --version
           arm-vita-eabi-g++ --version
-
           FLOAT_ABI="$(arm-vita-eabi-gcc -Q --help=target 2>/dev/null | awk '/-mfloat-abi=/{print $2; exit}')"
           echo "Detected -mfloat-abi=${FLOAT_ABI}"
           if [ "$FLOAT_ABI" != "softfp" ]; then
@@ -60,7 +55,6 @@ jobs:
       - name: Verify required SoftFP packages
         run: |
           set -euo pipefail
-
           required_files=(
             "$VITASDK/arm-vita-eabi/lib/libOpenSLES.a"
             "$VITASDK/arm-vita-eabi/lib/libSceShaccCgExt.a"
@@ -74,7 +68,6 @@ jobs:
             "$VITASDK/arm-vita-eabi/lib/libsndfile.a"
             "$VITASDK/arm-vita-eabi/lib/libmp3lame.a"
           )
-
           missing=0
           for f in "${required_files[@]}"; do
             if [ ! -f "$f" ]; then
@@ -82,10 +75,8 @@ jobs:
               missing=1
             fi
           done
-
           if [ "$missing" -ne 0 ]; then
             echo "ERROR: The full SoftFP image is missing one or more required target libraries." >&2
-            echo "Installed libraries matching the project dependencies:" >&2
             find "$VITASDK/arm-vita-eabi/lib" -maxdepth 1 -type f \
               \( -iname '*opensles*' -o -iname '*shacc*' -o -iname '*shark*' \
                  -o -iname '*mathneon*' -o -iname '*mpg123*' -o -iname '*opus*' \
@@ -93,43 +84,70 @@ jobs:
                  -o -iname '*sndfile*' -o -iname '*lame*' \) -print >&2 || true
             exit 1
           fi
-
           echo "All required SoftFP target libraries are present."
 
       - name: Apply project patches to submodules
         run: |
           set -euo pipefail
-
           git -C lib/falso_jni apply --check ../../patches/falso_jni.patch
           git -C lib/falso_jni apply ../../patches/falso_jni.patch
-
           git -C lib/falso_ndk apply --check ../../patches/falso_ndk.patch
           git -C lib/falso_ndk apply ../../patches/falso_ndk.patch
-
           echo "FalsoJNI/FalsoNDK project patches applied."
 
       - name: Apply GCC 15 FalsoNDK compatibility fix
         run: |
           set -euo pipefail
-
-          # The pinned FalsoNDK ASensor.cpp uses errno/EAGAIN/EINTR without
-          # including <cerrno>. Older toolchains happened to compile it; GCC 15
-          # correctly rejects it. Keep this CI-only compatibility shim small and
-          # explicit instead of changing the pinned submodule revision.
           if ! grep -q '^#include <cerrno>$' lib/falso_ndk/android/ASensor.cpp; then
             sed -i '/^#include <algorithm>$/a #include <cerrno>' lib/falso_ndk/android/ASensor.cpp
           fi
           grep -n '^#include <cerrno>$' lib/falso_ndk/android/ASensor.cpp
 
+      - name: Build VitaSDK nightly getentropy compatibility object
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          cat > "$GITHUB_WORKSPACE/ci_getentropy_compat.c" <<'EOF'
+          #include <errno.h>
+          #include <reent.h>
+          #include <stddef.h>
+          #include <stdint.h>
+          #include <psp2/kernel/rng.h>
+
+          __attribute__((weak))
+          int _getentropy_r(struct _reent *reent, void *buffer, size_t length) {
+              if (!reent || (!buffer && length) || length > 256) {
+                  if (reent) reent->_errno = EIO;
+                  return -1;
+              }
+              uint8_t *out = (uint8_t *)buffer;
+              size_t remaining = length;
+              while (remaining) {
+                  SceSize chunk = remaining > 64 ? 64 : (SceSize)remaining;
+                  if (sceKernelGetRandomNumber(out, chunk) < 0) {
+                      reent->_errno = EIO;
+                      return -1;
+                  }
+                  out += chunk;
+                  remaining -= chunk;
+              }
+              return 0;
+          }
+          EOF
+          arm-vita-eabi-gcc -mfloat-abi=softfp -O2 -c \
+            "$GITHUB_WORKSPACE/ci_getentropy_compat.c" \
+            -o "$GITHUB_WORKSPACE/ci_getentropy_compat.o"
+          test -f "$GITHUB_WORKSPACE/ci_getentropy_compat.o"
+
       - name: Build Debug VPK
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-
           rm -rf build-ci-debug
-          cmake -S . -B build-ci-debug -DCMAKE_BUILD_TYPE=Debug
+          cmake -S . -B build-ci-debug \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXE_LINKER_FLAGS="$GITHUB_WORKSPACE/ci_getentropy_compat.o"
           cmake --build build-ci-debug -j"$(nproc)" 2>&1 | tee build-ci-debug.log
-
           test -f build-ci-debug/zombie_shooter.vpk
           mkdir -p dist
           cp build-ci-debug/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Debug.vpk
@@ -138,11 +156,11 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-
           rm -rf build-ci-release
-          cmake -S . -B build-ci-release -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build-ci-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXE_LINKER_FLAGS="$GITHUB_WORKSPACE/ci_getentropy_compat.o"
           cmake --build build-ci-release -j"$(nproc)" 2>&1 | tee build-ci-release.log
-
           test -f build-ci-release/zombie_shooter.vpk
           mkdir -p dist
           cp build-ci-release/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Release.vpk
@@ -153,10 +171,8 @@ jobs:
           set -euo pipefail
           short_sha="${GITHUB_SHA:0:7}"
           tag="vita-test-${GITHUB_RUN_NUMBER}-${short_sha}"
-
           echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
           cat > dist/build-info.txt <<EOF
           Zombie Shooter PS Vita manual test build
           Run: ${GITHUB_RUN_NUMBER}
@@ -168,7 +184,6 @@ jobs:
           Debug VPK: Zombie-Shooter-Vita-Debug.vpk
           Release VPK: Zombie-Shooter-Vita-Release.vpk
           EOF
-
           sha256sum dist/Zombie-Shooter-Vita-Debug.vpk \
                     dist/Zombie-Shooter-Vita-Release.vpk \
                     > dist/SHA256SUMS.txt
