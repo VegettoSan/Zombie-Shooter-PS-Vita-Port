@@ -26,6 +26,9 @@ void gl_init();
 void gl_preload();
 
 void gl_swap();
+EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface);
+unsigned egl_present_count(void);
+unsigned egl_present_age_ms(void);
 
 void glGenBuffers_soloader(GLsizei n, GLuint *buffers);
 void glBindBuffer_soloader(GLenum target, GLuint buffer);

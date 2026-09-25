@@ -11,7 +11,7 @@ index b600e3d..c4934b8 100644
  
  void ALOGE(const char * fmt, ...) {
 diff --git a/android/AAssetManager.cpp b/android/AAssetManager.cpp
-index 3e61b41..01a0d04 100644
+index 3e61b41..c7d1806 100644
 --- a/android/AAssetManager.cpp
 +++ b/android/AAssetManager.cpp
 @@ -1,11 +1,13 @@
@@ -28,7 +28,7 @@ index 3e61b41..01a0d04 100644
  
  #ifdef USE_SCELIBC_IO
  #include <shim/libc_bridge.h>
-@@ -21,6 +23,8 @@ typedef struct assetManager {
+@@ -21,8 +23,12 @@ typedef struct assetManager {
  typedef struct aAsset {
      char * filename;
      FILE* f;
@@ -36,17 +36,24 @@ index 3e61b41..01a0d04 100644
 +    size_t position;
      size_t bytesRead;
      size_t fileSize;
++    unsigned diagnosticReadCalls;
++    bool traceFootsteps;
      bool opened = false;
-@@ -49,6 +53,8 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ } asset;
+ 
+@@ -49,7 +55,11 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
      auto * a = new aAsset;
      a->filename = (char *) malloc(realp.length() + 1);
      strcpy(a->filename, realp.c_str());
 +    a->buffer = nullptr;
 +    a->position = 0;
      a->bytesRead = 0;
++    a->diagnosticReadCalls = 0;
++    a->traceFootsteps = realp.find("wav/footsteps.wav") != std::string::npos;
  
  #ifdef USE_SCELIBC_IO
-@@ -58,6 +64,17 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+     a->f = sceLibcBridge_fopen((const char *)a->filename, "r");
+@@ -58,6 +68,17 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
  #endif
  
      if (!a->f) {
@@ -64,7 +71,7 @@ index 3e61b41..01a0d04 100644
          free(a->filename);
          delete a;
          a = nullptr;
-@@ -72,6 +89,45 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+@@ -72,6 +93,45 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
          fseek(a->f, 0, SEEK_SET);
  #endif
          a->opened = true;
@@ -110,7 +117,7 @@ index 3e61b41..01a0d04 100644
      }
  
      ALOGD("AAssetManager_open<%p>(%p, %s, %i): %p", __builtin_return_address(0), mgr, realp.c_str(), mode, a);
-@@ -80,10 +136,11 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+@@ -80,10 +140,11 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
  }
  
  void AAsset_close(AAsset* asset) {
@@ -124,7 +131,7 @@ index 3e61b41..01a0d04 100644
          free(a->filename);
          if (a->opened) {
  #ifdef USE_SCELIBC_IO
-@@ -92,33 +149,51 @@ void AAsset_close(AAsset* asset) {
+@@ -92,33 +153,65 @@ void AAsset_close(AAsset* asset) {
              fclose(a->f);
  #endif
          }
@@ -175,13 +182,27 @@ index 3e61b41..01a0d04 100644
 +                  a->filename, (unsigned)a->bytesRead,
 +                  (unsigned)a->fileSize);
 +        }
++        if (a->traceFootsteps) {
++            unsigned calls = ++a->diagnosticReadCalls;
++            if (calls <= 4 || (a->buffer && a->position == a->fileSize))
++                ALOGD("[ASSET] footsteps read call=%u request=%u returned=%u pos=%u/%u",
++                      calls, (unsigned)count, (unsigned)ret,
++                      (unsigned)a->position, (unsigned)a->fileSize);
++        }
          return (int) ret;
      } else {
++        if (a->traceFootsteps) {
++            unsigned calls = ++a->diagnosticReadCalls;
++            if (calls <= 4 || (calls & (calls - 1)) == 0)
++                ALOGD("[ASSET] footsteps EOF/error call=%u request=%u pos=%u/%u",
++                      calls, (unsigned)count, (unsigned)a->position,
++                      (unsigned)a->fileSize);
++        }
 +        if (a->buffer) return 0;
  #ifdef USE_SCELIBC_IO
          if (sceLibcBridge_feof(a->f)) {
  #else
-@@ -126,6 +201,9 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+@@ -126,6 +219,9 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
  #endif
              return 0;
          } else {
@@ -191,7 +212,7 @@ index 3e61b41..01a0d04 100644
              return -1;
          }
      }
-@@ -140,6 +218,16 @@ off_t AAsset_seek(AAsset* asset, off_t offset, int whence) {
+@@ -140,6 +236,16 @@ off_t AAsset_seek(AAsset* asset, off_t offset, int whence) {
  
      auto * a = (aAsset *) asset;
  
@@ -208,7 +229,7 @@ index 3e61b41..01a0d04 100644
      if (!a->opened) {
          return -1;
      }
-@@ -169,6 +257,8 @@ off_t AAsset_getRemainingLength(AAsset* asset) {
+@@ -169,6 +275,8 @@ off_t AAsset_getRemainingLength(AAsset* asset) {
  
      auto * a = (aAsset *) asset;
  
@@ -218,10 +239,28 @@ index 3e61b41..01a0d04 100644
          return -1;
      }
 diff --git a/android/AInput.cpp b/android/AInput.cpp
-index 91f151d..09b0893 100644
+index 91f151d..54690b7 100644
 --- a/android/AInput.cpp
 +++ b/android/AInput.cpp
-@@ -43,6 +43,8 @@ AInputQueue * AInputQueue_create() {
+@@ -3,6 +3,7 @@
+ #include <deque>
+ #include <vector>
+ #include <psp2/kernel/threadmgr.h>
++#include <psp2/kernel/processmgr.h>
+ #include <cstring>
+ #include <cerrno>
+ 
+@@ -17,6 +18,9 @@ static inputEvent _event_pool_storage[EVENT_POOL_SIZE];
+ static inputEvent* _event_pool_free[EVENT_POOL_SIZE];
+ static int _event_pool_top = 0;
+ static SceKernelLwMutexWork _event_pool_lock;
++static volatile unsigned input_enqueued;
++static volatile unsigned input_dequeued;
++static volatile unsigned input_last_report_ms;
+ 
+ __attribute__((constructor))
+ static void _event_pool_init() {
+@@ -43,6 +47,8 @@ AInputQueue * AInputQueue_create() {
  
      if (iq->mDispatchFd < 0) {
          ALOGE("eventfd creation for AInputQueue failed: %s\n", strerror(errno));
@@ -230,7 +269,49 @@ index 91f151d..09b0893 100644
      } else {
          ALOGD("Created eventfd for AInputQueue: #%i", iq->mDispatchFd);
      }
-@@ -264,6 +266,12 @@ float AMotionEvent_getY(const AInputEvent* motion_event, size_t pointer_index) {
+@@ -120,6 +126,7 @@ int32_t AInputQueue_getEvent(AInputQueue* queue, AInputEvent** outEvent) {
+     if (!q->mPendingEvents.empty()) {
+         *outEvent = q->mPendingEvents.front();
+         q->mPendingEvents.pop_front();
++        __atomic_add_fetch(&input_dequeued, 1, __ATOMIC_RELAXED);
+     }
+ 
+     if (q->mPendingEvents.empty()) {
+@@ -158,9 +165,16 @@ void AInputQueue_finishEvent(AInputQueue* queue, AInputEvent* event, int handled
+ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+     if (!queue || !event) return;
+     auto * q = reinterpret_cast<inputQueue *>(queue);
++    const inputEvent *sample = reinterpret_cast<const inputEvent *>(event);
++    int sample_source = sample->source;
++    int sample_type = sample->type;
++    int sample_action = sample_type == AINPUT_EVENT_TYPE_MOTION
++        ? sample->motion_action : sample->action;
+ 
+     sceKernelLockLwMutex(&q->mLock, 1, nullptr);
+     q->mPendingEvents.push_back(event);
++    unsigned pending = (unsigned)q->mPendingEvents.size();
++    unsigned queued = __atomic_add_fetch(&input_enqueued, 1, __ATOMIC_RELAXED);
+     if (q->mPendingEvents.size() == 1) {
+         uint64_t payload = 1;
+         int res = TEMP_FAILURE_RETRY(fndk_write(q->mDispatchFd, &payload, sizeof(payload)));
+@@ -169,6 +183,16 @@ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+         }
+     }
+     sceKernelUnlockLwMutex(&q->mLock, 1);
++
++    unsigned now_ms = (unsigned)(sceKernelGetProcessTimeWide() / 1000);
++    unsigned last_ms = __atomic_load_n(&input_last_report_ms, __ATOMIC_RELAXED);
++    if (now_ms - last_ms >= 5000 &&
++        __atomic_compare_exchange_n(&input_last_report_ms, &last_ms, now_ms,
++                                    false, __ATOMIC_RELAXED, __ATOMIC_RELAXED)) {
++        ALOGD("[INPUT] queue pending=%u enqueued=%u dequeued=%u source=0x%x type=%d action=%d",
++              pending, queued, __atomic_load_n(&input_dequeued, __ATOMIC_RELAXED),
++              sample_source, sample_type, sample_action);
++    }
+ }
+ 
+ /**
+@@ -264,6 +288,12 @@ float AMotionEvent_getY(const AInputEvent* motion_event, size_t pointer_index) {
      return e->motion_y[pointer_index];
  }
  

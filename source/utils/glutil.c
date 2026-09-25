@@ -18,6 +18,8 @@
 #include <string.h>
 #include <psp2/kernel/sysmem.h>
 #include <psp2/io/stat.h>
+#include <psp2/kernel/processmgr.h>
+#include <stdint.h>
 
 // Helpers for our handling of shaders
 GLboolean skip_next_compile = GL_FALSE;
@@ -55,6 +57,59 @@ void gl_init() {
 
 void gl_swap() {
     vglSwapBuffers(GL_FALSE);
+}
+
+static volatile unsigned present_count;
+static volatile unsigned last_present_ms;
+
+unsigned egl_present_count(void) {
+    return __atomic_load_n(&present_count, __ATOMIC_RELAXED);
+}
+
+unsigned egl_present_age_ms(void) {
+    unsigned last = __atomic_load_n(&last_present_ms, __ATOMIC_RELAXED);
+    if (!last) return 0;
+    return (unsigned)(sceKernelGetProcessTimeWide() / 1000) - last;
+}
+
+/* Measure the game's present cadence and VitaGL time without a per-frame log.
+ * The lifecycle thread reads the counters even if rendering stops. */
+EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
+    static uint64_t window_start_us;
+    static uint64_t last_end_us;
+    static uint64_t swap_total_us;
+    static unsigned window_frames;
+    static unsigned max_swap_us;
+    static unsigned max_frame_us;
+
+    uint64_t start_us = sceKernelGetProcessTimeWide();
+    EGLBoolean result = eglSwapBuffers(dpy, surface);
+    uint64_t end_us = sceKernelGetProcessTimeWide();
+    unsigned swap_us = (unsigned)(end_us - start_us);
+    unsigned frame_us = last_end_us ? (unsigned)(end_us - last_end_us) : 0;
+    if (!window_start_us) window_start_us = end_us;
+    last_end_us = end_us;
+    swap_total_us += swap_us;
+    window_frames++;
+    if (swap_us > max_swap_us) max_swap_us = swap_us;
+    if (frame_us > max_frame_us) max_frame_us = frame_us;
+    __atomic_store_n(&last_present_ms, (unsigned)(end_us / 1000), __ATOMIC_RELAXED);
+    __atomic_add_fetch(&present_count, 1, __ATOMIC_RELAXED);
+
+    uint64_t elapsed_us = end_us - window_start_us;
+    if (elapsed_us >= 5000000) {
+        l_info("[PERF] present frames=%u elapsed_ms=%u fps_x10=%u swap_avg_us=%u swap_max_us=%u frame_max_us=%u",
+               window_frames, (unsigned)(elapsed_us / 1000),
+               (unsigned)(((uint64_t)window_frames * 10000000) / elapsed_us),
+               (unsigned)(swap_total_us / window_frames), max_swap_us,
+               max_frame_us);
+        window_start_us = end_us;
+        window_frames = 0;
+        swap_total_us = 0;
+        max_swap_us = 0;
+        max_frame_us = 0;
+    }
+    return result;
 }
 
 /* Android GLES exposes numeric buffer names. This VitaGL build exposes its

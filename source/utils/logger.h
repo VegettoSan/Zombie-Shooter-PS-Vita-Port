@@ -44,6 +44,7 @@ extern "C" {
 
 void _log_print(int t, const char* fmt, ...)
                 __attribute__ ((format (printf, 2, 3)));
+void logger_get_sync_stats(unsigned *count, unsigned *microseconds);
 
 #ifdef __cplusplus
 };

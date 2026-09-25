@@ -646,7 +646,7 @@ so_default_dynlib default_dynlib[] = {
         { "eglQueryContext", (uintptr_t)&eglQueryContext },
         { "eglQueryString", (uintptr_t)&eglQueryString },
         { "eglQuerySurface", (uintptr_t)&eglQuerySurface },
-        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers },
+        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers_soloader },
         { "eglTerminate", (uintptr_t)&eglTerminate },
 
 

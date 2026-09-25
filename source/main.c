@@ -307,9 +307,28 @@ static void *ndk_game_thread(void *arg) {
     breadcrumb("idle_loop");
 
     unsigned heartbeat = 0;
+    unsigned previous_sync_count = 0;
+    unsigned previous_sync_us = 0;
     while (1) {
-        if ((heartbeat % 50) == 0)
-            l_info("[ndk] lifecycle thread alive heartbeat=%u", heartbeat);
+        if ((heartbeat % 50) == 0) {
+            unsigned presents = egl_present_count();
+            unsigned age_ms = egl_present_age_ms();
+            unsigned sync_count, sync_us;
+            logger_get_sync_stats(&sync_count, &sync_us);
+            l_info("[PERF] lifecycle heartbeat=%u presents=%u last_present_age_ms=%u log_syncs=%u log_sync_ms=%u",
+                   heartbeat, presents, age_ms,
+                   sync_count - previous_sync_count,
+                   (sync_us - previous_sync_us) / 1000);
+            previous_sync_count = sync_count;
+            previous_sync_us = sync_us;
+#if defined(ZOMBIE_STALL_DUMP)
+            if (presents >= 1000 && age_ms >= 45000) {
+                l_fatal("[CRASH] diagnostic stall dump: presents=%u age_ms=%u (Debug only)",
+                        presents, age_ms);
+                abort();
+            }
+#endif
+        }
 
         /* The game's render thread presents through eglSwapBuffers. */
         heartbeat++;

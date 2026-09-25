@@ -1,5 +1,19 @@
 # Progreso del port
 
+## Checkpoint actual: congelación del render durante el tutorial
+
+- Vita real `log_0012.log`: `eglSwapBuffers` tarda ~0,2 ms, pero la cadencia real cae a 1–4 FPS. Hay pausas de 29 y 18 segundos que se recuperan. Tras abrir `wav/footsteps.wav`, los presents se detienen en 1154 durante al menos 157 segundos; el hilo lifecycle sigue vivo y la cola de input continúa recibiendo/consumiendo eventos. PSVshell también deja de actualizar su contador. El cuello de botella no está dentro de `eglSwapBuffers`.
+- `footsteps.wav` es PCM mono 16 bits a 22.050 Hz. El último progreso de lectura está en 53.150/53.312 bytes, justo al final del chunk `data`, antes de metadatos RIFF. La coincidencia se repite, pero aún no prueba si la lectura, el audio o una llamada GL posterior bloquea el hilo.
+- Cambio diagnóstico: registrar las primeras lecturas, final y EOF de ese WAV; medir cuánto tiempo ocupa `sceIoSyncByFd` cada 5 segundos. Si Debug lleva 45 segundos sin un present después de 1.000 frames, escribe una marca `[CRASH]` y provoca un dump deliberado para inspeccionar los PCs de todos los hilos. Release no provoca ese dump.
+- Debug y Release compilan con SoftFP. Próxima prueba física: reproducir la congelación con el Debug, devolver `log_0013.log` y el nuevo `.psp2dmp`. El dump debe localizar el hilo de render en el punto real de bloqueo.
+
+## Checkpoint actual: tutorial visible y diagnóstico de rendimiento
+
+- Vita real `log_0011.log`: el juego sale de `LOADING`, muestra un nivel tipo tutorial y el táctil responde. El usuario observa 5–7 FPS y luego una imagen congelada sin crash. El buffer de assets pequeños del checkpoint anterior permitió llegar al juego; aún no confirma una partida fluida.
+- El log termina con el hilo lifecycle vivo durante más de un minuto tras la última actividad registrada del motor. No había contador de frames, de modo que aún no se sabe si el render se detuvo o siguió dibujando la misma imagen. Se ven consultas JNI nulas de `commonAssets`, `getPreferences` y `InputDevice.getDevice`, pero ninguna coincide de forma única con el bloqueo.
+- Cambio diagnóstico: `eglSwapBuffers` registra cada 5 segundos FPS, tiempo medio/máximo del swap y el intervalo máximo entre frames. El hilo lifecycle registra el total de presents y la edad del último frame. FalsoNDK registra cada 5 segundos la profundidad de la cola de input y sus contadores de entrada/salida cuando hay eventos. Sin cambios en lifecycle, assets ni gráficos.
+- Debug y Release compilan con SoftFP. Pendiente Vita real: mover el personaje unos segundos, esperar a que se congele y conservar el log completo. La pregunta es si dejan de aumentar los presents, si `eglSwapBuffers` consume el tiempo de frame o si crece la cola táctil.
+
 ## Checkpoint actual: límite de streams durante la carga de menú
 
 - Vita real `log_0010.log`: el buffer de `.vid` funciona; `vid/115.vid` y `menus/main.men` abren y el usuario ve imágenes detrás de `LOADING`. No se repite `showWait`. La carga se detiene después de que `menus/img/2555_00.png` a `_06.png` abren, pero `_07.png` y archivos siguientes fallan aunque están en los datos y `_07.png` abrió antes.

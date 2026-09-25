@@ -9,6 +9,7 @@
 
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/processmgr.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/io/stat.h>
 
@@ -37,6 +38,13 @@ static SceUID _log_fd = -1;
 static atomic_bool _log_file_ready = ATOMIC_VAR_INIT(false);
 static char _log_path[128];
 static unsigned _log_unsynced_lines;
+static volatile unsigned _log_sync_count;
+static volatile unsigned _log_sync_us;
+
+void logger_get_sync_stats(unsigned *count, unsigned *microseconds) {
+    if (count) *count = __atomic_load_n(&_log_sync_count, __ATOMIC_RELAXED);
+    if (microseconds) *microseconds = __atomic_load_n(&_log_sync_us, __ATOMIC_RELAXED);
+}
 
 // Buffer A is used to adjust the format string (with colors for console).
 static char buffer_a[2048];
@@ -156,7 +164,11 @@ void _log_print(int t, const char* fmt, ...) {
              * Keep warnings/errors crash-safe and checkpoint normal traces. */
             if (t == LT_WARN || t == LT_ERROR || t == LT_FATAL ||
                 ++_log_unsynced_lines >= 32) {
+                uint64_t start_us = sceKernelGetProcessTimeWide();
                 sceIoSyncByFd(_log_fd, 0);
+                unsigned spent_us = (unsigned)(sceKernelGetProcessTimeWide() - start_us);
+                __atomic_add_fetch(&_log_sync_count, 1, __ATOMIC_RELAXED);
+                __atomic_add_fetch(&_log_sync_us, spent_us, __ATOMIC_RELAXED);
                 _log_unsynced_lines = 0;
             }
         }

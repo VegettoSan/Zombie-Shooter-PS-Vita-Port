@@ -85,7 +85,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Granular JNI/thread traces are for the hardware diagnostic VPK only.
-    add_definitions(-DFALSOJNI_DEBUGLEVEL=0 -DZOMBIE_THREAD_TRACE=1)
+    add_definitions(-DFALSOJNI_DEBUGLEVEL=0 -DZOMBIE_THREAD_TRACE=1 -DZOMBIE_STALL_DUMP=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -g3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g3")
 else ()

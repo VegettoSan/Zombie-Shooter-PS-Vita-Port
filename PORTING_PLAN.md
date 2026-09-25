@@ -8,10 +8,10 @@
 
 ## Próximo checkpoint
 
-La Vita real alcanza `core::Application::initialize()`, dibuja ambos logos y llega a `LOADING`. Con el buffer de `.vid` aparecen imágenes de fondo, pero la carga no termina (`log_0010.log`). El mapeo de nombres GLES compactos está verificado: ya no se omiten los draws por nombres truncados.
+La Vita real ya supera `LOADING` y muestra un nivel tutorial (`log_0011.log` y `log_0012.log`). El táctil responde, pero el juego corre a 1–4 FPS reales y el render acaba detenido durante minutos. `eglSwapBuffers` tarda sólo ~0,2 ms; los presents se detienen mientras el lifecycle y la cola de input siguen vivos. La última lectura visible de `footsteps.wav` acaba al final del chunk de audio, pero el punto exacto de bloqueo requiere el dump de hilos del siguiente Debug.
 
 La prueba `log_0008.log` confirma que FalsoJNI ya responde verdadero a `IsInstanceOf(activity, android/content/Context)`. La inicialización de Play Asset Delivery avanza hasta `AssetPackManagerFactory.getInstance(Context)`, que FalsoJNI no implementa; devuelve un manager nulo y las consultas a `commonAssets` no obtienen ubicación. Aparecen 1.503 errores `showWait`. `Wrong AES key length` persiste (215 veces); su causa sigue abierta.
 
-`log_0009.log` confirmó que `vid/empty.vid` abría y luego dejaba de abrir con 59 assets abiertos (50 `.vid`). El buffer de `.vid` resolvió ese punto en `log_0010.log`: `vid/115.vid` y `menus/main.men` abren. El límite de streams reaparece al cargar el menú: 58 assets no `.vid` abiertos, y `menus/img/2555_07.png` falla tras haber abierto antes. El checkpoint actual extiende el buffer a los assets de hasta 256 KiB; la próxima prueba debe comprobar si abre esas imágenes y si termina `LOADING`.
+`log_0009.log` confirmó que `vid/empty.vid` abría y luego dejaba de abrir con 59 assets abiertos (50 `.vid`). El buffer de `.vid` resolvió ese punto en `log_0010.log`; el buffer ampliado a assets de hasta 256 KiB permitió llegar al tutorial en `log_0011.log`. El checkpoint actual mide presents, tiempo de swap y cola de input para localizar los 5 FPS y la congelación antes de cambiar el renderer o el control.
 
 Además siguen faltando 396 rutas solicitadas de `commonAssets;fast-follow`; los 495 archivos declarados no aparecen en ninguno de los 20 APK del XAPK ni en `data/assets`. `config.es.apk` sólo aporta recursos Android de idioma. El origen del contenido fast-follow aún no está demostrado. Véase `docs/ASSET_LAYOUT.md`.
