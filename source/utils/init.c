@@ -140,11 +140,14 @@ void soloader_init_all() {
             sceAppMgrLoadExec("app0:/configurator.bin", NULL, NULL);
     }
 
-    scePowerSetArmClockFrequency(444);
-    scePowerSetBusClockFrequency(222);
-    scePowerSetGpuClockFrequency(222);
-    scePowerSetGpuXbarClockFrequency(166);
-    l_info("Clocks set: ARM 444 / BUS 222 / GPU 222 / XBAR 166");
+    /* Preserve clocks selected by PSVshell or another external profile.
+     * Previous builds forcibly lowered them to 444/222/222/166, invalidating
+     * the user's intended max-overclock A/B tests. */
+    l_perf("[PERF] clocks_preserved arm=%d bus=%d gpu=%d xbar=%d",
+           scePowerGetArmClockFrequency(),
+           scePowerGetBusClockFrequency(),
+           scePowerGetGpuClockFrequency(),
+           scePowerGetGpuXbarClockFrequency());
 
 #ifdef USE_SCELIBC_IO
     l_info("Initializing FIOS with path %s ...", DATA_PATH);
