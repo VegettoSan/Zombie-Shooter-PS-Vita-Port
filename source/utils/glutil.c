@@ -27,6 +27,44 @@ char next_shader_fname[256];
 void load_shader(GLuint shader, const char * string, size_t length);
 static int gl_initialized = 0;
 
+static unsigned mem_kib(size_t bytes) {
+    return (unsigned)(bytes / 1024u);
+}
+
+/* PSVshell reports address-space allocation, while VitaGL pre-reserves large
+ * memblocks and sub-allocates from them.  Record both the system free memory
+ * and VitaGL's internal free/total pools so a 100% PSVshell reading can be
+ * distinguished from real exhaustion inside the VitaGL allocator. */
+static void log_memory_snapshot(const char *phase, int include_vgl) {
+    SceKernelFreeMemorySizeInfo info;
+    memset(&info, 0, sizeof(info));
+    info.size = sizeof(info);
+    int ret = sceKernelGetFreeMemorySize(&info);
+
+    unsigned sys_user = ret >= 0 ? mem_kib(info.size_user) : 0;
+    unsigned sys_cdram = ret >= 0 ? mem_kib(info.size_cdram) : 0;
+    unsigned sys_phy = ret >= 0 ? mem_kib(info.size_phycont) : 0;
+
+    if (!include_vgl || !gl_initialized) {
+        l_info("[PERF] mem phase=%s sys_ret=%d sys_free_kib user=%u cdram=%u phy=%u",
+               phase, ret, sys_user, sys_cdram, sys_phy);
+        return;
+    }
+
+    size_t ram_free = vglMemFree(VGL_MEM_RAM);
+    size_t ram_total = vglMemTotal(VGL_MEM_RAM);
+    size_t vram_free = vglMemFree(VGL_MEM_VRAM);
+    size_t vram_total = vglMemTotal(VGL_MEM_VRAM);
+    size_t phy_free = vglMemFree(VGL_MEM_PHYCONT);
+    size_t phy_total = vglMemTotal(VGL_MEM_PHYCONT);
+
+    l_info("[PERF] mem phase=%s sys_ret=%d sys_free_kib user=%u cdram=%u phy=%u vgl_free_total_kib ram=%u/%u vram=%u/%u phy=%u/%u",
+           phase, ret, sys_user, sys_cdram, sys_phy,
+           mem_kib(ram_free), mem_kib(ram_total),
+           mem_kib(vram_free), mem_kib(vram_total),
+           mem_kib(phy_free), mem_kib(phy_total));
+}
+
 void gl_preload() {
     if (!file_exists("ur0:/data/libshacccg.suprx")
         && !file_exists("ur0:/data/external/libshacccg.suprx")) {
@@ -51,12 +89,17 @@ void gl_init() {
         return;
     }
 
+    /* This test is telemetry-only: keep the existing allocator thresholds so
+     * the next hardware run changes no memory policy. */
+    log_memory_snapshot("before_vgl", 0);
+
     /* The EGL bridge advertises EGL_SAMPLE_BUFFERS=0 / EGL_SAMPLES=0, so the
      * game does not request multisampling. Do not force 4x MSAA underneath it:
      * that only adds fragment/bandwidth cost on Vita and makes FPS comparisons
      * misleading. */
     vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
     gl_initialized = 1;
+    log_memory_snapshot("after_vgl", 1);
 }
 
 void gl_swap() {
@@ -107,6 +150,7 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
                (unsigned)(((uint64_t)window_frames * 10000000) / elapsed_us),
                (unsigned)(swap_total_us / window_frames), max_swap_us,
                max_frame_us);
+        log_memory_snapshot("runtime", 1);
         window_start_us = end_us;
         window_frames = 0;
         swap_total_us = 0;
