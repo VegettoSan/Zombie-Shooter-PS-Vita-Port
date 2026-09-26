@@ -33,6 +33,7 @@ jobs:
         run: |
           tests/run_jni_field_regression.sh
           bash tests/run_gamepad_regression.sh
+          python3 tests/run_render_scale_regression.py
           tests/run_gl_buffer_regression.sh
           tests/run_logger_regression.sh
           bash tests/run_texture_update_regression.sh
