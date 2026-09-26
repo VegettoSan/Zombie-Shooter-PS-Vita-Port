@@ -12,16 +12,24 @@
 
 #define CONFIG_FILE_PATH DATA_PATH"config.txt"
 
+/* Optional startup hook supplied by source/utils/gamepad.c in the real Vita
+ * build. Keeping it weak preserves the standalone host settings regression. */
+void gamepad_config_load(void) __attribute__((weak));
+
 int setting_software_width;
 int setting_vita_shooter;
 int  setting_sampleSetting;
 bool setting_sampleSetting2;
 
+static void settings_load_dependent_configs(void) {
+    if (gamepad_config_load) gamepad_config_load();
+}
+
 void settings_reset() {
     /* Safe default for run #16 recovery: preserve the engine's original
      * Android-selected work resolution and do not install the scale hook. */
     setting_software_width = 0;
-    setting_vita_shooter = 0; // Enable only after measuring the tutorial bindings.
+    setting_vita_shooter = 0; // Legacy fallback only; controls.txt wins on Vita.
     setting_sampleSetting  = 1;
     setting_sampleSetting2 = true;
 }
@@ -58,6 +66,7 @@ void settings_load() {
          * documented, safe config on first boot so one VPK can exercise all
          * three resolution modes without rebuilding. */
         settings_save();
+        settings_load_dependent_configs();
         return;
     }
 
@@ -75,4 +84,5 @@ void settings_load() {
         else if (strcmp("setting_sampleSetting2", buffer) == 0) setting_sampleSetting2 = (bool)value;
     }
     fclose(config);
+    settings_load_dependent_configs();
 }
