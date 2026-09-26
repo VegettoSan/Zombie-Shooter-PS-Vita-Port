@@ -26,6 +26,12 @@ Receta exacta e instrucciones: `docs/REPRODUCIBLE_BUILD.md`.
 - `demo/libzombie_shooter.so` se recuperó del remoto sin alterar sus bytes:
   9,773,412 bytes; SHA-256
   `5e5e2e1bbe86e126c3e2dce5ad97c2e9dc6282305ea7d3e24b49ee4769c5b5b7`.
+- Los artefactos antiguos tenían AAssetManager compilado antes de la protección
+  .m4a que ya existía en las fuentes locales al comenzar. Se preserva dicha edición;
+  los VPK nuevos representan las fuentes locales completas, no la caché anterior.
+  Todos los miembros OpenSLES coinciden byte por byte con los originales.
+- GitHub Actions run 11 para `7379da0`: Debug success, Release success; se
+  publicaron dos VPK y sus flags/defines/includes/link se compararon con el local.
 - Build Debug y Release locales limpios: BUILD VERIFIED y VPK VERIFIED, ZIP válido.
   Flags/defines/link coinciden exactamente con los directorios originales.
 - Ambos usan /usr/local/vitasdk, GCC 10.3.0 SoftFP. El HardFP no fue modificado.
@@ -63,5 +69,5 @@ en `backup/before-local-restore-20260925`. No se hizo pull/merge/rebase.
 
 Las afirmaciones antiguas de Release silencioso, MSAA off, clocks externos o
 telemetría activa sólo corresponden a builds históricos del backup.
-La validación de GitHub Actions se realiza después del push: no confundir sus
-resultados de compilación con una prueba nueva en PS Vita.
+GitHub Actions run 11 verificó el código y la receta restaurados después del push.
+No confundir estos resultados de compilación con una prueba nueva en PS Vita.

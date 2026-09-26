@@ -91,3 +91,26 @@ La igualdad exigida corresponde a fuentes, SDK y receta, no a un ZIP bit a bit:
 los timestamps del empaquetado, rutas Debug y versión de CMake pueden variar.
 Esta restauración no constituye una nueva prueba física ni garantiza estabilidad
 completa del juego. Las observaciones previas y los pendientes están en PORT_STATUS.
+
+## Diferencia entre las fuentes locales y la caché antigua
+
+La comparación posterior de objetos detectó que los antiguos builds guardados
+no contenían todavía la protección `.m4a` de AAsset_openFileDescriptor que sí
+existía en las fuentes locales al iniciar esta tarea. Ésta es la única fuente
+FalsoNDK cuyo objeto cambió. Se conserva esa edición local expresamente; la
+reconstrucción limpia representa las fuentes de disco y no un ejecutable viejo.
+Todos los miembros de libOpenSLES_zombie.a coinciden byte por byte con los
+originales (sólo cambian metadatos del archivo ar), incluidos los tres overrides.
+No se presenta el nuevo VPK como validado físicamente en esta sesión.
+
+## GitHub Actions verificado
+
+Run 11: https://github.com/VegettoSan/Zombie-Shooter-PS-Vita-Port/actions/runs/36211720093
+Commit probado: `7379da0817176c3f83b786d9fee65ec54dc75a8c`.
+Debug success, Release success, artefacto y prerelease publicados.
+Se descargaron ambos VPK y se verificó su ZIP. Se compararon con el local
+C_DEFINES, C_FLAGS, includes y link.txt: iguales salvo la raíz del checkout.
+El SDK extraído del tar también verifica sus 29,752 hashes originales.
+
+SHA-256 CI Debug: `6d8418632f2d9921aeaa2a777d7796b8d023977c85bc1257ae514af5fa84c708`.
+SHA-256 CI Release: `34e0801374f37808334885724750a1b948abd9f08dcd3897c4a0ed4c5af8576a`.
