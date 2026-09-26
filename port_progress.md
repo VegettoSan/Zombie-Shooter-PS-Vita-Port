@@ -1,5 +1,13 @@
 # Progreso del port
 
+## Checkpoint actual: segunda espera OpenSL ES durante el tutorial
+
+- Vita real `log_0014.log`: el límite previo de `IBufferQueue_Clear` se activó cuatro veces y permitió continuar moviéndose y disparando. El juego siguió sin sonido, a 4–7 FPS, antes de congelarse. Tras 48 s sin un present, el watchdog Debug generó deliberadamente `psp2core-1790322024-0x0001423379-eboot.bin.psp2dmp`.
+- El dump sitúa el hilo del juego en `CAudioPlayer_PreDestroy` → `object_cond_wait` durante la destrucción de un reproductor. En el dump anterior el hilo `OpenSLES Playback` esperaba en `sceAudioOutOutput`; el dump actual no permite afirmar por sí solo por qué dejó de reconocer el track. `eglSwapBuffers` promedia ~0,2 ms, así que no explica los 4–7 FPS.
+- Cambio acotado: `CAudioPlayer_PreDestroy` espera como máximo 100 ms. Si el backend ya salió, desliga el track bajo el lock del mezclador; si sigue activo, rehúsa destruir el reproductor para evitar una lectura de memoria liberada. El backend de Vita registra apertura del puerto, inicio/salida del hilo y errores de audio. Las tres modificaciones sustituyen objetos de una copia local de `libOpenSLES.a`; el SDK instalado queda intacto.
+- Input observado: la palanca muestra la guía Xbox, los controles probados no mueven al personaje y L lanza granadas. FalsoJNI no resuelve `InputDevice.getDevice(int)` ni `RegistryEnumerator.enumerateKeys(Activity)` en el log. No hay aún evidencia suficiente para reasignar ejes/botones; el mapeo no cambia en este checkpoint.
+- Debug y Release compilan con SoftFP y generan VPK. Pendiente Vita real: verificar si el hilo de audio abre el puerto o sale con error, si `CAudioPlayer_PreDestroy` vuelve a bloquearse y si los presents continúan tras mover/disparar. Sonido, velocidad y mando siguen abiertos.
+
 ## Checkpoint actual: espera infinita al vaciar la cola OpenSL ES
 
 - Vita real `log_0013.log`: el watchdog Debug causó deliberadamente el dump tras 45 segundos sin un present. Los últimos tres `AAsset_read` de `wav/footsteps.wav` retornaron correctamente. La pausa ocurre después de la lectura, no dentro de ella.

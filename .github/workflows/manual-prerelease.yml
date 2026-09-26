@@ -1,0 +1,94 @@
+name: Manual Vita VPK Pre-release
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: Optional physical Vita test note
+        required: false
+        default: ''
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: zombie-vita-manual-prerelease
+  cancel-in-progress: false
+jobs:
+  build-and-prerelease:
+    name: Functional baseline - Debug + Release
+    runs-on: ubuntu-22.04
+    env:
+      VITASDK: /usr/local/vitasdk
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout source and pinned submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Install the exact functional local SoftFP SDK
+        run: bash scripts/install_baseline_sdk.sh
+      - name: Build Debug VPK
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          cmake -S . -B build-session-debug -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build-session-debug -j"$(nproc)" 2>&1 | tee build-debug.log
+          test -s build-session-debug/zombie_shooter.vpk
+          unzip -t build-session-debug/zombie_shooter.vpk
+      - name: Build Release VPK
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          cmake -S . -B build-session-release -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-session-release -j"$(nproc)" 2>&1 | tee build-release.log
+          test -s build-session-release/zombie_shooter.vpk
+          unzip -t build-session-release/zombie_shooter.vpk
+      - name: Record baseline evidence and package two VPKs
+        id: meta
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          short_sha="${GITHUB_SHA:0:7}"
+          tag="vita-test-${GITHUB_RUN_NUMBER}-${short_sha}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          cp build-session-debug/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Debug.vpk
+          cp build-session-release/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Release.vpk
+          cp scripts/vitasdk-version.txt dist/
+          git submodule status > dist/submodules.txt
+          sha256sum demo/libzombie_shooter.so > dist/so-reference.sha256.txt
+          for variant in debug release; do
+            cp "build-session-$variant/CMakeFiles/so_loader.dir/flags.make" "dist/$variant-flags.txt"
+            cp "build-session-$variant/CMakeFiles/so_loader.dir/link.txt" "dist/$variant-link.txt"
+          done
+          cat > dist/build-info.txt <<EOF
+          Commit: $GITHUB_SHA
+          SDK: /usr/local/vitasdk, GCC 10.3.0, SoftFP
+          SDK archive SHA256: 25e1271b50aef4e0b4e7be837b6c2316507c47a0f56127a5b2d633f6a6aa0878
+          Recipe: plain CMake Debug and Release, same as local
+          Runtime verification: requires physical PS Vita
+          EOF
+          sha256sum dist/*.vpk > dist/SHA256SUMS.txt
+      - name: Upload two VPKs and build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zombie-Shooter-Vita-${{ steps.meta.outputs.tag }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish manual test pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Zombie Shooter Vita Test ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          body: |
+            Restored functional local baseline, built with its exact SoftFP SDK.
+            Commit: `${{ github.sha }}`
+            Includes exactly Debug and Release loader VPKs; game assets are not packaged.
+            Physical Vita verification remains separate from build verification.
+            Test note: ${{ inputs.notes }}
+          files: dist/*

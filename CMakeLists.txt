@@ -6,6 +6,20 @@ endif ()
 
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "Toolchain file")
 
+# Keep both entry points on the same SDK and patched dependency sources.
+if(NOT "$ENV{VITASDK}" STREQUAL "/usr/local/vitasdk")
+  message(FATAL_ERROR "Zombie Shooter requires VITASDK=/usr/local/vitasdk (SoftFP)")
+endif()
+if(NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release)$")
+  message(FATAL_ERROR "Choose exactly CMAKE_BUILD_TYPE=Debug or Release")
+endif()
+find_program(ZOMBIE_PYTHON python3 REQUIRED)
+execute_process(COMMAND ${ZOMBIE_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/prepare_build.py
+                RESULT_VARIABLE ZOMBIE_PREPARE_RESULT)
+if(NOT ZOMBIE_PREPARE_RESULT EQUAL 0)
+  message(FATAL_ERROR "Functional baseline verification/patch preparation failed")
+endif()
+
 project(so_loader C CXX)
 
 include("${VITASDK}/share/vita.cmake" REQUIRED)
@@ -143,17 +157,8 @@ separate_arguments(VITAGL_MAKE_ARGS UNIX_COMMAND "${VITAGL_MAKE_FLAGS}")
 set(VITAGL_DIR ${CMAKE_SOURCE_DIR}/lib/vitagl)
 set(VITAGL_LIB ${VITAGL_DIR}/libvitaGL.a)
 
-set(VITAGL_FLAGS_STAMP ${CMAKE_BINARY_DIR}/vitagl_flags.stamp)
-set(vitagl_old_flags "")
-if (EXISTS ${VITAGL_FLAGS_STAMP})
-  file(READ ${VITAGL_FLAGS_STAMP} vitagl_old_flags)
-endif()
-if (NOT vitagl_old_flags STREQUAL VITAGL_MAKE_FLAGS)
-  file(GLOB_RECURSE vitagl_stale_objs ${VITAGL_DIR}/source/*.o)
-  file(REMOVE ${vitagl_stale_objs} ${VITAGL_LIB})
-  file(WRITE ${VITAGL_FLAGS_STAMP} "${VITAGL_MAKE_FLAGS}")
-endif()
-
+# VitaGL writes into its source tree. Rebuild from clean objects for each
+# variant so a previous Debug/Release build cannot supply the other flags.
 include(ProcessorCount)
 ProcessorCount(VITAGL_NPROC)
 if (VITAGL_NPROC EQUAL 0)
@@ -161,6 +166,7 @@ if (VITAGL_NPROC EQUAL 0)
 endif()
 
 add_custom_target(vitaGL_build
+                  COMMAND make -C ${VITAGL_DIR} clean
                   COMMAND make -C ${VITAGL_DIR} -j${VITAGL_NPROC} ${VITAGL_MAKE_ARGS}
                   BYPRODUCTS ${VITAGL_LIB}
                   COMMENT "Building VitaGL"
@@ -186,29 +192,32 @@ if(NDK_PORT)
                         )
 endif()
 
-# Replace only IBufferQueue.o in the SDK OpenSL ES archive.  The game's
-# SfxBuffer::play calls Clear, and the SDK's unbounded mixer wait can suspend
-# the game thread when Vita audio output stops acknowledging buffers.
+# Replace the audio queue, player lifetime, and Vita output members in a copy
+# of the SDK OpenSL ES archive.  The original library remains untouched.
 set(OPEN_SLES_CLEAR_DIR ${CMAKE_SOURCE_DIR}/lib/opensles_clear)
-set(OPEN_SLES_CLEAR_OBJ ${CMAKE_BINARY_DIR}/IBufferQueue.o)
 set(OPEN_SLES_PATCHED_LIB ${CMAKE_BINARY_DIR}/libOpenSLES_zombie.a)
 file(GLOB OPEN_SLES_CLEAR_HEADERS ${OPEN_SLES_CLEAR_DIR}/*.h)
-add_custom_command(
-  OUTPUT ${OPEN_SLES_CLEAR_OBJ}
-  COMMAND ${CMAKE_C_COMPILER} -std=gnu17 -O3
-          -I${OPEN_SLES_CLEAR_DIR}
-          -I${VITASDK}/arm-vita-eabi/include
-          -DUSE_OUTPUTMIXEXT -DUSE_SDL -DUSE_SNDFILE
-          -c ${OPEN_SLES_CLEAR_DIR}/IBufferQueue.c -o ${OPEN_SLES_CLEAR_OBJ}
-  DEPENDS ${OPEN_SLES_CLEAR_DIR}/IBufferQueue.c ${OPEN_SLES_CLEAR_HEADERS}
-  VERBATIM)
+set(OPEN_SLES_OVERRIDE_OBJECTS)
+foreach(OPEN_SLES_MEMBER IBufferQueue CAudioPlayer Vita)
+  set(OPEN_SLES_OBJ ${CMAKE_BINARY_DIR}/${OPEN_SLES_MEMBER}.o)
+  add_custom_command(
+    OUTPUT ${OPEN_SLES_OBJ}
+    COMMAND ${CMAKE_C_COMPILER} -std=gnu17 -O3
+            -I${OPEN_SLES_CLEAR_DIR}
+            -I${VITASDK}/arm-vita-eabi/include
+            -DUSE_OUTPUTMIXEXT -DUSE_SDL -DUSE_SNDFILE
+            -c ${OPEN_SLES_CLEAR_DIR}/${OPEN_SLES_MEMBER}.c -o ${OPEN_SLES_OBJ}
+    DEPENDS ${OPEN_SLES_CLEAR_DIR}/${OPEN_SLES_MEMBER}.c ${OPEN_SLES_CLEAR_HEADERS}
+    VERBATIM)
+  list(APPEND OPEN_SLES_OVERRIDE_OBJECTS ${OPEN_SLES_OBJ})
+endforeach()
 add_custom_command(
   OUTPUT ${OPEN_SLES_PATCHED_LIB}
   COMMAND ${CMAKE_COMMAND} -E copy
           ${VITASDK}/arm-vita-eabi/lib/libOpenSLES.a ${OPEN_SLES_PATCHED_LIB}
-  COMMAND ${CMAKE_AR} r ${OPEN_SLES_PATCHED_LIB} ${OPEN_SLES_CLEAR_OBJ}
+  COMMAND ${CMAKE_AR} r ${OPEN_SLES_PATCHED_LIB} ${OPEN_SLES_OVERRIDE_OBJECTS}
   COMMAND ${CMAKE_RANLIB} ${OPEN_SLES_PATCHED_LIB}
-  DEPENDS ${OPEN_SLES_CLEAR_OBJ}
+  DEPENDS ${OPEN_SLES_OVERRIDE_OBJECTS}
   VERBATIM)
 add_custom_target(opensles_clear_archive DEPENDS ${OPEN_SLES_PATCHED_LIB})
 add_dependencies(${CMAKE_PROJECT_NAME} opensles_clear_archive)

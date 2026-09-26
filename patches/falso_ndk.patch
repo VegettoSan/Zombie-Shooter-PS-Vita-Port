@@ -11,7 +11,7 @@ index b600e3d..c4934b8 100644
  
  void ALOGE(const char * fmt, ...) {
 diff --git a/android/AAssetManager.cpp b/android/AAssetManager.cpp
-index 3e61b41..c7d1806 100644
+index 3e61b41..4cab4e1 100644
 --- a/android/AAssetManager.cpp
 +++ b/android/AAssetManager.cpp
 @@ -1,11 +1,13 @@
@@ -238,6 +238,26 @@ index 3e61b41..c7d1806 100644
      if (!a->opened) {
          return -1;
      }
+@@ -214,6 +322,19 @@ int AAsset_openFileDescriptor(AAsset* asset, off_t* outStart, off_t* outLength)
+     auto * a = (aAsset *) asset;
+     if (outStart) *outStart = 0;
+     if (outLength) *outLength = a->fileSize;
++    // This port's OpenSL ES backend does not implement AndroidFD sources.
++    // The game requests .m4a music through this API, then cannot create its
++    // music player and never closes the returned descriptor. Avoid exhausting
++    // Vita's descriptor table; PCM effect playback uses buffer queues instead.
++    const char *extension = strrchr(a->filename, '.');
++    if (extension && strcmp(extension, ".m4a") == 0) {
++        static unsigned unsupported_count = 0;
++        unsigned count = __sync_add_and_fetch(&unsupported_count, 1);
++        if (count <= 3 || (count % 64) == 0)
++            ALOGW("[AUDIO] AndroidFD .m4a unsupported; descriptor not opened (%u): %s",
++                  count, a->filename);
++        return -1;
++    }
+     if (a->opened) {
+ #ifdef USE_SCELIBC_IO
+         sceLibcBridge_fclose(a->f);
 diff --git a/android/AInput.cpp b/android/AInput.cpp
 index 91f151d..54690b7 100644
 --- a/android/AInput.cpp

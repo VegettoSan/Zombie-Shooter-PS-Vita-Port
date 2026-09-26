@@ -8,6 +8,19 @@ Port the Android version of **Zombie Shooter** to **real PS Vita hardware** by l
 
 For any Android→PS Vita porting, boot, JNI, renderer, asset, audio, input, crash, or loader task, **read `docs/METALSYNTAX_PORTING_GUIDE.md` before editing code**.
 
+## Explicit restoration exception (2026-09-25)
+
+The user explicitly authorized this one restoration task to fetch, create a remote
+backup, commit, push with an exact SHA lease, and run GitHub Actions. The functional
+local working tree at `23d92dc` plus its uncommitted changes is the source of truth.
+The former remote `2809a6951cec83a460be5777f388edf04a76f259` is preserved at
+`backup/before-local-restore-20260925`. No pull, merge or rebase is permitted.
+This exception does not authorize future publication: normal work remains local-only.
+
+`demo/libzombie_shooter.so` is the immutable canonical crash-analysis reference.
+Never delete, rename, move, strip or patch it. SHA-256:
+`5e5e2e1bbe86e126c3e2dce5ad97c2e9dc6282305ea7d3e24b49ee4769c5b5b7`.
+
 ## Work only on the local checkout
 
 The working directory is expected to be:

@@ -1,12 +1,26 @@
-# Parches de submódulos para una subida manual
+# Parches reproducibles de dependencias
 
-`lib/falso_jni` y `lib/falso_ndk` son submódulos Git. El repositorio principal sólo guarda sus revisiones, así que los cambios locales dentro de ellos no entran en una subida del repositorio principal aunque `.gitignore` esté correcto.
+CMake ejecuta `scripts/prepare_build.py` automáticamente para Debug y Release.
+Verifica el SDK SoftFP original, las revisiones fijadas y los hashes de todos los
+archivos versionados de FalsoJNI, FalsoNDK, so_util y VitaGL. Aplica los parches
+cuando faltan y acepta una segunda ejecución sólo si las fuentes coinciden.
+No actualiza submódulos ni descarta ediciones del usuario.
 
-Incluye `falso_jni.patch` y `falso_ndk.patch` en la subida. Los parches contienen únicamente cambios de código reales; se omitieron diferencias de finales de línea. En una copia nueva con los submódulos en las revisiones fijadas por el proyecto, aplícalos desde la raíz:
+`falso_jni.patch` conserva PopLocalFrame, IsInstanceOf(Context) y el logging local.
+`falso_ndk.patch` conserva assets/buffering/FD, input y lifecycle locales,
+incluida la protección de FD para música `.m4a` no soportada.
+`submodules.lock.json` describe el contenido final esperado; diferencias de CRLF
+se normalizan exclusivamente para verificar hashes. El contexto de los parches
+se aplica con `--ignore-space-change` por los finales de línea mixtos originales.
+
+En una copia limpia:
 
 ```bash
-git -C lib/falso_jni apply ../../patches/falso_jni.patch
-git -C lib/falso_ndk apply ../../patches/falso_ndk.patch
+git submodule update --init --recursive
+export VITASDK=/usr/local/vitasdk
+export PATH="$VITASDK/bin:$PATH"
+cmake -S . -B build-session-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-session-debug -j"$(nproc)"
 ```
 
-Los parches se comprobaron contra el estado local con `git apply --reverse --check`. No contienen APK, XAPK, `.so`, assets, VPK, logs ni volcados de Vita.
+Véase `docs/REPRODUCIBLE_BUILD.md` para instalar el SDK exacto y ambos builds.
