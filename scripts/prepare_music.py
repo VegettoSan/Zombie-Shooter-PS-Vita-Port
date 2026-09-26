@@ -2,7 +2,7 @@
 """Decode original AAC tracks to PCM sidecars; preserve rate/channels and sources.
 Requires ffmpeg. Game-owned music stays local and must not be committed.
 """
-import argparse, hashlib, json, subprocess, zipfile
+import argparse, hashlib, json, subprocess, zipfile, wave
 from pathlib import Path
 NAMES=('menu_mus01','mus01','mus02','amb01','rain')
 def main():
@@ -17,16 +17,21 @@ def main():
         if not src.is_file(): p.error('Missing original: '+str(src))
         before=hashlib.sha256(src.read_bytes()).hexdigest()
         subprocess.run([a.ffmpeg,'-v','error','-nostdin','-y','-i',str(src),'-map','0:a:0',
-                        '-c:a','pcm_f32le',str(temp)],check=True)
-        # Decode original and sidecar back to float PCM; require sample identity.
+                        '-c:a','pcm_s16le',str(temp)],check=True)
+        # The SDK SndFile_Realize accepts PCM16/U8, NOT float32. Compare
+        # the original decoded to the backend's PCM16 against the WAV samples.
         def pcm(path):
             return subprocess.check_output([a.ffmpeg,'-v','error','-nostdin','-i',str(path),
-                                            '-map','0:a:0','-f','f32le','-c:a','pcm_f32le','-'])
+                                            '-map','0:a:0','-f','s16le','-c:a','pcm_s16le','-'])
         original=pcm(src); converted=pcm(temp)
         if original != converted: raise RuntimeError('PCM mismatch: '+name)
         assert hashlib.sha256(src.read_bytes()).hexdigest()==before
+        with wave.open(str(temp),'rb') as w:
+            if w.getsampwidth()!=2 or w.getnchannels() not in (1,2) or w.getframerate() not in (11025,22050,44100):
+                raise RuntimeError('Unsupported SDK PCM format: '+name)
+            rate=w.getframerate();channels=w.getnchannels();frames=w.getnframes()
         temp.replace(dst)
-        records.append(dict(track=name,source_sha256=before,pcm_sha256=hashlib.sha256(original).hexdigest(),pcm_bytes=len(original)))
+        records.append(dict(track=name,format="PCM16_LE",samplerate=rate,channels=channels,frames=frames,source_sha256=before,pcm_sha256=hashlib.sha256(original).hexdigest(),pcm_bytes=len(original)))
     a.output.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(a.output,'w',compression=zipfile.ZIP_DEFLATED) as z:
         for name in NAMES: z.write(music/(name+'.wav'),'zombieshooter/assets/music/'+name+'.wav')

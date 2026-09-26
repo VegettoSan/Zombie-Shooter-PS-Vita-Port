@@ -153,6 +153,7 @@ set(SOURCES
     source/utils/logger.c
     source/utils/perf.c
     source/utils/asset_index.c
+    source/utils/render_scale.c
     source/utils/audio_stream.c
     source/utils/raster_palette.c
     source/utils/raster_alpha.c

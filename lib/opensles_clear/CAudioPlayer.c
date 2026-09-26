@@ -44,6 +44,12 @@ SLresult CAudioPlayer_Realize(void *self, SLboolean async)
 #ifdef USE_SNDFILE
     if (SL_DATALOCATOR_URI == this->mDataSource.mLocator.mLocatorType) {
         result = SndFile_Realize(this);
+        /* URI player creation succeeds before format validation in Realize. */
+        static unsigned uri_reports;
+        if (__atomic_fetch_add(&uri_reports,1,__ATOMIC_RELAXED)<16)
+            l_perf("audio_uri realize_result=%u path=%s format=0x%X rate=%d channels=%d",
+                (unsigned)result,this->mSndFile.mPathname?(const char *)this->mSndFile.mPathname:"(null)",
+                this->mSndFile.mSfInfo.format,this->mSndFile.mSfInfo.samplerate,this->mSndFile.mSfInfo.channels);
     }
 #endif
 

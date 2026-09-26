@@ -35,14 +35,24 @@ static void create_music(void *result,const void *engine,const void *filename) {
             break;
         }
         int supported=info.frames>0 && info.channels>=1 && info.channels<=2 &&
-            (info.format&SF_FORMAT_TYPEMASK)==SF_FORMAT_WAV;
+            (info.format&SF_FORMAT_TYPEMASK)==SF_FORMAT_WAV &&
+            ((info.format&SF_FORMAT_SUBMASK)==SF_FORMAT_PCM_16 ||
+             (info.format&SF_FORMAT_SUBMASK)==SF_FORMAT_PCM_U8) &&
+            (info.samplerate==11025 || info.samplerate==22050 || info.samplerate==44100);
         sf_close(file);
-        if(!supported) break;
+        if(!supported) {
+            if(!(__atomic_fetch_or(&missing,1u<<i,__ATOMIC_RELAXED)&(1u<<i)))
+                l_perf("audio_stream unsupported_pcm=%s format=0x%X rate=%d channels=%d replace_with_pcm16=1",path,info.format,info.samplerate,info.channels);
+            break;
+        }
         if(!(__atomic_fetch_or(&reported,1u<<i,__ATOMIC_RELAXED)&(1u<<i)))
-            l_perf("audio_stream requested=%s path=%s rate=%d channels=%d frames=%llu backend=OpenSL_URI_PCM",name,path,info.samplerate,info.channels,(unsigned long long)info.frames);
+            l_perf("audio_stream requested=%s path=%s rate=%d channels=%d frames=%llu format=0x%X backend=OpenSL_URI_PCM",name,path,info.samplerate,info.channels,(unsigned long long)info.frames,info.format);
         uint32_t local_string[3]; // STRING constructors/accessors prove 12 bytes.
         string_init(local_string,path);
         original(result,engine,local_string);
+        static unsigned returned;
+        if(!(__atomic_fetch_or(&returned,1u<<i,__ATOMIC_RELAXED)&(1u<<i)))
+            l_perf("audio_stream player_object=%08X track=%s",(unsigned)((uintptr_t *)result)[0],names[i]);
         string_destroy(local_string);
         return;
     }

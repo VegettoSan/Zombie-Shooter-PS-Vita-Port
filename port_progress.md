@@ -231,3 +231,16 @@ compilan y GC ELF compila, todos desactivados hasta A/B físico.
 SO/mapping previos intactos, tests host/ARM y parches desde fuentes limpias PASS.
 Sin commit/publicación. FPS/cámara/audio/cache hits nuevos PENDIENTES.
 Informe33puntos y checklist: docs/ANDROID_FIDELITY_PASS_2026-09-26.md.
+
+## Corrección FPS/PCM16 — 2026-09-26
+
+log_0013 confirma en Vita el build previo: superficie 1024×580, cámara mejor según
+usuario y gameplay ~15 FPS, picos20; música silenciosa pese a WAV presente.
+Causa estática: paquete previo float32 incompatible con SndFile_Realize del SDK.
+Esta entrega usa PCM16 validado contra AAC decodificado a PCM16 y logs Realize.
+Resolución interna limitada a 864×489 prevista por defecto (864/960/0 en config);
+pantalla física960×544/DPI220 conservados; 28.86% menos píxeles.
+Build local-54fc2ef-0aeec2a806: Debug/Release/VPK y regresiones PASS; nueva música audible,
+asignación real de superficie y 25 FPS estables PENDIENTES de Vita.
+Esta nota actualiza los estados pendientes del informe Android Fidelity anterior.
+Informe/instalación: docs/FPS_PCM16_PASS_2026-09-26.md. Sin publicación.

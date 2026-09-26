@@ -19,6 +19,7 @@
 extern "C" {
 #endif
 
+extern int setting_software_width; // 0: Android policy; 960: native; 864: reduced
 extern int setting_vita_shooter; // 0: standard; 1: handheld Shooter candidate
 extern int  setting_sampleSetting;
 extern bool setting_sampleSetting2;
