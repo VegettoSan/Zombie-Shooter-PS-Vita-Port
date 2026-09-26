@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 extern int setting_software_width; // 0: Android policy; 960: native; 864: reduced
-extern int setting_music_mode;     // 0: original M4A path/no PCM hook; 1: PCM16 WAV sidecars
+extern int setting_music_mode;     // 0: original/silent fallback; 1: legacy PCM WAV; 2: compressed OGG Vita mixer
 extern int setting_vita_shooter;   // Legacy fallback only; controls.txt wins on handheld Vita
 extern int  setting_sampleSetting;
 extern bool setting_sampleSetting2;
