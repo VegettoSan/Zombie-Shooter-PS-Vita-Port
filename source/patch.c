@@ -350,6 +350,7 @@ static uintptr_t probe_collector(void *self,int layer,const void *a,const void *
     perf_engine_phase(PERF_ENGINE_COLLECTOR,start);return ret;
 }
 void raster_palette_install(void);
+void audio_stream_install(void);
 void raster_alpha_install(void);
 static void install_engine_probes(void) {
     static const struct {
@@ -461,6 +462,7 @@ void so_patch(void) {
 	install_startup_diagnostics();
 	install_engine_probes();
 	raster_palette_install();
+    audio_stream_install();
 	raster_alpha_install();
 #endif
 	// Sample hook with symbol name

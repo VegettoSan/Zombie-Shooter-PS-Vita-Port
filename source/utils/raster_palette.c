@@ -63,6 +63,7 @@ void raster_palette_install(void) {
         installed|=1u<<i;
         l_info("[PATCH] palette row %u installed: so+0x%X",i,hooks[i].offset);
     }
+    l_perf("palette_install installed_mask=0x%02X rejected_mask=0x%02X",installed,255u & ~installed);
 }
 void raster_palette_report(void) {
     l_perf("palette_hooks installed_mask=%u expected_mask=255 min_count=32",installed);

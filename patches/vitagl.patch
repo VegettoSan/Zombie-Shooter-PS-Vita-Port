@@ -1,3 +1,146 @@
+diff --git a/source/custom_shaders.c b/source/custom_shaders.c
+index eafb573..5dd6f74 100644
+--- a/source/custom_shaders.c
++++ b/source/custom_shaders.c
+@@ -24,6 +24,7 @@
+ #define _GNU_SOURCE
+ #include <string.h>
+ #include "shared.h"
++#include "utils/zombie_shader_cache.h"
+ #include "utils/glsl_utils.h"
+ #include "utils/shacccg_paramquery.h"
+ #if defined(HAVE_SHADER_CACHE) || defined(HAVE_TEX_CACHE)
+@@ -614,6 +615,7 @@ void unserialize_shader(void *in, size_t sz, shader *s, GLboolean load_bindings)
+ }
+ 
+ #ifdef HAVE_SHADER_CACHE
++#include "utils/zombie_shader_cache.inc"
+ #define vgl_compile_shader(shd, sv) compile_shader(shd, sv, fname)
+ static inline __attribute__((always_inline)) void compile_shader(shader *s, GLboolean save_bindings, const char *cache_fname) {
+ #else
+@@ -621,6 +623,10 @@ static inline __attribute__((always_inline)) void compile_shader(shader *s, GLbo
+ static inline __attribute__((always_inline)) void compile_shader(shader *s, GLboolean save_bindings) {
+ #endif
+ 	// Compiling shader source
++#ifdef HAVE_SHADER_CACHE
++    uint64_t zombie_compile_begin=sceKernelGetProcessTimeWide();
++    ZSC_ADD(7,1);
++#endif
+ 	s->prog = shark_compile_shader_extended((const char *)s->source, &s->size, s->type == GL_FRAGMENT_SHADER ? SHARK_FRAGMENT_SHADER : SHARK_VERTEX_SHADER, compiler_opts, compiler_fastmath, compiler_fastprecision, compiler_fastint);
+ 	if (s->prog) {
+ 		vgl_free(s->source);
+@@ -661,12 +667,8 @@ static inline __attribute__((always_inline)) void compile_shader(shader *s, GLbo
+ #endif
+ 	shark_clear_output();
+ #ifdef HAVE_SHADER_CACHE
+-	SceUID f = sceIoOpen(cache_fname, SCE_O_CREAT | SCE_O_WRONLY | SCE_O_TRUNC, 0777);
+-	size_t sz;
+-	void *buf = serialize_shader(NULL, &sz, s, save_bindings);
+-	sceIoWrite(f, buf, sz);
+-	sceIoClose(f);
+-	vgl_free(buf);
++    ZSC_ADD(4,sceKernelGetProcessTimeWide()-zombie_compile_begin);
++    zombie_cache_save(cache_fname,s,save_bindings);
+ #endif
+ }
+ 
+@@ -1730,6 +1732,10 @@ void glShaderSource(GLuint handle, GLsizei count, const GLchar *const *string, c
+ 	}
+ 
+ 	s->size = size - 1;
++#ifdef HAVE_SHADER_CACHE
++    s->zombie_source_hash=XXH3_64bits(s->source,s->size);
++    vglZombieShaderObserved(s->zombie_source_hash,s->type,s->size);
++#endif
+ }
+ 
+ void glShaderBinary(GLsizei count, const GLuint *handles, GLenum binaryFormat, const void *binary, GLsizei length) {
+@@ -1758,20 +1764,10 @@ void glCompileShader(GLuint handle) {
+ 	
+ #ifdef HAVE_SHADER_CACHE
+ 	char fname[256];
+-	sprintf(fname, "%s/%llX.gxp", vgl_shader_cache_path, XXH3_64bits(s->source, s->size));
+-	SceUID f = sceIoOpen(fname, SCE_O_RDONLY, 0777);
+-	if (f >= 0) {
+-		vgl_free(s->source);
+-		s->source = NULL;
+-		size_t sz = sceIoLseek(f, 0, SCE_SEEK_END);
+-		sceIoLseek(f, 0, SCE_SEEK_SET);
+-		void *buf = vglMalloc(sz);
+-		sceIoRead(f, buf, sz);
+-		sceIoClose(f);
+-		unserialize_shader(buf, sz, s, GL_FALSE);
+-		vgl_free(buf);
+-		return;
+-	}
++    zombie_cache_path(fname,s,GL_FALSE,0);
++    if(zombie_cache_load(fname,s,GL_FALSE)) {
++        vgl_free(s->source);s->source=NULL;return;
++    }
+ #endif
+ 
+ 	if (s->is_glsl) {
+@@ -2129,38 +2125,19 @@ void glLinkProgram(GLuint progr) {
+ 	}
+ #endif
+ 
+-	// With VGL_MODE_POSTPONED we perform shaders translation+compilation and attributes binding prior actual program linking
++	#ifdef HAVE_SHADER_CACHE
++    vglZombieProgramObserved(p->vshader->zombie_source_hash,p->fshader->zombie_source_hash);
++#endif
++    // With VGL_MODE_POSTPONED we perform shaders translation+compilation and attributes binding prior actual program linking
+ 	if (glsl_sema_mode == VGL_MODE_POSTPONED && (p->vshader->is_glsl || p->fshader->is_glsl)) {
+ 		glsl_sema_mode = VGL_MODE_SHADER_PAIR;
+ #ifdef HAVE_SHADER_CACHE
+ 		char frag_fname[256], vert_fname[256];
+ 		char *fname;
+-		if (!p->vshader->prog) {
+-			sprintf(vert_fname, "%s/%llX.gxp", vgl_shader_cache_path, XXH3_64bits(p->vshader->source, p->vshader->size));
+-			SceUID f = sceIoOpen(vert_fname, SCE_O_RDONLY, 0777);
+-			if (f >= 0) {
+-				size_t sz = sceIoLseek(f, 0, SCE_SEEK_END);
+-				sceIoLseek(f, 0, SCE_SEEK_SET);
+-				void *buf = vglMalloc(sz);
+-				sceIoRead(f, buf, sz);
+-				sceIoClose(f);
+-				unserialize_shader(buf, sz, p->vshader, GL_TRUE);
+-				vgl_free(buf);
+-			}
+-		}
+-		if (!p->fshader->prog) {
+-			sprintf(frag_fname, "%s/%llX.gxp", vgl_shader_cache_path, XXH3_64bits(p->fshader->source, p->fshader->size));
+-			SceUID f = sceIoOpen(frag_fname, SCE_O_RDONLY, 0777);
+-			if (f >= 0) {
+-				size_t sz = sceIoLseek(f, 0, SCE_SEEK_END);
+-				sceIoLseek(f, 0, SCE_SEEK_SET);
+-				void *buf = vglMalloc(sz);
+-				sceIoRead(f, buf, sz);
+-				sceIoClose(f);
+-				unserialize_shader(buf, sz, p->fshader, GL_TRUE);
+-				vgl_free(buf);
+-			}
+-		}
++        zombie_cache_path(vert_fname,p->vshader,GL_TRUE,p->fshader->zombie_source_hash);
++        zombie_cache_path(frag_fname,p->fshader,GL_TRUE,p->vshader->zombie_source_hash);
++        if (!p->vshader->prog) zombie_cache_load(vert_fname,p->vshader,GL_TRUE);
++        if (!p->fshader->prog) zombie_cache_load(frag_fname,p->fshader,GL_TRUE);
+ #endif
+ 		if (!p->vshader->prog || !p->fshader->prog) {
+ 			if (p->vshader->is_glsl || p->fshader->is_glsl) {
+diff --git a/source/shared.h b/source/shared.h
+index c1943b1..a77ad34 100644
+--- a/source/shared.h
++++ b/source/shared.h
+@@ -801,6 +801,9 @@ typedef struct {
+ 	GLboolean valid;
+ 	GLboolean dirty;
+ 	GLboolean is_glsl;
++#ifdef HAVE_SHADER_CACHE
++    uint64_t zombie_source_hash;
++#endif
+ 	binds_map semantics;
+ #ifdef HAVE_GLSL_TEXTURE_SIZE
+ 	glsl_samplers_info sized_samplers[SCE_GXM_MAX_TEXTURE_UNITS];
 diff --git a/source/textures.c b/source/textures.c
 index 27e8a6c..23f7765 100644
 --- a/source/textures.c
@@ -68,6 +211,7 @@ index 27e8a6c..23f7765 100644
  		tex->last_frame = OBJ_NOT_USED;
 diff --git a/source/utils/zombie_texture_update.h b/source/utils/zombie_texture_update.h
 new file mode 100644
+index 0000000..9467fd1
 --- /dev/null
 +++ b/source/utils/zombie_texture_update.h
 @@ -0,0 +1,48 @@
@@ -119,3 +263,156 @@ new file mode 100644
 +}
 +#endif
 +#endif
+diff --git a/source/utils/zombie_shader_cache.h b/source/utils/zombie_shader_cache.h
+new file mode 100644
+index 0000000..6829d74
+--- /dev/null
++++ b/source/utils/zombie_shader_cache.h
+@@ -0,0 +1,33 @@
++/* MIT. Bounded, versioned cache envelope; no platform dependencies. */
++#ifndef ZOMBIE_SHADER_CACHE_H
++#define ZOMBIE_SHADER_CACHE_H
++#include <stdint.h>
++#include <stddef.h>
++#include <string.h>
++#define ZSC_VERSION 2u
++#define ZSC_MAX_BYTES (1024u*1024u)
++typedef struct { uint32_t magic,version,type,bindings,length,checksum; uint64_t key; } ZscHeader;
++static inline uint32_t zsc_checksum(const void *data,size_t n) {
++    const unsigned char *p=data; uint32_t h=2166136261u;
++    while(n--) h=(h^*p++)*16777619u;
++    return h;
++}
++static inline int zsc_validate(const ZscHeader *h,const void *blob,size_t bytes,uint32_t type,uint32_t bindings,uint64_t key) {
++    return h && blob && h->magic==0x43535a47u && h->version==ZSC_VERSION &&
++        h->type==type && h->bindings==bindings && h->key==key &&
++        bytes>=16 && bytes<=ZSC_MAX_BYTES && h->length==bytes &&
++        h->checksum==zsc_checksum(blob,bytes);
++}
++/* Pinned GXP header: parameter count at36, self-relative table at40;
++ * parameter records are16 bytes (vglProgramGetParameterBase).
++ * Compiler storage can contain up to15 alignment bytes beyond declared size. */
++static inline int zsc_gxp_bounds(const void *blob,size_t bytes) {
++    if(!blob || bytes<160) return 0;
++    const uint8_t *p=blob;uint32_t magic,declared,count,table;
++    memcpy(&magic,p,4);memcpy(&declared,p+8,4);
++    memcpy(&count,p+36,4);memcpy(&table,p+40,4);
++    if(magic!=0x00505847u || declared<160 || declared>bytes || bytes-declared>15) return 0;
++    uint64_t base=40ull+table;
++    return base<=declared && count<=(declared-base)/16;
++}
++#endif
+diff --git a/source/utils/zombie_shader_cache.inc b/source/utils/zombie_shader_cache.inc
+new file mode 100644
+index 0000000..7c89bde
+--- /dev/null
++++ b/source/utils/zombie_shader_cache.inc
+@@ -0,0 +1,108 @@
++/* Cache the pinned vitaGL serialization, including postponed GLSL bindings.
++ * One cache owner; no wrapper skip-next-compile or filename globals. */
++static uint32_t zombie_cache_stats[9]; // hits,misses,invalid,bytes,compile_us,load_us,writes_failed,compiles,writes
++#define ZSC_ADD(i,n) __atomic_fetch_add(&zombie_cache_stats[i],(uint32_t)(n),__ATOMIC_RELAXED)
++void vglZombieShaderCacheStatsGet(uint32_t *out) {
++    for(unsigned i=0;i<9;++i) out[i]=__atomic_load_n(&zombie_cache_stats[i],__ATOMIC_RELAXED);
++}
++__attribute__((weak)) void vglZombieShaderObserved(uint64_t hash,unsigned type,unsigned length) {}
++__attribute__((weak)) void vglZombieProgramObserved(uint64_t vertex,uint64_t fragment) {}
++static void zombie_cache_path(char *path,shader *s,GLboolean bindings,uint64_t partner) {
++    if(!vgl_shader_cache_path[0]) { path[0]=0; return; }
++    uint64_t pair[]={s->zombie_source_hash,partner,s->type,bindings,ZSC_VERSION};
++    snprintf(path,256,"%s/v2-9c23758-GXP-%X-%d-%llX.gxp",vgl_shader_cache_path,s->type,bindings,
++        (unsigned long long)XXH3_64bits(pair,sizeof(pair)));
++}
++static int zombie_cache_load(const char *path,shader *s,GLboolean bindings) {
++    if(!path[0]) { ZSC_ADD(1,1);return 0; }
++    uint64_t begin=sceKernelGetProcessTimeWide();
++    SceUID fd=sceIoOpen(path,SCE_O_RDONLY,0777);
++    if(fd<0) { ZSC_ADD(1,1); return 0; }
++    SceOff size=sceIoLseek(fd,0,SCE_SEEK_END);sceIoLseek(fd,0,SCE_SEEK_SET);
++    ZscHeader h; void *blob=NULL; int ok=0;
++    if(size>(SceOff)sizeof(h) && size<=(SceOff)(sizeof(h)+ZSC_MAX_BYTES) &&
++       sceIoRead(fd,&h,sizeof(h))==sizeof(h)) {
++        size_t bytes=(size_t)size-sizeof(h);blob=vglMalloc(bytes);
++        if(blob && sceIoRead(fd,blob,bytes)==bytes &&
++            zsc_validate(&h,blob,bytes,s->type,bindings,XXH3_64bits(path,strlen(path)))) {
++            uint32_t matrices; memcpy(&matrices,blob,4);
++            size_t prefix=4;
++            if(matrices<=(bytes-4)/4) {
++                prefix+=(size_t)matrices*4;
++                if(bindings) prefix+=sizeof(binds_map);
++                /* This build deliberately does not use HAVE_GLSL_TEXTURE_SIZE. */
++                if(prefix<=bytes && bytes-prefix>=160) {
++                    SceGxmProgram *gxp=(SceGxmProgram *)((uint8_t *)blob+prefix);
++                    ok=zsc_gxp_bounds(gxp,bytes-prefix) && sceGxmProgramCheck(gxp)==0;
++                    if(ok) {
++                        unsigned count=sceGxmProgramGetParameterCount(gxp);
++                        const uint32_t *indices=(const uint32_t *)blob+1;
++                        for(unsigned i=0;i<matrices;++i) if(indices[i]>=count) ok=0;
++                    }
++                    if(ok && bindings) {
++                        const binds_map *b=(const binds_map *)((uint8_t *)blob+4+matrices*4);
++                        for(unsigned i=0;i<MAX_CG_TEXCOORD_ID;++i)
++                            if(!memchr(b->texcoord_names[i],0,64) || b->texcoord_used[i]>1) ok=0;
++                        for(unsigned i=0;i<MAX_CG_COLOR_ID;++i)
++                            if(!memchr(b->color_names[i],0,64) || b->color_used[i]>1) ok=0;
++                    }
++                    if(ok) {
++                        const uint32_t *indices=(const uint32_t *)blob+1;
++                        /* Allocate before touching shader state. A cache miss must
++                         * leave GLSL available even under memory pressure. */
++                        SceGxmProgram *copy=vglMalloc(bytes-prefix);
++                        matrix_uniform *head=NULL;
++                        if(!copy) ok=0;
++                        for(unsigned i=0;ok && i<matrices;++i) {
++                            matrix_uniform *m=vglMalloc(sizeof(*m));
++                            if(!m) {ok=0;break;}
++                            m->chain=head;head=m;
++                            m->ptr=NULL;
++                        }
++                        if(ok) {
++                            vgl_fast_memcpy(copy,gxp,bytes-prefix);
++                            /* Pointer base is meaningful only after copying GXP. */
++                            matrix_uniform *m=head;
++                            for(unsigned i=matrices;i>0;--i,m=m->chain)
++                                m->ptr=(SceGxmProgramParameter *)(vglProgramGetParameterBase(copy)+indices[i-1]*4);
++                            SceGxmShaderPatcherId id;
++                            ok=sceGxmShaderPatcherRegisterProgram(gxm_shader_patcher,copy,&id)==0;
++                            if(ok) {
++                                s->prog=copy;s->size=bytes-prefix;s->id=id;s->mat=head;
++                                s->unif_buf_size=sceGxmProgramGetDefaultUniformBufferSize(copy);
++                                if(bindings) memcpy(&s->semantics,(uint8_t *)blob+4+matrices*4,sizeof(binds_map));
++                                ZSC_ADD(0,1);ZSC_ADD(3,bytes);
++                            }
++                        }
++                        if(!ok) {
++                            while(head) {matrix_uniform *next=head->chain;vgl_free(head);head=next;}
++                            if(copy)vgl_free(copy);
++                            /* Valid cache, unavailable resources: preserve file. */
++                            sceIoClose(fd);vgl_free(blob);ZSC_ADD(1,1);
++                            ZSC_ADD(5,sceKernelGetProcessTimeWide()-begin);return 0;
++                        }
++                    }
++                }
++            }
++        }
++    }
++    sceIoClose(fd);if(blob) vgl_free(blob);
++    if(!ok) { ZSC_ADD(2,1);ZSC_ADD(1,1);sceIoRemove(path); }
++    ZSC_ADD(5,sceKernelGetProcessTimeWide()-begin);
++    return ok;
++}
++static void zombie_cache_save(const char *path,shader *s,GLboolean bindings) {
++    if(!path[0] || !s->prog) return;
++    size_t bytes;uint32_t matrix_count;
++    bytes=serialized_shader_size(s,bindings,&matrix_count);
++    void *blob=bytes<=ZSC_MAX_BYTES?vglMalloc(bytes):NULL;
++    if(blob)serialize_shader(blob,&bytes,s,bindings);
++    if(!blob || bytes<16 || bytes>ZSC_MAX_BYTES) {if(blob)vgl_free(blob);ZSC_ADD(6,1);return;}
++    ZscHeader h={0x43535a47u,ZSC_VERSION,s->type,bindings,bytes,zsc_checksum(blob,bytes),XXH3_64bits(path,strlen(path))};
++    char tmp[300];snprintf(tmp,sizeof(tmp),"%s.%X.tmp",path,(unsigned)sceKernelGetThreadId());
++    SceUID fd=sceIoOpen(tmp,SCE_O_CREAT|SCE_O_WRONLY|SCE_O_TRUNC,0777);
++    int ok=fd>=0 && sceIoWrite(fd,&h,sizeof(h))==sizeof(h) && sceIoWrite(fd,blob,bytes)==bytes;
++    if(fd>=0) sceIoClose(fd);vgl_free(blob);
++    if(ok) ok=sceIoRename(tmp,path)>=0;
++    if(!ok){sceIoRemove(tmp);ZSC_ADD(6,1);} else ZSC_ADD(8,1);
++}

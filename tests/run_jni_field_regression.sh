@@ -23,7 +23,7 @@ PY
 for optimization in 0 3; do
   gcc -std=gnu11 -O"$optimization" -ffunction-sections -fdata-sections \
     -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast \
-    -I"$testdir" "$root/tests/jni_field_regression.c" "$source_root/source/java.c" \
+    -I"$testdir" -I"$source_root/lib" "$root/tests/jni_field_regression.c" "$source_root/source/java.c" \
     "$testdir/falso_jni/FalsoJNI_ImplBridge.c" "$testdir/falso_jni/converter.c" \
     -Wl,--gc-sections -o "$testdir/jni-O$optimization"
   "$testdir/jni-O$optimization"

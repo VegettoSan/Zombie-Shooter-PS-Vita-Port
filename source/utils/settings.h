@@ -19,6 +19,7 @@
 extern "C" {
 #endif
 
+extern int setting_vita_shooter; // 0: standard; 1: handheld Shooter candidate
 extern int  setting_sampleSetting;
 extern bool setting_sampleSetting2;
 

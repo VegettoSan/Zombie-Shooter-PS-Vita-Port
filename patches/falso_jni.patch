@@ -1,8 +1,22 @@
 diff --git a/FalsoJNI.c b/FalsoJNI.c
-index f2e22df..6bee232 100644
+index f2e22df..617a6d5 100644
 --- a/FalsoJNI.c
 +++ b/FalsoJNI.c
-@@ -181,7 +181,8 @@ jint PushLocalFrame(JNIEnv* env, jint capacity) {
+@@ -32,6 +32,13 @@
+ JavaVM jvm;
+ JNIEnv jni;
+ 
++__attribute__((weak)) int fjni_resolve_field(jclass clazz, const char *name, const char *sig, jfieldID *result) { return 0; }
++__attribute__((weak)) int fjni_resolve_method(jclass clazz, const char *name, const char *sig, jboolean is_static, jmethodID *result) { return 0; }
++__attribute__((weak)) int fjni_borrowed_object(jobject obj) { return 0; }
++__attribute__((weak)) jclass fjni_object_class(jobject obj) { return NULL; }
++__attribute__((weak)) jint fjni_register_natives(jclass clazz, const JNINativeMethod *methods, jint count) { return JNI_OK; }
++__attribute__((weak)) void fjni_unregister_natives(jclass clazz) {}
++
+ // Private structs backing the above objects:
+ struct JNIInvokeInterface * _jvm; // NOLINT(bugprone-reserved-identifier)
+ struct JNINativeInterface * _jni; // NOLINT(bugprone-reserved-identifier)
+@@ -181,7 +188,8 @@ jint PushLocalFrame(JNIEnv* env, jint capacity) {
  jobject PopLocalFrame(JNIEnv* env, jobject result) {
      fjni_logv_dbg("[JNI] PopLocalFrame(env, 0x%x): ignored", (int)result);
      // Since we operate with global pointers everywhere, no need to scope them.
@@ -12,7 +26,24 @@ index f2e22df..6bee232 100644
  }
  
  jobject NewGlobalRef(JNIEnv* env, jobject obj) {
-@@ -267,7 +268,16 @@ jclass GetObjectClass(JNIEnv* env, jobject obj) {
+@@ -195,6 +203,7 @@ jobject NewGlobalRef(JNIEnv* env, jobject obj) {
+ }
+ 
+ void DeleteGlobalRef(JNIEnv* env, jobject obj) {
++    if (fjni_borrowed_object(obj)) return;
+     fjni_logv_dbg("[JNI] DeleteGlobalRef(env, 0x%x)", (int)obj);
+ 
+     // Empirically, DeleteGlobalRef() is called on dynamically allocated things
+@@ -260,6 +269,8 @@ jobject NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID, const jvalue *
+ }
+ 
+ jclass GetObjectClass(JNIEnv* env, jobject obj) {
++    jclass special = fjni_object_class(obj);
++    if (special) return special;
+     fjni_logv_dbg("[JNI] GetObjectClass(0x%x)", (int)obj);
+     // Due to the way we implement class methods, it's safe to not waste
+     // resources on mapping objects to classess and return just a constant val.
+@@ -267,12 +278,22 @@ jclass GetObjectClass(JNIEnv* env, jobject obj) {
  }
  
  jboolean IsInstanceOf(JNIEnv* env, jobject obj, jclass clazz) {
@@ -30,6 +61,80 @@ index f2e22df..6bee232 100644
      return JNI_FALSE;
  }
  
+ jmethodID GetMethodID(JNIEnv* env, jclass clazz, const char* _name, const char* sig) {
+     jmethodID ret;
++    if (fjni_resolve_method(clazz, _name, sig, JNI_FALSE, &ret)) return ret;
+     char name[512];
+ 
+     if (strcmp("<init>", _name) == 0) {
+@@ -734,6 +755,8 @@ void CallNonvirtualVoidMethodA(JNIEnv* env, jobject obj, jclass clazz, jmethodID
+ }
+ 
+ jfieldID GetFieldID(JNIEnv * env, jclass clazz, const char* name, const char* t) {
++    jfieldID result;
++    if (fjni_resolve_field(clazz, name, t, &result)) return result;
+     fjni_logv_dbg("[JNI] GetFieldID(env, 0x%x, \"%s\", \"%s\")", (int)clazz, name, t);
+     return getFieldIdByName(name);
+ }
+@@ -830,6 +853,7 @@ void SetDoubleField(JNIEnv* env, jobject obj, jfieldID fieldID, jdouble value) {
+ 
+ jmethodID GetStaticMethodID(JNIEnv* env, jclass clazz, const char* _name, const char* sig) {
+     jmethodID ret;
++    if (fjni_resolve_method(clazz, _name, sig, JNI_TRUE, &ret)) return ret;
+     char name[512];
+ 
+     if (strcmp("<init>", _name) == 0) {
+@@ -1693,10 +1717,11 @@ void SetDoubleArrayRegion(JNIEnv* env, jdoubleArray array, jsize start, jsize le
+ 
+ jint RegisterNatives(JNIEnv* env, jclass clazz, const JNINativeMethod* methods, jint nMethods) {
+     fjni_logv_dbg("[JNI] RegisterNatives(env, 0x%x, 0x%x, n:%i): ignored", (int)clazz, (int)methods, nMethods);
+-    return JNI_OK;
++    return fjni_register_natives(clazz, methods, nMethods);
+ }
+ 
+ jint UnregisterNatives(JNIEnv* env, jclass clazz) {
++    fjni_unregister_natives(clazz);
+     fjni_logv_dbg("[JNI] UnregisterNatives(env, 0x%x): ignored", (int)clazz);
+     return JNI_OK;
+ }
+diff --git a/FalsoJNI.h b/FalsoJNI.h
+index ccff872..e548de6 100644
+--- a/FalsoJNI.h
++++ b/FalsoJNI.h
+@@ -31,6 +31,13 @@
+ extern JavaVM jvm;
+ extern JNIEnv jni;
+ 
++int fjni_resolve_field(jclass clazz, const char *name, const char *sig, jfieldID *result);
++int fjni_resolve_method(jclass clazz, const char *name, const char *sig,
++                        jboolean is_static, jmethodID *result);
++jclass fjni_object_class(jobject obj);
++int fjni_borrowed_object(jobject obj);
++jint fjni_register_natives(jclass clazz, const JNINativeMethod *methods, jint count);
++void fjni_unregister_natives(jclass clazz);
+ void jni_init();
+ 
+ #endif // FALSOJNI_H
+diff --git a/FalsoJNI_ImplBridge.c b/FalsoJNI_ImplBridge.c
+index 127dd72..dd1e6c0 100644
+--- a/FalsoJNI_ImplBridge.c
++++ b/FalsoJNI_ImplBridge.c
+@@ -86,7 +86,14 @@ jsize getFieldTypeSize(FIELD_TYPE fieldType) {
+ }
+ 
+ jobject getObjectFieldValueById(jfieldID id) {
+-    getFieldValueById(jobject, FIELD_TYPE_OBJECT, FieldsObject, fieldsObject, fieldsObject_size, id, (jobject)0x42424242);
++    // ID 0 is JNI NULL, never a valid object field. Both GetObjectField and
++    // GetStaticObjectField use this path; missing fields must not become
++    // a string or the activity sentinel masquerading as a Java array.
++    if (!id) {
++        fjni_log_warn("Object field ID 0 is invalid: returning NULL");
++        return NULL;
++    }
++    getFieldValueById(jobject, FIELD_TYPE_OBJECT, FieldsObject, fieldsObject, fieldsObject_size, id, NULL);
+ }
+ 
+ jint getIntFieldValueById(jfieldID id) {
 diff --git a/FalsoJNI_Logger.c b/FalsoJNI_Logger.c
 index cfea61b..ea6e96a 100644
 --- a/FalsoJNI_Logger.c
@@ -116,20 +221,4 @@ index cfea61b..ea6e96a 100644
 +    fjni_log_persistent(LT_ERROR, fi, li, fn, fmt, args);
 +    va_end(args);
  #endif
- }
-diff --git a/FalsoJNI_ImplBridge.c b/FalsoJNI_ImplBridge.c
-index 127dd72..dd1e6c0 100644
---- a/FalsoJNI_ImplBridge.c
-+++ b/FalsoJNI_ImplBridge.c
-@@ -88,3 +88,10 @@ jsize getFieldTypeSize(FIELD_TYPE fieldType) {
- jobject getObjectFieldValueById(jfieldID id) {
--    getFieldValueById(jobject, FIELD_TYPE_OBJECT, FieldsObject, fieldsObject, fieldsObject_size, id, (jobject)0x42424242);
-+    // ID 0 is JNI NULL, never a valid object field. Both GetObjectField and
-+    // GetStaticObjectField use this path; missing fields must not become
-+    // a string or the activity sentinel masquerading as a Java array.
-+    if (!id) {
-+        fjni_log_warn("Object field ID 0 is invalid: returning NULL");
-+        return NULL;
-+    }
-+    getFieldValueById(jobject, FIELD_TYPE_OBJECT, FieldsObject, fieldsObject, fieldsObject_size, id, NULL);
  }

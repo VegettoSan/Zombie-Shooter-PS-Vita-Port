@@ -210,3 +210,24 @@ Nueva build: pendiente Vita real; no afirmar 20–30 FPS ni carga menor todavía
 - Causa confirmada: instrumentación excesiva de lecturas minúsculas en `lib/falso_ndk/android/AAssetManager.cpp`; introduce un coste de I/O persistente por byte. También hay errores JNI de preferencias, resolución de contenido y servicios, pero la inicialización del motor retornó éxito; quedan como siguientes hipótesis, sin parches especulativos en este checkpoint.
 - Cambio: se registra progreso cada 16 KiB, cierre con bytes leídos y sólo avisos para lecturas inválidas/fallidas. Semántica de `AAsset_read` intacta.
 - Estado: corrección compilada, pendiente de nueva prueba en Vita real. Pregunta: ¿termina la lectura de `logo.lgd` y aparece el primer frame o el siguiente bloqueo identificable?
+
+
+## Controles Android/Xbox — 2026-09-26
+
+- Evidencia: ID de eventos devolvía source; KeyEvents sin inicialización; HAT siempre cero. APK y SO confirman `InputDeviceHelper.getMotionRanges(InputDevice)` y callback native `(IFFF)V`.
+- Cambio: identidad virtual estable, eventos seguros, HAT completo, JNI mínimo y callback real de rangos, perfiles físicos separados, detección DS3/DS4 y L3/R3 externos. Shooter es opción `vita_shooter 1`; default estándar hasta medir tutorial. Sin tocar rendimiento/render/audio.
+- Verificación: regresiones host O0/Debug y O3/Release pasan; patches reproducidos desde revisiones prístinas. Builds/VPK Debug y Release generados. REAL VITA y GAMEPLAY pendientes.
+- `RegistryEnumerator` recuperado: enumera preferencias, no mandos; no se inventó almacenamiento vacío. Detalle y prueba física en `docs/CONTROLLER_IMPLEMENTATION_2026-09-26.md`.
+
+## Pase Android Fidelity — 2026-09-26
+
+Build local-e149e0e-f32ca72dbe: Debug/Release baseline SoftFP BUILD VERIFIED.
+xdpi/ydpi220 corrige entrada de diagonal;1480×838 viene de1DPI y MaxWidth1480.
+1024×580 es predicción estática pendiente Vita. Cinco WAV conservan muestras
+originales, con desvío URI OpenSL; sonido/loops pendientes. UI touch oculta por
+lógica original gamepad; causa runtime de mira no demostrada.
+Cache shader nativo validado, fallback e inventario. NO_DEBUG/textures/draw2
+compilan y GC ELF compila, todos desactivados hasta A/B físico.
+SO/mapping previos intactos, tests host/ARM y parches desde fuentes limpias PASS.
+Sin commit/publicación. FPS/cámara/audio/cache hits nuevos PENDIENTES.
+Informe33puntos y checklist: docs/ANDROID_FIDELITY_PASS_2026-09-26.md.

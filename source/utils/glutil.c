@@ -24,10 +24,7 @@
 #include "utils/perf.h"
 #include <vitagl/source/utils/zombie_texture_update.h>
 
-// Helpers for our handling of shaders
-GLboolean skip_next_compile = GL_FALSE;
-char next_shader_fname[256];
-void load_shader(GLuint shader, const char * string, size_t length);
+static void shader_cache_report(void);
 static int gl_initialized = 0;
 
 void gl_preload() {
@@ -54,9 +51,16 @@ void gl_init() {
         return;
     }
 
+    #ifdef ZOMBIE_GC_EXPERIMENT
+    vglSetupGarbageCollector(127,0x20000);
+#endif
     vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
+    extern char vgl_shader_cache_path[256];
+    if(file_mkpath(DATA_PATH "cache/shaders/.probe",0777))
+        snprintf(vgl_shader_cache_path,256,DATA_PATH "cache/shaders");
+    else vgl_shader_cache_path[0]=0; // Cache IO fails safely; normal compilation.
     gl_initialized = 1;
-    l_perf("render width=960 height=544 msaa=none");
+    l_perf("render width=960 height=544 msaa=none experiment=%s shader_cache=native_v2",ZOMBIE_VITAGL_EXPERIMENT);
 }
 
 void gl_swap() {
@@ -170,6 +174,7 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
         l_perf("draw_sampling period=16");
         report_render_thread();
         report_texture_costs();
+        shader_cache_report();
 #undef REPORT_GL
         memset(&gl_perf, 0, sizeof(gl_perf));
         perf_report();
@@ -216,6 +221,13 @@ void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLs
     glTexImage2D(target, level, internalFormat, width, height, border, format, type, data); gl_time(&gl_perf.tex_image, start);
 }
 void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data) {
+    if(format==GL_RGBA && type==GL_UNSIGNED_BYTE && width>=720 && height>=400) {
+        static int last_width,last_height;
+        if(width!=last_width || height!=last_height) {
+            l_perf("software_surface width=%d height=%d stride_bytes=%u bytes=%llu caller=0x%08X",width,height,(unsigned)width*4,(unsigned long long)width*height*4,(unsigned)(uintptr_t)__builtin_return_address(0));
+            last_width=width;last_height=height;
+        }
+    }
     uint64_t start = sceKernelGetProcessTimeWide();
     glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, data);
     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
@@ -233,208 +245,45 @@ void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint y
     }
 }
 
-void glShaderSource_soloader(GLuint shader, GLsizei count,
-                             const GLchar **string, const GLint *_length) {
-#ifdef DEBUG_OPENGL
-    sceClibPrintf("[gl_dbg] glShaderSource<%p>(shader: %i, count: %i, string: %p, length: %p)\n", __builtin_return_address(0), shader, count, string, _length);
-#endif
-    if (!string) {
-        l_error("<%p> Shader source string is NULL, count: %i",
-                   __builtin_return_address(0), count);
-        skip_next_compile = GL_TRUE;
-        return;
-    } else if (!*string) {
-        l_error("<%p> Shader source *string is NULL, count: %i",
-                   __builtin_return_address(0), count);
-        skip_next_compile = GL_TRUE;
-        return;
+
+/* Native cache/inventory. Source observation happens only on glShaderSource,
+ * program combinations on link; a short lock never runs on sprite draws. */
+static unsigned char shader_inventory_lock;
+static struct { uint64_t hash;unsigned type,length,uses; } shader_inventory[256];
+static struct {uint64_t vertex,fragment;unsigned uses;} program_inventory[256];
+static unsigned unique_shaders,unique_programs,inventory_overflow;
+void vglZombieShaderObserved(uint64_t hash,unsigned type,unsigned length) {
+    while(__atomic_test_and_set(&shader_inventory_lock,__ATOMIC_ACQUIRE)) {}
+    unsigned i;for(i=0;i<unique_shaders;++i) if(shader_inventory[i].hash==hash && shader_inventory[i].type==type)break;
+    if(i==unique_shaders && i<256) {
+        shader_inventory[i].hash=hash;shader_inventory[i].type=type;shader_inventory[i].length=length;++unique_shaders;
+        l_perf("shader_unique hash=%016llX type=0x%X source_length=%u",(unsigned long long)hash,type,length);
     }
-
-    size_t total_length = 0;
-
-    for (int i = 0; i < count; ++i) {
-        if (!_length) {
-            total_length += strlen(string[i]);
-        } else {
-            total_length += _length[i];
-        }
-    }
-
-    char * str = malloc(total_length+1);
-    size_t l = 0;
-
-    for (int i = 0; i < count; ++i) {
-        if (!_length) {
-            memcpy(str + l, string[i], strlen(string[i]));
-            l += strlen(string[i]);
-        } else {
-            memcpy(str + l, string[i], _length[i]);
-            l += _length[i];
-        }
-    }
-    str[total_length] = '\0';
-
-    load_shader(shader, str, total_length);
-
-    free(str);
+    if(i<256)shader_inventory[i].uses++;else inventory_overflow++;
+    __atomic_clear(&shader_inventory_lock,__ATOMIC_RELEASE);
 }
-
+void vglZombieProgramObserved(uint64_t vertex,uint64_t fragment) {
+    while(__atomic_test_and_set(&shader_inventory_lock,__ATOMIC_ACQUIRE)) {}
+    unsigned i;for(i=0;i<unique_programs;++i)if(program_inventory[i].vertex==vertex && program_inventory[i].fragment==fragment)break;
+    if(i==unique_programs && i<256){program_inventory[i].vertex=vertex;program_inventory[i].fragment=fragment;++unique_programs;}
+    if(i<256)program_inventory[i].uses++;else inventory_overflow++;
+    __atomic_clear(&shader_inventory_lock,__ATOMIC_RELEASE);
+}
+extern void vglZombieShaderCacheStatsGet(uint32_t *out);
+static void shader_cache_report(void) {
+    uint32_t stats[9];vglZombieShaderCacheStatsGet(stats);
+    unsigned vertex=0,fragment=0,uses=0;
+    while(__atomic_test_and_set(&shader_inventory_lock,__ATOMIC_ACQUIRE)) {}
+    for(unsigned i=0;i<unique_shaders;++i){vertex+=shader_inventory[i].type==GL_VERTEX_SHADER;fragment+=shader_inventory[i].type==GL_FRAGMENT_SHADER;}
+    for(unsigned i=0;i<unique_programs;++i)uses+=program_inventory[i].uses;
+    l_perf("shader_inventory unique_vertex=%u unique_fragment=%u unique_program_combinations=%u program_uses=%u overflow=%u",vertex,fragment,unique_programs,uses,inventory_overflow);
+    __atomic_clear(&shader_inventory_lock,__ATOMIC_RELEASE);
+    l_perf("shader_cache hits=%u misses=%u invalid=%u bytes_loaded=%u compile_us=%u load_us=%u writes_failed=%u actual_compile_calls=%u writes=%u counters=lifetime",stats[0],stats[1],stats[2],stats[3],stats[4],stats[5],stats[6],stats[7],stats[8]);
+}
+void glShaderSource_soloader(GLuint shader,GLsizei count,const GLchar **strings,const GLint *lengths) {
+    /* Native vitaGL already handles concatenation and negative lengths. */
+    glShaderSource(shader,count,strings,lengths);
+}
 void glCompileShader_soloader(GLuint shader) {
-#ifdef DEBUG_OPENGL
-    sceClibPrintf("[gl_dbg] glCompileShader<%p>(shader: %i)\n", __builtin_return_address(0), shader);
-#endif
-
-#ifndef USE_GXP_SHADERS
-    if (!skip_next_compile) {
-        uint64_t start = sceKernelGetProcessTimeWide();
-        glCompileShader(shader); gl_time(&gl_perf.compile, start);
-#ifdef DUMP_COMPILED_SHADERS
-        void *bin = vglMalloc(32 * 1024);
-        GLsizei len;
-        vglGetShaderBinary(shader, 32 * 1024, &len, bin);
-        file_save(next_shader_fname, bin, len);
-        vglFree(bin);
-#endif
-    }
-    skip_next_compile = GL_FALSE;
-#endif
+    uint64_t start=sceKernelGetProcessTimeWide();glCompileShader(shader);gl_time(&gl_perf.compile,start);
 }
-
-#if defined(USE_GLSL_SHADERS) && defined(DUMP_COMPILED_SHADERS)
-void load_shader(GLuint shader, const char * string, size_t length) {
-    char* sha_name = str_sha1sum(string, length);
-
-    char gxp_path[256];
-    snprintf(gxp_path, sizeof(gxp_path), DATA_PATH"gxp/%s.gxp", sha_name);
-
-    if (file_exists(gxp_path)) {
-        uint8_t *buffer;
-        size_t size;
-
-        file_load(gxp_path, &buffer, &size);
-
-        glShaderBinary(1, &shader, 0, buffer, (int32_t) size);
-
-        free(buffer);
-        skip_next_compile = GL_TRUE;
-    } else {
-        glShaderSource(shader, 1, &string, &length);
-        strcpy(next_shader_fname, gxp_path);
-    }
-
-    free(sha_name);
-}
-#elif defined(USE_GLSL_SHADERS)
-void load_shader(GLuint shader, const char * string, size_t length) {
-    glShaderSource(shader, 1, &string, &length);
-}
-#elif defined(USE_CG_SHADERS) && defined(DUMP_COMPILED_SHADERS)
-void load_shader(GLuint shader, const char * string, size_t length) {
-    char* sha_name = str_sha1sum(string, length);
-
-    char gxp_path[256];
-    char cg_path[256];
-    snprintf(gxp_path, sizeof(gxp_path), DATA_PATH"gxp/%s.gxp", sha_name);
-    snprintf(cg_path, sizeof(cg_path), DATA_PATH"cg/%s.cg", sha_name);
-
-    if (file_exists(gxp_path)) {
-        uint8_t *buffer;
-        size_t size;
-
-        file_load(gxp_path, &buffer, &size);
-
-        glShaderBinary(1, &shader, 0, buffer, (int32_t) size);
-
-        free(buffer);
-        skip_next_compile = GL_TRUE;
-    } else if (file_exists(cg_path)) {
-        char *buffer;
-        size_t size;
-
-        file_load(cg_path, (uint8_t **) &buffer, &size);
-
-        glShaderSource(shader, 1, &string, &size);
-        strcpy(next_shader_fname, gxp_path);
-
-        free(buffer);
-        skip_next_compile = GL_FALSE;
-    } else {
-        l_warn("Encountered an untranslated shader %s, saving GLSL "
-               "and using a dummy shader.", sha_name);
-
-        char glsl_path[256];
-        snprintf(glsl_path, sizeof(glsl_path), DATA_PATH"glsl/%s.glsl", sha_name);
-        file_mkpath(glsl_path, 0777);
-        file_save(glsl_path, (const uint8_t *) string, length);
-
-        if (strstr(string, "gl_FragColor")) {
-            const char *dummy_shader = "float4 main() { return float4(1.0,1.0,1.0,1.0); }";
-            int32_t dummy_shader_len = (int32_t) strlen(dummy_shader);
-            glShaderSource(shader, 1, &dummy_shader, &dummy_shader_len);
-        } else {
-            const char *dummy_shader = "void main(float4 out gl_Position : POSITION ) { gl_Position = float4(1.0,1.0,1.0,1.0); }";
-            int32_t dummy_shader_len = (int32_t) strlen(dummy_shader);
-            glShaderSource(shader, 1, &dummy_shader, &dummy_shader_len);
-        }
-
-        skip_next_compile = GL_FALSE;
-    }
-
-    free(sha_name);
-}
-#elif defined(USE_CG_SHADERS) || defined(USE_GXP_SHADERS)
-void load_shader(GLuint shader, const char * string, size_t length) {
-    char* sha_name = str_sha1sum(string, length);
-
-    char path[256];
-#ifdef USE_CG_SHADERS
-    snprintf(path, sizeof(path), DATA_PATH"cg/%s.cg", sha_name);
-#else
-    snprintf(path, sizeof(path), DATA_PATH"gxp/%s.gxp", sha_name);
-#endif
-
-    if (file_exists(path)) {
-#ifdef USE_CG_SHADERS
-        char *buffer;
-        size_t size;
-
-        file_load(path, (uint8_t **) &buffer, &size);
-
-        glShaderSource(shader, 1, &string, &size);
-
-        free(buffer);
-#else
-        uint8_t *buffer;
-        size_t size;
-
-        file_load(path, &buffer, &size);
-
-        glShaderBinary(1, &shader, 0, buffer, (int32_t) size);
-
-        free(buffer);
-#endif
-    } else {
-        l_warn("Encountered an untranslated shader %s, saving GLSL "
-               "and using a dummy shader.", sha_name);
-
-        char glsl_path[256];
-        snprintf(glsl_path, sizeof(glsl_path), DATA_PATH"glsl/%s.glsl", sha_name);
-        file_mkpath(glsl_path, 0777);
-        file_save(glsl_path, (const uint8_t *) string, length);
-
-        if (strstr(string, "gl_FragColor")) {
-            const char *dummy_shader = "float4 main() { return float4(1.0,1.0,1.0,1.0); }";
-            int32_t dummy_shader_len = (int32_t) strlen(dummy_shader);
-            glShaderSource(shader, 1, &dummy_shader, &dummy_shader_len);
-        } else {
-            const char *dummy_shader = "void main(float4 out gl_Position : POSITION ) { gl_Position = float4(1.0,1.0,1.0,1.0); }";
-            int32_t dummy_shader_len = (int32_t) strlen(dummy_shader);
-            glShaderSource(shader, 1, &dummy_shader, &dummy_shader_len);
-        }
-    }
-
-    free(sha_name);
-}
-#else
-#error "Define one of (USE_GLSL_SHADERS, USE_CG_SHADERS, USE_GXP_SHADERS)"
-#endif

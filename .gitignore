@@ -39,3 +39,7 @@ Thumbs.db
 *.swp
 *.bak
 *.orig
+
+# Runtime game shader binaries (proprietary sources)
+*.gxp
+*.glsl

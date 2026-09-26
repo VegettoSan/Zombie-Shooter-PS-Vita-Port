@@ -131,3 +131,16 @@ Respaldo de este baseline: `backup/before-fps-pass-1-20260925`.
 El usuario autorizó explícitamente commit, push y workflow manual sólo para el pase 1.
 El pase 2 permanece local, según AGENTS.md.
 Los resultados finales de build y workflow se registran en el informe del pase.
+
+## Pase Android Fidelity — 2026-09-26
+
+Build local-e149e0e-f32ca72dbe: Debug/Release baseline SoftFP BUILD VERIFIED.
+xdpi/ydpi220 corrige entrada de diagonal;1480×838 viene de1DPI y MaxWidth1480.
+1024×580 es predicción estática pendiente Vita. Cinco WAV conservan muestras
+originales, con desvío URI OpenSL; sonido/loops pendientes. UI touch oculta por
+lógica original gamepad; causa runtime de mira no demostrada.
+Cache shader nativo validado, fallback e inventario. NO_DEBUG/textures/draw2
+compilan y GC ELF compila, todos desactivados hasta A/B físico.
+SO/mapping previos intactos, tests host/ARM y parches desde fuentes limpias PASS.
+Sin commit/publicación. FPS/cámara/audio/cache hits nuevos PENDIENTES.
+Informe33puntos y checklist: docs/ANDROID_FIDELITY_PASS_2026-09-26.md.

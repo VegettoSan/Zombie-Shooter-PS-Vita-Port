@@ -42,7 +42,7 @@ set(DATA_PATH "ux0:data/zombieshooter/" CACHE STRING "Path to data (with trailin
 set(SO_PATH "${DATA_PATH}libzombie_shooter.so" CACHE STRING "Path to .so")
 add_definitions(-DDATA_PATH="${DATA_PATH}" -DSO_PATH="${SO_PATH}")
 
-# Port type — ON because libzombie_shooter.so exports ANativeActivity_onCreate
+# Port type â€” ON because libzombie_shooter.so exports ANativeActivity_onCreate
 option(NDK_PORT "Android NDK / NativeActivity game (has ANativeActivity_onCreate)" ON)
 if (NDK_PORT)
   add_definitions(-DNDK_PORT)
@@ -67,16 +67,7 @@ else()
   message(FATAL_ERROR "SHADER_FORMAT option can only be one of: 'GLSL', 'CG', 'GXP'")
 endif()
 
-set(valid_dump_formats GLSL CG)
-option(DUMP_COMPILED_SHADERS "When using GLSL or CG shader format, cache compiled shaders on disk" OFF)
-if (DUMP_COMPILED_SHADERS)
-  if (SHADER_FORMAT IN_LIST valid_dump_formats)
-    add_definitions(-DDUMP_COMPILED_SHADERS)
-  else()
-    message(WARNING "DUMP_COMPILED_SHADERS has no effect for the chosen shader format ${SHADER_FORMAT}")
-  endif()
-endif()
-
+# vitaGL owns the validated paired GLSL/GXP cache. No wrapper cache in parallel.
 # Identity is present even when normal Release logging is compiled out.
 set(ZOMBIE_BUILD_ID "" CACHE STRING "Source identity for hardware logs")
 if(NOT ZOMBIE_BUILD_ID)
@@ -88,10 +79,39 @@ add_definitions(-DZOMBIE_BUILD_ID="${ZOMBIE_BUILD_ID}" -DZOMBIE_BUILD_VARIANT="$
 # add_definitions(-DDEBUG_OPENGL)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1")
+  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1 HAVE_SHADER_CACHE=1")
 else()
-  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1")
+  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 HAVE_SHADER_CACHE=1")
 endif()
+
+# Single-variable hardware experiments. Baseline remains the default until
+# real-Vita A/B evidence exists; never bake several speculative flags together.
+set(ZOMBIE_VITAGL_EXPERIMENT "baseline" CACHE STRING "baseline, nodebug, textures, gc, draw2, draw1, samplers, nodmac")
+set_property(CACHE ZOMBIE_VITAGL_EXPERIMENT PROPERTY STRINGS baseline nodebug textures gc draw2 draw1 samplers nodmac)
+if(NOT ZOMBIE_VITAGL_EXPERIMENT STREQUAL "baseline")
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(FATAL_ERROR "VitaGL experiments require Release; Debug preserves checks")
+  endif()
+  if(ZOMBIE_VITAGL_EXPERIMENT STREQUAL "nodebug")
+    string(APPEND VITAGL_MAKE_FLAGS " NO_DEBUG=1")
+  elseif(ZOMBIE_VITAGL_EXPERIMENT STREQUAL "textures")
+    string(APPEND VITAGL_MAKE_FLAGS " NO_DEBUG=1 TEXTURES_SPEEDHACK=1")
+  elseif(ZOMBIE_VITAGL_EXPERIMENT STREQUAL "gc")
+    add_definitions(-DZOMBIE_GC_EXPERIMENT=1)
+  elseif(ZOMBIE_VITAGL_EXPERIMENT STREQUAL "draw2")
+    string(APPEND VITAGL_MAKE_FLAGS " DRAW_SPEEDHACK=2")
+  elseif(ZOMBIE_VITAGL_EXPERIMENT STREQUAL "draw1")
+    string(APPEND VITAGL_MAKE_FLAGS " DRAW_SPEEDHACK=1")
+  elseif(ZOMBIE_VITAGL_EXPERIMENT STREQUAL "samplers")
+    string(APPEND VITAGL_MAKE_FLAGS " SAMPLERS_SPEEDHACK=1")
+  elseif(ZOMBIE_VITAGL_EXPERIMENT STREQUAL "nodmac")
+    string(APPEND VITAGL_MAKE_FLAGS " NO_DMAC=1")
+  else()
+    message(FATAL_ERROR "Unknown VitaGL experiment")
+  endif()
+endif()
+message(STATUS "VitaGL flags: ${VITAGL_MAKE_FLAGS}")
+add_definitions(-DZOMBIE_VITAGL_EXPERIMENT="${ZOMBIE_VITAGL_EXPERIMENT}")
 
 # makes sincos, sincosf, etc. visible
 add_definitions(-D_GNU_SOURCE -D__POSIX_VISIBLE=999999)
@@ -133,9 +153,11 @@ set(SOURCES
     source/utils/logger.c
     source/utils/perf.c
     source/utils/asset_index.c
+    source/utils/audio_stream.c
     source/utils/raster_palette.c
     source/utils/raster_alpha.c
     source/utils/settings.c
+    source/utils/gamepad.c
     source/utils/utils.c
     lib/falso_jni/FalsoJNI.c
     lib/falso_jni/FalsoJNI_ImplBridge.c

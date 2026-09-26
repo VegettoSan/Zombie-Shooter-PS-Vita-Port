@@ -12,10 +12,12 @@
 
 #define CONFIG_FILE_PATH DATA_PATH"config.txt"
 
+int setting_vita_shooter;
 int  setting_sampleSetting;
 bool setting_sampleSetting2;
 
 void settings_reset() {
+    setting_vita_shooter = 0; // Enable only after measuring the tutorial bindings.
     setting_sampleSetting  = 1;
     setting_sampleSetting2 = true;
 }
@@ -25,11 +27,14 @@ void settings_load() {
 
     char buffer[30];
     int value;
+    char line[128];
 
     FILE *config = fopen(CONFIG_FILE_PATH, "r");
 
     if (config) {
-        while (EOF != fscanf(config, "%[^ ] %d\n", buffer, &value)) {
+        while (fgets(line, sizeof(line), config)) {
+            if (sscanf(line, "%29s %d", buffer, &value) != 2) continue;
+            if (strcmp("vita_shooter", buffer) == 0) { setting_vita_shooter = value == 1; continue; }
             if 		(strcmp("setting_sampleSetting", buffer) == 0) 	setting_sampleSetting  = (int)value;
             else if (strcmp("setting_sampleSetting2", buffer) == 0) setting_sampleSetting2 = (bool)value;
         }
@@ -41,6 +46,7 @@ void settings_save() {
     FILE *config = fopen(CONFIG_FILE_PATH, "w+");
 
     if (config) {
+        fprintf(config, "vita_shooter %d\n", setting_vita_shooter);
         fprintf(config, "%s %d\n", "setting_sampleSetting", (int)(setting_sampleSetting));
         fprintf(config, "%s %d\n", "setting_sampleSetting2", (int)(setting_sampleSetting2));
         fclose(config);

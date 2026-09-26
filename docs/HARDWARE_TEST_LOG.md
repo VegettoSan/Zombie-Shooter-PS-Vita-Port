@@ -536,3 +536,16 @@ No eliminar los shims de GCC15/getentropy sin volver a comprobar que la imagen n
 - Una variable importante por prueba A/B.
 - No activar lotes de VitaGL speedhacks sin baseline.
 - Codex trabaja sólo en local y no publica a GitHub ni dispara Actions/Releases. El workflow manual es una herramienta del usuario.
+
+## Pase Android Fidelity — 2026-09-26
+
+Build local-e149e0e-f32ca72dbe: Debug/Release baseline SoftFP BUILD VERIFIED.
+xdpi/ydpi220 corrige entrada de diagonal;1480×838 viene de1DPI y MaxWidth1480.
+1024×580 es predicción estática pendiente Vita. Cinco WAV conservan muestras
+originales, con desvío URI OpenSL; sonido/loops pendientes. UI touch oculta por
+lógica original gamepad; causa runtime de mira no demostrada.
+Cache shader nativo validado, fallback e inventario. NO_DEBUG/textures/draw2
+compilan y GC ELF compila, todos desactivados hasta A/B físico.
+SO/mapping previos intactos, tests host/ARM y parches desde fuentes limpias PASS.
+Sin commit/publicación. FPS/cámara/audio/cache hits nuevos PENDIENTES.
+Informe33puntos y checklist: docs/ANDROID_FIDELITY_PASS_2026-09-26.md.

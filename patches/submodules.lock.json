@@ -6,8 +6,8 @@
     "vitagl": "9c23758ff17893db63887f95e9a4d9350c986d88"
   },
   "files": {
-    "lib/falso_jni/FalsoJNI.c": "29c59df97dbf9f36cebb775245ffc04896ed9d358c7663b45177b397335ece26",
-    "lib/falso_jni/FalsoJNI.h": "877b403a76468731ad66a3cc311d9dd6d1815e9de9f06b6d0f60a5aebf124b33",
+    "lib/falso_jni/FalsoJNI.c": "6822d24234f491c21ceb7b42ce2cf62a88378d449c8b19b2abb19f66327ccd68",
+    "lib/falso_jni/FalsoJNI.h": "e5d475940efd61cd97dabcfb7ecf0a930b107dc1728b0dcd05deaf4bb8107809",
     "lib/falso_jni/FalsoJNI_Impl.h": "8c37512d8fbca43381e6e6b85d40b65040f6ac04adecb942f574890cfe73fab2",
     "lib/falso_jni/FalsoJNI_ImplBridge.c": "43b264524435414c279789685e45cdd6f19aea171edd10bb9a4b7e9de51392fe",
     "lib/falso_jni/FalsoJNI_ImplBridge.h": "5b27b009b84917cf5c35a917a23801827c06eb1627376c4092932ebc29801b3b",
@@ -30,8 +30,8 @@
     "lib/falso_ndk/android/AAssetManager.h": "a58e0add10dafc9c896ac1e8a54e2092bc13809d1ac9dfb6a2fbdd58547851e0",
     "lib/falso_ndk/android/AConfiguration.cpp": "a6350a37d0572c11c4150aacc70ac53043aa04b1ae9b25cb173984e72644888d",
     "lib/falso_ndk/android/AConfiguration.h": "8531226a70e4abd4241c2fc88433133bfe69db1a9950a30cef4673828dea8f84",
-    "lib/falso_ndk/android/AInput.cpp": "621c89281876a81db1a1c3f76715bbd29801d942e7a00cb2f141de94e87edb69",
-    "lib/falso_ndk/android/AInput.h": "6a2b83e8c5a5ee3a0e61c69f1a5586682eef1664c2ac023130d7cf73c7805467",
+    "lib/falso_ndk/android/AInput.cpp": "37e1b53d17abba2ee4fa7bd39cacff91237a14dc215e371d9cdc9a11aafd4299",
+    "lib/falso_ndk/android/AInput.h": "e0dd2bcd307b12086d80844117ea20699198887b41a16ecac9bd3699116fae36",
     "lib/falso_ndk/android/ALooper.cpp": "72fe21d97c9458360a05139eb2a81fe6a311a0cfdcc50c4bf3cc60fc12686eb9",
     "lib/falso_ndk/android/ALooper.h": "5a90ea7d514a7749e76b75514c79a3e2908282744b2b9244a013b0bba659af37",
     "lib/falso_ndk/android/ANativeActivity.cpp": "bd52d2855c389aa76fd6b5998d75966efca746240ff8303e2cdbf156d00cc075",
@@ -50,8 +50,8 @@
     "lib/falso_ndk/linux/fndk_pipe.h": "810ed73886ab7cfa870ee873c14b377c60e0781fff71d4f8fa321f390beec108",
     "lib/falso_ndk/linux/fndk_unistd.cpp": "7acb3c717c305eeadfbd4c27c5058f01dd70a0824b3300929dccdaf59b436619",
     "lib/falso_ndk/linux/fndk_unistd.h": "7ad91419a662fc2e8b606e210c565a36195c562ff4db9218cb79e8d8ce4443c1",
-    "lib/falso_ndk/shim/fndk_controls.cpp": "a25505b609a796729ae2295b181e8d7b1406734ec35b393fabe09af8bb9bdef3",
-    "lib/falso_ndk/shim/fndk_controls.h": "300a8b8d6d50bb0b601f7202283ebfcedecd64b27d3b2509aedd75490fda8544",
+    "lib/falso_ndk/shim/fndk_controls.cpp": "0e481deae7a036db91bbbc9c2a91c5391554044d175cb6fb5e8583640b0855bd",
+    "lib/falso_ndk/shim/fndk_controls.h": "4e4b594e46446d48fdaf65993eae4aa1b073066290f2d0adc34f4f063dcaf06e",
     "lib/falso_ndk/shim/fndk_sensors.cpp": "87c1ca39a5eae3f9d9182c0814599dfef137d13e0c8e288d0a2ce57055c0bce0",
     "lib/falso_ndk/shim/fndk_sensors.h": "e384c348eb3e3211da312e23bd0f515eb1ec0c6e6c35e95c027abdd82c9e215e",
     "lib/falso_ndk/shim/libc_bridge.h": "5c22769ad43504dc4bf4fc40266c539d45df42a4365799a0b3d7630101c7ddb7",
@@ -162,7 +162,7 @@
     "lib/vitagl/samples/video_playback/video.mp4": "04fdef4868d50c4446fd63af97919f41433ab2c2b71d45499d4ab8d8276f9c20",
     "lib/vitagl/source/blending.c": "0977b35962435f246e4bd9788ae081fb9b84b51a7442b960a05d2d08b1f23a29",
     "lib/vitagl/source/buffers.c": "2110f9b41e0da466138a43f36fcf28cb6ffb92f90004b1e06e34635bceb66277",
-    "lib/vitagl/source/custom_shaders.c": "56aca55af4d44d3aba0efa70525a2d30d3094eaf500accec675c21a0fd8a65e7",
+    "lib/vitagl/source/custom_shaders.c": "f938965deda1d0dcf89fc527f8fc2fec5cc51f6252758af25949398191a36d24",
     "lib/vitagl/source/debug.c": "3c90aa9c08c9c4a2cb937bfe21bd52ce3abc6692ab8dc7b628caf5846f7847f8",
     "lib/vitagl/source/display_lists.c": "ce1e561a1e573ec9ccde46fbaa0864a5be18e3deb8964731761fd606511a198f",
     "lib/vitagl/source/draw.c": "dffcfb56d9099487caaf47cbed41885770e103ed5848b95b0fc87b94bd973b2e",
@@ -190,7 +190,7 @@
     "lib/vitagl/source/shaders/texture_combiners/decal.h": "55ef298f2ca518f0ec571a3efff9322ac0df32a43790a27805da20e474bb5a4c",
     "lib/vitagl/source/shaders/texture_combiners/modulate.h": "35ea46cdcaed2d7e012db64ca138bd0699092f21d75db2dde756e5dc899e810e",
     "lib/vitagl/source/shaders/texture_combiners/replace.h": "5d5a4693a5c04a72fd1f69b4c4d13c5063adfe8ac8c1f99c108c1ee1a56f72e3",
-    "lib/vitagl/source/shared.h": "a8a2198d8e12c9158e1b5bc50fdb10c5de0dd180bb7708e9c2cb1d18e0f2a342",
+    "lib/vitagl/source/shared.h": "19c2b0554eac570e67b22a6415e93fb70f8275e43eb1dc36a667bc5a7e5f9345",
     "lib/vitagl/source/splashscreen.c": "6a199095b9a7f9ef6d3a35bcbb2fcf090e1bc57bb8bc7b96ca5a17cca57ec916",
     "lib/vitagl/source/tests.c": "24769ed717df20055e0cf272ff522390dc9302a09e0282b62150c0dfe8a1f908",
     "lib/vitagl/source/texture_callbacks.c": "876ba533e53ee9a69de39de8e11d7da4e529a7da0c1fe6bed911bc5f36c7c57d",
@@ -227,6 +227,8 @@
     "lib/vitagl/source/vgl.c": "ac87bdb713ba1a9a1db231acf697cb4a3c8b387fa82de10cb83e0427388f9295",
     "lib/vitagl/source/vitaGL.h": "fefb7f33fca3781c4e86fcb6065da07e12319b5adeb46a562bc487e0da41d202",
     "lib/vitagl/vitagl.png": "98e1f76fddbbde564611ebb1e9322eae0bb867cbfd68fd90e15f002c5fea51b4",
-    "lib/vitagl/source/utils/zombie_texture_update.h": "38b300ad91643b720ede00f51b2d34ce142932355f656fca04c90e17c179dd38"
+    "lib/vitagl/source/utils/zombie_texture_update.h": "38b300ad91643b720ede00f51b2d34ce142932355f656fca04c90e17c179dd38",
+    "lib/vitagl/source/utils/zombie_shader_cache.h": "a1b7665ec6389a29399c315ad2191e8af2d22a8f4a5964eb78a9aefad50f9856",
+    "lib/vitagl/source/utils/zombie_shader_cache.inc": "849b9b20a67d2ccc3948b5be2fff325effad83f46c6ca870c234e771cda1e6c2"
   }
 }
