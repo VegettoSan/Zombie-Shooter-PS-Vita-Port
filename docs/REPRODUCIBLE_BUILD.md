@@ -44,14 +44,15 @@ del usuario equivale a seleccionar este VITASDK y su `bin` en PATH.
 
 - C/C++/link: `-mfloat-abi=softfp`; toolchain y bibliotecas originales.
 - Debug C: `-Wl,-q -mfloat-abi=softfp -std=gnu11 -Wno-deprecated -O1 -g3 -O0 -g -DDEBUG -D_DEBUG`.
-- Release C: `-Wl,-q -mfloat-abi=softfp -std=gnu11 -Wno-deprecated -O2 -g1 -O3 -DNDEBUG`.
+- Release C: `-Wl,-q -mfloat-abi=softfp -std=gnu11 -Wno-deprecated -O3 -g1 -O3 -DNDEBUG`.
 - Los últimos flags de optimización prevalecen: Debug O0, Release O3.
-- Ambos: `DEBUG_SOLOADER`, `SO_UTIL_VERBOSE=1`, `NDK_PORT`, `USE_SCELIBC_IO`,
+- Ambos: `NDK_PORT`, `USE_SCELIBC_IO`,
   `USE_GLSL_SHADERS`, `_GNU_SOURCE`, `__POSIX_VISIBLE=999999`, rutas locales.
-- Debug añade `FALSOJNI_DEBUGLEVEL=0`, `ZOMBIE_THREAD_TRACE=1`, `ZOMBIE_STALL_DUMP=1`.
-- No se redefine FALSOJNI_DEBUGLEVEL para Release: se conserva su default local.
+- Debug añade `DEBUG_SOLOADER`, `SO_UTIL_VERBOSE=1`, `FALSOJNI_DEBUGLEVEL=0`, `ZOMBIE_THREAD_TRACE=1`, `ZOMBIE_STALL_DUMP=1`, `ZOMBIE_DEBUG_BUILD=1`.
+- Release: `FALSOJNI_DEBUGLEVEL=3`, `ZOMBIE_RELEASE_BUILD=1`; sin logging pesado.
+- Ambos llevan variante e ID; CI pasa SHA, local añade hash de fuentes.
 - VitaGL Debug: `SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1`.
-- VitaGL Release: `SOFTFP_ABI=1 LOG_ERRORS=1`.
+- VitaGL Release: `SOFTFP_ABI=1`.
 - VitaGL limpia sus objetos al construir cada variante, evitando reutilizar flags
   de otro build en su árbol de fuentes compartido. Compilar las variantes en serie.
 - FalsoJNI: fuentes C incorporadas en `so_loader`, con parche versionado.
@@ -91,6 +92,9 @@ La igualdad exigida corresponde a fuentes, SDK y receta, no a un ZIP bit a bit:
 los timestamps del empaquetado, rutas Debug y versión de CMake pueden variar.
 Esta restauración no constituye una nueva prueba física ni garantiza estabilidad
 completa del juego. Las observaciones previas y los pendientes están en PORT_STATUS.
+La receta anterior de restauración es histórica; el pase 1 fue validado en hardware
+como Release 8282fe9, con audio funcional y tutorial 6–7 FPS. El pase 2 añade un
+parche VitaGL versionado para preservar sólo texels no sobrescritos.
 
 ## Diferencia entre las fuentes locales y la caché antigua
 
@@ -114,3 +118,10 @@ El SDK extraído del tar también verifica sus 29,752 hashes originales.
 
 SHA-256 CI Debug: `6d8418632f2d9921aeaa2a777d7796b8d023977c85bc1257ae514af5fa84c708`.
 SHA-256 CI Release: `34e0801374f37808334885724750a1b948abd9f08dcd3897c4a0ed4c5af8576a`.
+
+## Pase 3 local
+
+Baseline pase 2 validado físicamente como local-8282fe9-cb0ab2d552 (tutorial 9–11 FPS).
+Nueva configuración: MSAA NONE en glutil.c, misma salida 960x544 y receta SoftFP.
+VitaGL patch añade preservación nativa RGB565, cubierta por el test O0/O3 existente.
+Detalles y validación de la build: docs/PERFORMANCE_PASS_3_2026-09-25.md.

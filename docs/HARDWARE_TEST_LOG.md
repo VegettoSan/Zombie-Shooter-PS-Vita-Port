@@ -1,5 +1,48 @@
 # Actualización 2026-09-25: nuevo baseline funcional
 
+## Baseline físico pase 3: log_0007 (2026-09-26)
+
+Build local-8282fe9-b3b1dfa9b9, MSAA NONE y RGB565 optimizado confirmados.
+Usuario: logos ~28 FPS; Loading inicial ~3 minutos/2–8 FPS; tutorial10–12,
+~9 con muchos objetos; menú12–15; nivel2 carga <=2 s y gameplay8–9.
+Carga inicial: tramo 2–24 tiene 4376 opens fallidos/33,47 s y 2346 exitosos/53,70 s.
+Gameplay estable de nivel2 casi no lee assets: el disco no explica sus FPS bajos.
+Pase 4: índice de ausencia de carpetas read-only y medición del render/clear CPU.
+Informe docs/PERFORMANCE_PASS_4_2026-09-26.md. Nuevos FPS/cargas pendientes Vita real.
+
+## Baseline físico del pase 2: log_0006
+
+Release `local-8282fe9-cb0ab2d552` probado en Vita real: logos ~28 FPS,
+tutorial 9–11 FPS completado, menú ~11 FPS, nivel 2 ~8 FPS. Loading inicial
+largo y ~4 FPS; carga de nivel 2 más corta. Clocks ARM500/BUS222/GPU222/XBAR166.
+La mejora del pase 2 queda REAL VITA VERIFIED / GAMEPLAY VERIFIED para ese recorrido.
+El log contiene 103 ventanas. La gran subida RGBA 1480x838 cuesta ~19 ms,
+frente a ~75–80 ms del pase 1. COW optimizado no copia bytes antiguos en ella.
+Sólo el primer reporte registra shaders: 18 enlaces, 5,863 s; posteriores cero.
+Las aperturas de assets dominan el coste de I/O durante la carga, incluyendo
+muchos intentos fallidos. Pools VitaGL tienen espacio libre, sin fallos COW.
+Pase 3: MSAA NONE por indicación del usuario, preservación nativa RGB565 y
+medición separada de aperturas exitosas/fallidas con rutas lentas acotadas.
+Informe: `docs/PERFORMANCE_PASS_3_2026-09-25.md`. Nueva build pendiente Vita real.
+
+## Nuevo baseline físico: log_0005, Release 8282fe9 (pase 1)
+
+El usuario confirma VitaGL logo 60 FPS, Sigma Team/Zombie Shooter ~11 FPS,
+LOADING 2–4 FPS y unos 6 minutos, tutorial 6–7 FPS (explosiones abundantes ~4).
+Movimiento, disparos, explosiones y varias zonas del tutorial funcionan sin crash.
+Clocks máximos confirmados por el log: ARM500/BUS222/GPU222/XBAR166.
+PSVshell: MEM360/365 MiB, VMEM112/112, PHY26/26; no demuestra agotamiento
+interno de VitaGL, que reserva pools por adelantado.
+
+75 ventanas PERF: no Finish/Flush, sin timeouts Clear/Destroy. Las últimas 12
+promedian 5,92 FPS con 83,47 ms/frame en TexSubImage, el 49,4% de su tiempo.
+Swap ~0,2 ms; audio y logger tienen costes mucho menores en esas ventanas.
+El siguiente pase optimiza preservación de texturas sin perder copy-on-write y
+mide alloc/copia, shapes/callers, memoria interna, asset opens/seeks y shaders.
+Informe: `PERFORMANCE_PASS_2_2026-09-25.md`.
+Nueva build: pendiente Vita real; no afirmar 20–30 FPS ni carga menor todavía.
+
+
 Baseline: `bd2dc1a8bd6067d0508381a5f4a8e1d8748b9969`, ya publicado en master.
 Fuente: nueva prueba física reportada por el usuario en el documento de este pase.
 

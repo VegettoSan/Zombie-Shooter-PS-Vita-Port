@@ -170,6 +170,8 @@ void glDrawElements_soloader(GLenum mode, GLsizei count, GLenum type,
                     (unsigned)element_binding);
         return;
     }
+    uint64_t sample_start=draw_sample_begin();
     glDrawElements(mode, count, type, indices);
+    draw_sample_end(sample_start);
 }
 

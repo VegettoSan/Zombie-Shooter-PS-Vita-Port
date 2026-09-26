@@ -19,8 +19,10 @@
 #include <psp2/kernel/sysmem.h>
 #include <psp2/io/stat.h>
 #include <psp2/kernel/processmgr.h>
+#include <psp2/kernel/threadmgr.h>
 #include <stdint.h>
 #include "utils/perf.h"
+#include <vitagl/source/utils/zombie_texture_update.h>
 
 // Helpers for our handling of shaders
 GLboolean skip_next_compile = GL_FALSE;
@@ -52,8 +54,9 @@ void gl_init() {
         return;
     }
 
-    vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+    vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
     gl_initialized = 1;
+    l_perf("render width=960 height=544 msaa=none");
 }
 
 void gl_swap() {
@@ -65,12 +68,53 @@ void gl_swap() {
 typedef struct { unsigned calls, total_us, max_us; } GLTiming;
 static struct {
     unsigned draws, arrays, binds, rejected;
-    GLTiming buffer_data, buffer_sub, tex_image, tex_sub, finish, flush;
+    GLTiming buffer_data, buffer_sub, tex_image, tex_sub, finish, flush, compile, link, draw_sample;
 } gl_perf;
 static void gl_time(GLTiming *t, uint64_t start) {
     unsigned us = (unsigned)(sceKernelGetProcessTimeWide()-start);
     t->calls++; t->total_us += us;
     if (us > t->max_us) t->max_us = us;
+}
+static unsigned draw_sample_sequence;
+static uint64_t draw_sample_begin(void) {
+    return (draw_sample_sequence++ & 15u)==0?sceKernelGetProcessTimeWide():0;
+}
+static void draw_sample_end(uint64_t start) { if(start) gl_time(&gl_perf.draw_sample,start); }
+/* The SDK reports runClocks in native kernel units. Log the raw delta rather
+ * than assuming a unit or summing another thread's blocked time into render. */
+static void report_render_thread(void) {
+    static SceUID previous_tid;
+    static uint64_t previous_clocks;
+    static unsigned previous_preempts;
+    SceUID tid=sceKernelGetThreadId();
+    SceKernelThreadInfo info={.size=sizeof(info)};
+    int result=sceKernelGetThreadInfo(tid,&info);
+    int valid=result==0 && previous_tid==tid;
+    l_perf("render_thread id=0x%08X result=%d delta_valid=%d run_clocks_delta=%llu preempt_delta=%u affinity=0x%X priority=%d",
+        (unsigned)tid,result,valid,(unsigned long long)(valid?info.runClocks-previous_clocks:0),
+        valid?info.threadPreemptCount-previous_preempts:0,(unsigned)info.currentCpuAffinityMask,info.currentPriority);
+    if(result==0) { previous_tid=tid;previous_clocks=info.runClocks;previous_preempts=info.threadPreemptCount; }
+    else previous_tid=0;
+}
+static struct { uintptr_t caller; unsigned calls, us, max_us; int w,h; GLenum format,type; } upload_groups[8];
+static void report_texture_costs(void) {
+    VglZombieTextureStats cow; vglZombieTextureStatsGet(&cow);
+    l_perf("tex_cow calls=%u optimized=%u rgb565=%u full_replacements=%u alloc_failures=%u alloc_us=%u preserve_us=%u old_bytes=%llu preserved_bytes=%llu max_w=%u max_h=%u",
+        cow.cow_calls,cow.optimized_calls,cow.rgb565_calls,cow.full_replacements,cow.alloc_failures,cow.alloc_us,cow.preserve_us,
+        (unsigned long long)cow.old_bytes,(unsigned long long)cow.preserved_bytes,cow.max_texture_w,cow.max_texture_h);
+    for (unsigned i=0;i<8;++i) if (upload_groups[i].calls) {
+        l_perf("tex_upload caller=0x%08X calls=%u total_us=%u max_us=%u max_shape=%dx%d format=0x%X type=0x%X",
+            (unsigned)upload_groups[i].caller,upload_groups[i].calls,upload_groups[i].us,upload_groups[i].max_us,
+            upload_groups[i].w,upload_groups[i].h,upload_groups[i].format,upload_groups[i].type);
+    }
+    memset(upload_groups,0,sizeof(upload_groups));
+    SceKernelFreeMemorySizeInfo mem = {.size=sizeof(mem)};
+    int result=sceKernelGetFreeMemorySize(&mem);
+    l_perf("mem system_result=%d user_free_kib=%u cdram_free_kib=%u phy_free_kib=%u vgl_ram_free_kib=%u vgl_ram_total_kib=%u vgl_vram_free_kib=%u vgl_vram_total_kib=%u vgl_phy_free_kib=%u vgl_phy_total_kib=%u",
+        result,mem.size_user/1024,mem.size_cdram/1024,mem.size_phycont/1024,
+        (unsigned)(vglMemFree(VGL_MEM_RAM)/1024),(unsigned)(vglMemTotal(VGL_MEM_RAM)/1024),
+        (unsigned)(vglMemFree(VGL_MEM_VRAM)/1024),(unsigned)(vglMemTotal(VGL_MEM_VRAM)/1024),
+        (unsigned)(vglMemFree(VGL_MEM_SLOW)/1024),(unsigned)(vglMemTotal(VGL_MEM_SLOW)/1024));
 }
 static volatile unsigned present_count;
 static volatile unsigned last_present_ms;
@@ -121,6 +165,11 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
         REPORT_GL("buffer_data", buffer_data); REPORT_GL("buffer_sub", buffer_sub);
         REPORT_GL("tex_image", tex_image); REPORT_GL("tex_sub", tex_sub);
         REPORT_GL("finish", finish); REPORT_GL("flush", flush);
+        REPORT_GL("compile", compile); REPORT_GL("link", link);
+        REPORT_GL("draw_sample", draw_sample);
+        l_perf("draw_sampling period=16");
+        report_render_thread();
+        report_texture_costs();
 #undef REPORT_GL
         memset(&gl_perf, 0, sizeof(gl_perf));
         perf_report();
@@ -139,11 +188,16 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
 
 
 void glDrawArrays_soloader(GLenum mode, GLint first, GLsizei count) {
-    gl_perf.arrays++; glDrawArrays(mode, first, count);
+    gl_perf.arrays++;
+    uint64_t start=draw_sample_begin();glDrawArrays(mode,first,count);draw_sample_end(start);
 }
 void glFinish_soloader(void) {
     uint64_t start = sceKernelGetProcessTimeWide();
     glFinish(); gl_time(&gl_perf.finish, start);
+}
+void glLinkProgram_soloader(GLuint program) {
+    uint64_t start = sceKernelGetProcessTimeWide();
+    glLinkProgram(program); gl_time(&gl_perf.link, start);
 }
 void glFlush_soloader(void) {
     uint64_t start = sceKernelGetProcessTimeWide();
@@ -163,7 +217,20 @@ void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLs
 }
 void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data) {
     uint64_t start = sceKernelGetProcessTimeWide();
-    glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, data); gl_time(&gl_perf.tex_sub, start);
+    glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, data);
+    unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
+    gl_perf.tex_sub.calls++; gl_perf.tex_sub.total_us+=us;
+    if (us>gl_perf.tex_sub.max_us) gl_perf.tex_sub.max_us=us;
+    uintptr_t caller=(uintptr_t)__builtin_return_address(0);
+    unsigned i;
+    for(i=0;i<7;++i) if(!upload_groups[i].calls || upload_groups[i].caller==caller) break;
+    /* The eighth group catches overflow rather than hiding unrecognized callers. */
+    upload_groups[i].caller=i==7?0:caller;
+    upload_groups[i].calls++; upload_groups[i].us+=us;
+    if(us>upload_groups[i].max_us) {
+        upload_groups[i].max_us=us; upload_groups[i].w=width; upload_groups[i].h=height;
+        upload_groups[i].format=format; upload_groups[i].type=type;
+    }
 }
 
 void glShaderSource_soloader(GLuint shader, GLsizei count,
@@ -219,7 +286,8 @@ void glCompileShader_soloader(GLuint shader) {
 
 #ifndef USE_GXP_SHADERS
     if (!skip_next_compile) {
-        glCompileShader(shader);
+        uint64_t start = sceKernelGetProcessTimeWide();
+        glCompileShader(shader); gl_time(&gl_perf.compile, start);
 #ifdef DUMP_COMPILED_SHADERS
         void *bin = vglMalloc(32 * 1024);
         GLsizei len;

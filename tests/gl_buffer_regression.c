@@ -17,6 +17,8 @@ void glBindBuffer(GLenum t,GLuint p) { if(t==GL_ARRAY_BUFFER) array=p; if(t==GL_
 void glDeleteBuffers(GLsizei n,const GLuint *p) { /* Match pinned VitaGL: deletion does not unbind. */ }
 void glGetIntegerv(GLenum p,GLint *v) { query_calls++; if(v) *v=123; }
 void glDrawElements(GLenum m,GLsizei n,GLenum t,const void *p) { draw_calls++; }
+static uint64_t draw_sample_begin(void) { return 0; }
+static void draw_sample_end(uint64_t start) { (void)start; }
 #include "utils/gl_buffers.inc"
 int main(void) {
     GLuint b[2]; GLint q;

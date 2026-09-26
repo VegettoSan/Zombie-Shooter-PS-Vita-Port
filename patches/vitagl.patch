@@ -1,0 +1,121 @@
+diff --git a/source/textures.c b/source/textures.c
+index 27e8a6c..23f7765 100644
+--- a/source/textures.c
++++ b/source/textures.c
+@@ -22,6 +22,15 @@
+  */
+ 
+ #include "shared.h"
++#include <psp2/kernel/processmgr.h>
++#define ZOMBIE_TEXTURE_COPY vgl_fast_memcpy
++#include "utils/zombie_texture_update.h"
++/* Published by the same render thread as the port's GL window counters. */
++static VglZombieTextureStats zombie_texture_stats;
++void vglZombieTextureStatsGet(VglZombieTextureStats *stats) {
++    *stats = zombie_texture_stats;
++    memset(&zombie_texture_stats, 0, sizeof(zombie_texture_stats));
++}
+ 
+ #ifdef HAVE_UNPURE_TEXFORMATS
+ #define resolve_tex_target(target, unresolved_action) \
+@@ -999,9 +1008,44 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
+ 		} else {
+ 			size = orig_h * VGL_ALIGN(orig_w, 8) * bpp;
+ 		}
+-		void *texture_data = gpu_alloc_mapped_for_gpu(size);
+-		vgl_fast_memcpy(texture_data, tex->data, size);
+-		gpu_free_texture_data(tex);
++        uint64_t alloc_start = sceKernelGetProcessTimeWide();
++        void *texture_data = gpu_alloc_mapped_for_gpu(size);
++        zombie_texture_stats.alloc_us += (unsigned)(sceKernelGetProcessTimeWide()-alloc_start);
++        if (!texture_data) {
++            zombie_texture_stats.alloc_failures++;
++            SET_GL_ERROR(GL_OUT_OF_MEMORY)
++        }
++        zombie_texture_stats.cow_calls++;
++        zombie_texture_stats.old_bytes += size;
++        if (orig_w > zombie_texture_stats.max_texture_w) zombie_texture_stats.max_texture_w = orig_w;
++        if (orig_h > zombie_texture_stats.max_texture_h) zombie_texture_stats.max_texture_h = orig_h;
++        uint64_t copy_start = sceKernelGetProcessTimeWide();
++        /* Narrow native format path: every omitted byte is overwritten below.
++         * Preserve padding, all other rows and columns; fallback covers mips,
++         * conversions, cubemaps and unsupported inputs exactly as before. */
++        GLboolean native_rgba = format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
++            tex_format == SCE_GXM_TEXTURE_FORMAT_U8U8U8U8_ABGR;
++        GLboolean native_rgb565 = format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5 &&
++            tex_format == SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB;
++        if (target == GL_TEXTURE_2D && level == 0 && tex->mip_count == 1 &&
++            (native_rgba || native_rgb565) && pixels &&
++            (unpack_row_len == 0 || unpack_row_len == width) &&
++            xoffset >= 0 && yoffset >= 0 && width > 0 && height > 0 &&
++            (uint32_t)xoffset <= orig_w && (uint32_t)yoffset <= orig_h &&
++            (uint32_t)width <= orig_w-(uint32_t)xoffset &&
++            (uint32_t)height <= orig_h-(uint32_t)yoffset) {
++            size_t kept = zombie_texture_preserve_native(texture_data, tex->data,
++                VGL_ALIGN(orig_w, 8)*bpp, orig_h, xoffset, yoffset, width, height, bpp);
++            zombie_texture_stats.optimized_calls++;
++            if (native_rgb565) zombie_texture_stats.rgb565_calls++;
++            zombie_texture_stats.preserved_bytes += kept;
++            if (!kept) zombie_texture_stats.full_replacements++;
++        } else {
++            vgl_fast_memcpy(texture_data, tex->data, size);
++            zombie_texture_stats.preserved_bytes += size;
++        }
++        zombie_texture_stats.preserve_us += (unsigned)(sceKernelGetProcessTimeWide()-copy_start);
++        gpu_free_texture_data(tex);
+ 		sceGxmTextureSetData(&tex->gxm_tex, texture_data);
+ 		tex->data = texture_data;
+ 		tex->last_frame = OBJ_NOT_USED;
+diff --git a/source/utils/zombie_texture_update.h b/source/utils/zombie_texture_update.h
+new file mode 100644
+--- /dev/null
++++ b/source/utils/zombie_texture_update.h
+@@ -0,0 +1,48 @@
++/* Part of vitaGL, LGPL-3.0-or-later, same terms as textures.c.
++ * Preserve the bytes not overwritten by a validated, native subimage.
++ * GPU copy-on-write ownership and deferred retirement remain unchanged. */
++#ifndef VGL_ZOMBIE_TEXTURE_UPDATE_H
++#define VGL_ZOMBIE_TEXTURE_UPDATE_H
++#include <stddef.h>
++#include <stdint.h>
++#include <string.h>
++#ifndef ZOMBIE_TEXTURE_COPY
++#define ZOMBIE_TEXTURE_COPY memcpy
++#endif
++static inline size_t zombie_texture_preserve_native(void *dst, const void *src,
++        size_t stride, unsigned rows, unsigned x, unsigned y, unsigned w, unsigned h, unsigned bpp) {
++    unsigned char *d = (unsigned char *)dst;
++    const unsigned char *s = (const unsigned char *)src;
++    size_t top = (size_t)y * stride;
++    size_t left = (size_t)x * bpp;
++    size_t right_start = left + (size_t)w * bpp;
++    size_t right = stride - right_start;
++    if (top) ZOMBIE_TEXTURE_COPY(d, s, top);
++    for (unsigned row = y; row < y+h; ++row) {
++        size_t offset = (size_t)row * stride;
++        if (left) ZOMBIE_TEXTURE_COPY(d+offset, s+offset, left);
++        if (right) ZOMBIE_TEXTURE_COPY(d+offset+right_start, s+offset+right_start, right);
++    }
++    size_t bottom_start = (size_t)(y+h) * stride;
++    size_t bottom = (size_t)(rows-y-h) * stride;
++    if (bottom) ZOMBIE_TEXTURE_COPY(d+bottom_start, s+bottom_start, bottom);
++    return (size_t)rows * stride - (size_t)w * h * bpp;
++}
++static inline size_t zombie_texture_preserve_rgba(void *dst, const void *src,
++        size_t stride, unsigned rows, unsigned x, unsigned y, unsigned w, unsigned h) {
++    return zombie_texture_preserve_native(dst,src,stride,rows,x,y,w,h,4);
++}
++typedef struct {
++    unsigned cow_calls, optimized_calls, full_replacements, alloc_failures, rgb565_calls;
++    unsigned alloc_us, preserve_us;
++    uint64_t old_bytes, preserved_bytes;
++    unsigned max_texture_w, max_texture_h;
++} VglZombieTextureStats;
++#ifdef __cplusplus
++extern "C" {
++#endif
++void vglZombieTextureStatsGet(VglZombieTextureStats *stats);
++#ifdef __cplusplus
++}
++#endif
++#endif

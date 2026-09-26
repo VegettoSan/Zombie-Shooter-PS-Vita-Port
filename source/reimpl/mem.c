@@ -9,10 +9,22 @@
 
 #include "reimpl/mem.h"
 #include "utils/logger.h"
+#include "utils/perf.h"
+#include <psp2/kernel/processmgr.h>
 
 #include <string.h>
 #include <malloc.h>
 #include <psp2/kernel/clib.h>
+
+/* Same SDK memset (already a sceClibMemset thunk). Only large guest fills
+ * are timed, including the game's ~5 MiB software framebuffer clear. */
+void *memset_soloader_perf(void *dst,int c,size_t len) {
+    if(len<256*1024) return memset(dst,c,len);
+    uint64_t start=sceKernelGetProcessTimeWide();
+    void *ret=memset(dst,c,len);
+    perf_bulk_memset(len,start);
+    return ret;
+}
 
 void *sceClibMemclr(void *dst, size_t len) {
     return sceClibMemset(dst, 0, len);

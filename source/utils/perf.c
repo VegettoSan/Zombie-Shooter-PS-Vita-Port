@@ -2,9 +2,12 @@
  * Counters are cumulative; snapshots never reset a concurrent writer's data. */
 #include "utils/perf.h"
 #include "utils/logger.h"
+#include "utils/asset_index.h"
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <sys/unistd.h>
 #ifdef USE_SCELIBC_IO
 #include <libc_bridge/libc_bridge.h>
@@ -37,7 +40,7 @@ void audio_perf_snapshot(AudioPerfStats *out) {
  * costs no atomic RMW on asset reads; only first registration uses CAS. */
 typedef struct { unsigned calls, bytes, samples, us, max_us, errors; } IOStats;
 typedef struct { unsigned calls, us, max_us, positive, infinite, max_timeout; } WaitStats;
-static struct { int owner; IOStats asset, file, read; WaitStats once, all; } slots[16];
+static struct { int owner; IOStats asset, file, read, asset_open, asset_seek, asset_open_ok, asset_open_fail, bulk_fill; WaitStats once, all; } slots[16];
 static unsigned dropped_threads;
 static int slot_index(void) {
     int tid = sceKernelGetThreadId();
@@ -60,7 +63,63 @@ static void io_record(IOStats *s, int bytes, uint64_t start) {
         if (us>LOAD(&s->max_us)) STORE(&s->max_us,us);
     }
 }
+void perf_bulk_memset(size_t bytes,uint64_t start) {
+    int i=slot_index();io_record(i<0?NULL:&slots[i].bulk_fill,(int)bytes,start);
+}
 #ifdef NDK_PORT
+/* At most one slow success/failure path per 5-second report. The short lock
+ * protects text snapshots only; it is never held across asset I/O or logging. */
+typedef struct { unsigned us; uintptr_t caller; int mode, truncated; char name[192]; } AssetOpenWorst;
+static AssetOpenWorst open_worst[2];
+static int open_worst_lock;
+static void lock_open_worst(void) {
+    while (__atomic_exchange_n(&open_worst_lock,1,__ATOMIC_ACQUIRE)) {}
+}
+static void unlock_open_worst(void) { __atomic_store_n(&open_worst_lock,0,__ATOMIC_RELEASE); }
+static void record_slow_open(const char *name,int mode,uintptr_t caller,int ok,unsigned us) {
+    if (us < 10000) return;
+    lock_open_worst();
+    AssetOpenWorst *w=&open_worst[ok?0:1];
+    if(us>w->us) {
+        w->us=us;w->caller=caller;w->mode=mode;
+        if(!name) name="<null>";
+        unsigned n=0;
+        for(;n<sizeof(w->name)-1 && name[n];++n) {
+            unsigned char c=(unsigned char)name[n];
+            w->name[n]=(c<32 || c=='"')?'?':(char)c;
+        }
+        w->name[n]=0;w->truncated=name[n]!=0;
+    }
+    unlock_open_worst();
+}
+static void report_slow_opens(void) {
+    AssetOpenWorst snapshot[2];
+    lock_open_worst();memcpy(snapshot,open_worst,sizeof(snapshot));
+    memset(open_worst,0,sizeof(open_worst));unlock_open_worst();
+    for(unsigned i=0;i<2;++i) if(snapshot[i].us)
+        l_perf("asset_open_slow result=%s us=%u caller=0x%08X mode=%d truncated=%d name=\"%s\"",
+            i?"failed":"ok",snapshot[i].us,(unsigned)snapshot[i].caller,
+            snapshot[i].mode,snapshot[i].truncated,snapshot[i].name);
+}
+AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode) {
+    int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset_open;
+    uint64_t start=sceKernelGetProcessTimeWide();
+    AAsset *ret=asset_index_missing(name)?NULL:AAssetManager_open(mgr,name,mode);
+    int saved_errno=errno;
+    unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
+    io_record(s,ret?0:-1,start);
+    IOStats *detail=i<0?NULL:(ret?&slots[i].asset_open_ok:&slots[i].asset_open_fail);
+    io_record(detail,ret?0:-1,start);
+    record_slow_open(name,mode,(uintptr_t)__builtin_return_address(0),ret!=NULL,us);
+    errno=saved_errno;
+    return ret;
+}
+off_t AAsset_seek_perf(AAsset *asset, off_t offset, int whence) {
+    int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset_seek;
+    uint64_t start=sceKernelGetProcessTimeWide();
+    off_t ret=AAsset_seek(asset,offset,whence);
+    io_record(s,ret<0?-1:0,start); return ret;
+}
 int AAsset_read_perf(AAsset *asset, void *buf, size_t count) {
     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset;
     uint64_t start=s && (count>=4096 || (LOAD(&s->calls)&255)==0) ? sceKernelGetProcessTimeWide():0;
@@ -112,13 +171,13 @@ void perf_report(void) {
         D(destroy.calls),D(destroy.wait_calls),D(destroy.wait_us),now.destroy.max_us,D(destroy.timeouts),D(output_calls),D(output_errors));
 #undef D
     previous=now;
-    IOStats io[3]={{0}}; WaitStats waits[2]={{0}};
-    static IOStats old_io[3]; static WaitStats old_waits[2];
+    IOStats io[8]={{0}}; WaitStats waits[2]={{0}};
+    static IOStats old_io[8]; static WaitStats old_waits[2];
     for(int i=0;i<16;++i) {
         if(!LOAD(&slots[i].owner)) continue;
-        IOStats *sources[]={&slots[i].asset,&slots[i].file,&slots[i].read};
+        IOStats *sources[]={&slots[i].asset,&slots[i].file,&slots[i].read,&slots[i].asset_open,&slots[i].asset_seek,&slots[i].asset_open_ok,&slots[i].asset_open_fail,&slots[i].bulk_fill};
         WaitStats *ws[]={&slots[i].once,&slots[i].all};
-        for(int j=0;j<3;++j) {
+        for(int j=0;j<8;++j) {
 #define SUM_IO(m) io[j].m+=LOAD(&sources[j]->m)
             SUM_IO(calls); SUM_IO(bytes); SUM_IO(samples); SUM_IO(us); SUM_IO(errors);
 #undef SUM_IO
@@ -132,8 +191,8 @@ void perf_report(void) {
             max=LOAD(&ws[j]->max_timeout); if(max>waits[j].max_timeout) waits[j].max_timeout=max;
         }
     }
-    const char *names[]={"asset_sampled","fread","read"};
-    for(int j=0;j<3;++j) {
+    const char *names[]={"asset_sampled","fread","read","asset_open","asset_seek","asset_open_ok","asset_open_fail","bulk_fill"};
+    for(int j=0;j<8;++j) {
         l_perf("io kind=%s calls=%u bytes=%u timed_calls=%u measured_us=%u max_us_lifetime=%u errors=%u dropped_thread_calls=%u", names[j],io[j].calls-old_io[j].calls,io[j].bytes-old_io[j].bytes,io[j].samples-old_io[j].samples,io[j].us-old_io[j].us,io[j].max_us,io[j].errors-old_io[j].errors,LOAD(&dropped_threads));
         old_io[j]=io[j];
     }
@@ -141,6 +200,10 @@ void perf_report(void) {
         l_perf("waits kind=poll%s calls=%u total_us=%u max_us_lifetime=%u positive_timeout_calls=%u infinite_timeout_calls=%u requested_max_ms_lifetime=%u",j?"All":"Once",waits[j].calls-old_waits[j].calls,waits[j].us-old_waits[j].us,waits[j].max_us,waits[j].positive-old_waits[j].positive,waits[j].infinite-old_waits[j].infinite,waits[j].max_timeout);
         old_waits[j]=waits[j];
     }
+#ifdef NDK_PORT
+    report_slow_opens();
+    asset_index_report();
+#endif
     LoggerStats log={0}; logger_get_stats(&log);
     l_perf("logger lines=%u syncs=%u sync_total_us=%u suppressed_repeats=%u total_us=%u",log.lines-old_log.lines,log.syncs-old_log.syncs,log.sync_us-old_log.sync_us,log.suppressed-old_log.suppressed,log.total_us-old_log.total_us);
     old_log=log;

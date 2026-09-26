@@ -132,6 +132,7 @@ set(SOURCES
     source/utils/init.c
     source/utils/logger.c
     source/utils/perf.c
+    source/utils/asset_index.c
     source/utils/settings.c
     source/utils/utils.c
     lib/falso_jni/FalsoJNI.c

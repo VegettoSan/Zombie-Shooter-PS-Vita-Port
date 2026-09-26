@@ -23,6 +23,8 @@ extern "C" {
 
 #define MAP_FAILED (void*)-1
 
+void *memset_soloader_perf(void *dst, int c, size_t len);
+
 void *sceClibMemclr(void *dst, size_t len);
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offs);

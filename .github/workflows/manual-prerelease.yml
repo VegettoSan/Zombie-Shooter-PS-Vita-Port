@@ -34,6 +34,8 @@ jobs:
           tests/run_jni_field_regression.sh
           tests/run_gl_buffer_regression.sh
           tests/run_logger_regression.sh
+          bash tests/run_texture_update_regression.sh
+          bash tests/run_asset_index_regression.sh
       - name: Build Debug VPK
         run: |
           set -euo pipefail
@@ -92,8 +94,8 @@ jobs:
           prerelease: true
           make_latest: false
           body: |
-            Performance pass 1: quiet Release, GL binding fast path and aggregate profiling.
-            Baseline bd2dc1a was verified on real Vita at approximately 5 FPS with audio.
+            Performance pass 4: complete hot asset directory absence index and gameplay cost profiling.
+            Local pass 3 was verified on real Vita: tutorial 10–12 FPS, menu 12–15 and level 2 8–9 FPS.
             New performance result requires a physical Vita test.
             Commit: `${{ github.sha }}`
             Includes exactly Debug and Release loader VPKs; game assets are not packaged.

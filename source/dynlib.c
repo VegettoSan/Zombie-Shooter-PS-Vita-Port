@@ -68,6 +68,8 @@ size_t fread_perf(void *, size_t, size_t, FILE *);
 ssize_t read_perf(int, void *, size_t);
 #ifdef NDK_PORT
 int AAsset_read_perf(AAsset *, void *, size_t);
+AAsset *AAssetManager_open_perf(AAssetManager *, const char *, int);
+off_t AAsset_seek_perf(AAsset *, off_t, int);
 int ALooper_pollOnce_perf(int, int *, int *, void **);
 int ALooper_pollAll_perf(int, int *, int *, void **);
 #endif
@@ -337,12 +339,12 @@ so_default_dynlib default_dynlib[] = {
         { "AAsset_getLength", (uintptr_t)&AAsset_getLength },
         { "AAsset_getRemainingLength", (uintptr_t)&AAsset_getRemainingLength },
         { "AAsset_read", (uintptr_t)&AAsset_read_perf },
-        { "AAsset_seek", (uintptr_t)&AAsset_seek },
+        { "AAsset_seek", (uintptr_t)&AAsset_seek_perf },
         { "AAsset_openFileDescriptor", (uintptr_t)&AAsset_openFileDescriptor },
         { "AAssetDir_close", (uintptr_t)&AAssetDir_close },
         { "AAssetDir_getNextFileName", (uintptr_t)&AAssetDir_getNextFileName },
         { "AAssetManager_fromJava", (uintptr_t)&ret1 },
-        { "AAssetManager_open", (uintptr_t)&AAssetManager_open },
+        { "AAssetManager_open", (uintptr_t)&AAssetManager_open_perf },
         { "AAssetManager_openDir", (uintptr_t)&AAssetManager_openDir },
 
         
@@ -492,7 +494,7 @@ so_default_dynlib default_dynlib[] = {
         { "memcpy", (uintptr_t)&sceClibMemcpy },
         { "memmem", (uintptr_t)&memmem },
         { "memmove", (uintptr_t)&memmove },
-        { "memset", (uintptr_t)&memset },
+        { "memset", (uintptr_t)&memset_soloader_perf },
         { "mmap", (uintptr_t)&mmap },
         { "__mmap2", (uintptr_t)&mmap },
         { "munmap", (uintptr_t)&munmap },
@@ -811,7 +813,7 @@ so_default_dynlib default_dynlib[] = {
         { "glLightxv", (uintptr_t)&glLightxv },
         { "glLineWidth", (uintptr_t)&glLineWidth },
         { "glLineWidthx", (uintptr_t)&glLineWidthx },
-        { "glLinkProgram", (uintptr_t)&glLinkProgram },
+        { "glLinkProgram", (uintptr_t)&glLinkProgram_soloader },
         { "glLoadIdentity", (uintptr_t)&glLoadIdentity },
         { "glLoadMatrixf", (uintptr_t)&glLoadMatrixf },
         { "glLoadMatrixx", (uintptr_t)&glLoadMatrixx },
@@ -1235,7 +1237,7 @@ static void (*eglGetProcAddress_soloader(const char *name))(void) {
     GL_BRIDGE(glGetIntegerv); GL_BRIDGE(glDrawElements); GL_BRIDGE(glDrawArrays);
     GL_BRIDGE(glBufferData); GL_BRIDGE(glBufferSubData);
     GL_BRIDGE(glTexImage2D); GL_BRIDGE(glTexSubImage2D);
-    GL_BRIDGE(glFinish); GL_BRIDGE(glFlush);
+    GL_BRIDGE(glFinish); GL_BRIDGE(glFlush); GL_BRIDGE(glLinkProgram);
 #undef GL_BRIDGE
     return eglGetProcAddress(name);
 }

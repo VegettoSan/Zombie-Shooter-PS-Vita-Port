@@ -195,7 +195,7 @@
     "lib/vitagl/source/tests.c": "24769ed717df20055e0cf272ff522390dc9302a09e0282b62150c0dfe8a1f908",
     "lib/vitagl/source/texture_callbacks.c": "876ba533e53ee9a69de39de8e11d7da4e529a7da0c1fe6bed911bc5f36c7c57d",
     "lib/vitagl/source/texture_callbacks.h": "1d5ef719ab67328d51647fcb63fbc6416c63032c479282a24b783a895980e161",
-    "lib/vitagl/source/textures.c": "6c002c89ad25f4aec85a0adfc0dd2984767936feeefa6e24a3548710379e6e2b",
+    "lib/vitagl/source/textures.c": "5ca8b4bdb96e610b88c098e29cad94d660206af2d6e87b4ec9e0ebc70942389b",
     "lib/vitagl/source/utils/atitc_utils.c": "824466eddc8d709693d0a0801b8654ccb5d3947bdedc822cc2d2f54f92209570",
     "lib/vitagl/source/utils/atitc_utils.h": "9724b31b6ceb8e2909e41a99b202c1ae3d4e54ae93281c006161a6f07db65377",
     "lib/vitagl/source/utils/debug_utils.h": "2adcdd0e36d06b3a6e26592e4560f711277262ed1fb22e16453bad5f694ef273",
@@ -226,6 +226,7 @@
     "lib/vitagl/source/utils/xxhash_utils.h": "86d0d813745821bbccf0be6d67356846f138e5c20164c52c24fade1419afdf7d",
     "lib/vitagl/source/vgl.c": "ac87bdb713ba1a9a1db231acf697cb4a3c8b387fa82de10cb83e0427388f9295",
     "lib/vitagl/source/vitaGL.h": "fefb7f33fca3781c4e86fcb6065da07e12319b5adeb46a562bc487e0da41d202",
-    "lib/vitagl/vitagl.png": "98e1f76fddbbde564611ebb1e9322eae0bb867cbfd68fd90e15f002c5fea51b4"
+    "lib/vitagl/vitagl.png": "98e1f76fddbbde564611ebb1e9322eae0bb867cbfd68fd90e15f002c5fea51b4",
+    "lib/vitagl/source/utils/zombie_texture_update.h": "38b300ad91643b720ede00f51b2d34ce142932355f656fca04c90e17c179dd38"
   }
 }
