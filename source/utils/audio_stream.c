@@ -10,6 +10,7 @@
 #include <kubridge.h>
 #include <psp2/kernel/clib.h>
 #include "utils/logger.h"
+#include "utils/settings.h"
 extern so_module so_mod;
 typedef void (*CreateMusic)(void *, const void *, const void *);
 static CreateMusic original;
@@ -20,6 +21,11 @@ static const char *names[]={"menu_mus01","mus01","mus02","amb01","rain"};
 static unsigned reported, missing;
 static void create_music(void *result,const void *engine,const void *filename) {
     const char *name=string_data(filename);
+    if (!name) {
+        l_perf("audio_stream filename_null=1 fallback=original");
+        original(result,engine,filename);
+        return;
+    }
     char expected[64],path[256];
     for(unsigned i=0;i<sizeof(names)/sizeof(names[0]);++i) {
         snprintf(expected,sizeof(expected),"music/%s.m4a",names[i]);
@@ -59,6 +65,15 @@ static void create_music(void *result,const void *engine,const void *filename) {
     original(result,engine,filename);
 }
 void audio_stream_install(void) {
+    /* Runtime A/B for Run17. In mode 0 do not touch createMusicPlayer at all:
+     * the original engine keeps its M4A path. This isolates hook/trampoline
+     * effects from the large PCM sidecars. It does not claim that the current
+     * OpenSL backend can decode M4A/AndroidFD; native AAC is a separate task. */
+    if (setting_music_mode != 1) {
+        l_perf("audio_stream installed=0 music_mode=0 backend=original_m4a pcm_hook_skipped=1");
+        return;
+    }
+
     uintptr_t addr=(uintptr_t)so_symbol(&so_mod,"_ZNK8opensles6Engine17createMusicPlayerERK6STRING");
     uintptr_t entry=addr&~(uintptr_t)1,arena=(so_mod.patch_head+3)&~(uintptr_t)3;
     const uint32_t prologue[]={0xaf03b5f0,0x0700e92d};
@@ -68,11 +83,11 @@ void audio_stream_install(void) {
     if(!string_init || !string_destroy || !string_data || !(addr&1) || entry!=so_mod.load_addr+0x4d20f8 ||
         arena<so_mod.patch_base || arena>so_mod.patch_base+so_mod.patch_size ||
         so_mod.patch_base+so_mod.patch_size-arena<16 || memcmp((void *)entry,prologue,8)) {
-        l_perf("audio_stream installed=0 reason=verified_hook_unavailable");return;
+        l_perf("audio_stream installed=0 reason=verified_hook_unavailable music_mode=1");return;
     }
     uint32_t code[]={prologue[0],prologue[1],0xf000f8df,(uint32_t)(entry+8)|1};
     sceClibMemcpy((void *)arena,code,sizeof(code));original=(CreateMusic)(arena|1);
     so_mod.patch_head=arena+sizeof(code);hook_addr(addr,(uintptr_t)create_music);
     kuKernelFlushCaches((void *)arena,sizeof(code));kuKernelFlushCaches((void *)entry,8);
-    l_perf("audio_stream installed=1 original_extension_mapping=ogg_to_m4a pcm_sidecars=5");
+    l_perf("audio_stream installed=1 music_mode=1 original_extension_mapping=ogg_to_m4a pcm_sidecars=5");
 }
