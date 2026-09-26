@@ -123,7 +123,30 @@ No convertir 864 en default hasta completar esta prueba física.
 
 ---
 
-# 2. Crear configuración separada para remapear botones de PS Vita
+# 2. Crear configuración separada para remapear botones de PS Vita como un mando Xbox
+
+## Objetivo obligatorio
+
+La PS Vita portátil debe presentarse al juego como **un gamepad Xbox lógico**.
+
+La interfaz visible del archivo de configuración NO debe hablar de controles Android ni exponer `KEYCODE_*`, sources Android, IDs de ejes Android u otros detalles del backend. El usuario configura exclusivamente equivalentes de un mando Xbox:
+
+- `A`, `B`, `X`, `Y`
+- `LB`, `RB`
+- `LT`, `RT`
+- `LS`, `RS` para click de stick
+- `START`, `BACK`
+- `DPAD_UP`, `DPAD_DOWN`, `DPAD_LEFT`, `DPAD_RIGHT`
+
+Si FalsoNDK necesita traducir después estas acciones Xbox a eventos Android para que el `.so` las reciba, esa traducción es **un detalle interno de implementación** y no forma parte de la semántica de `controls.txt`.
+
+La cadena conceptual requerida debe ser:
+
+```text
+botón físico PS Vita -> control Xbox lógico -> backend interno que ya consume el juego
+```
+
+No diseñar la configuración como `PS Vita -> Android`.
 
 ## Problema actual
 
@@ -136,7 +159,7 @@ Actualmente:
 - Cross=A, Circle=B, Square=X, Triangle=Y permanecen fijos;
 - DS3/DS4 deben conservar su perfil estándar independiente.
 
-La prueba física mostró que todavía hay botones/actions mal acomodados. No seguir agregando perfiles hardcodeados. Hacer el mapping de la Vita portátil configurable por archivo.
+La prueba física mostró que todavía hay botones/actions mal acomodados. No seguir agregando perfiles hardcodeados. Hacer el mapping de la Vita portátil configurable por archivo y expresado siempre como equivalencias de mando Xbox.
 
 ## Archivo nuevo
 
@@ -150,13 +173,13 @@ Si no existe, crear una plantilla una sola vez. No sobrescribirla posteriormente
 
 ## Formato propuesto
 
-Formato simple `boton_fisico accion_logica`, una asignación por línea.
+Formato simple `boton_fisico control_xbox`, una asignación por línea.
 
 Plantilla inicial:
 
 ```text
 # Zombie Shooter Vita control mapping
-# Physical Vita button -> Android/Xbox logical action
+# Physical PS Vita button -> Xbox logical control
 
 cross A
 circle B
@@ -196,9 +219,11 @@ El archivo debe ser case-insensitive para nombres conocidos o normalizarlos inte
 - `dpad_left`
 - `dpad_right`
 
-No mapear sticks analógicos mediante este archivo en la primera implementación. Mantener ejes/deadzone como están para no mezclar dos sistemas distintos.
+No remapear los ejes analógicos de los sticks mediante este archivo en la primera implementación. Mantener movimiento de sticks/deadzone como están para no mezclar dos sistemas distintos.
 
-## Acciones lógicas mínimas soportadas
+Sin embargo, `LS` y `RS` sí deben existir como **acciones Xbox de click de stick**, de modo que en el futuro o durante pruebas cualquier botón físico configurable pueda simular L3/R3 si hace falta.
+
+## Controles Xbox lógicos mínimos soportados
 
 - `A`
 - `B`
@@ -208,6 +233,8 @@ No mapear sticks analógicos mediante este archivo en la primera implementación
 - `RB`
 - `LT`
 - `RT`
+- `LS`
+- `RS`
 - `START`
 - `BACK`
 - `DPAD_UP`
@@ -218,7 +245,15 @@ No mapear sticks analógicos mediante este archivo en la primera implementación
 
 `NONE` permite deshabilitar un botón físico para pruebas.
 
-Estas acciones deben terminar produciendo exactamente los keycodes/ejes Android que ya usa FalsoNDK; el archivo sólo debe modificar la traducción física Vita -> control lógico. No duplicar la capa Android ni reescribir el sistema de InputDevice.
+### Semántica especial de triggers
+
+`LT` y `RT` deben comportarse como triggers de Xbox, no meramente como botones genéricos. En Vita portátil, cuando una entrada física digital se mapea a `LT` o `RT`, el backend debe representar el trigger como completamente liberado o completamente presionado, conservando la semántica que el port ya usa para trigger axis/button aliases. No cambiar el comportamiento de triggers analógicos de mandos externos.
+
+### Backend interno
+
+Codex puede reutilizar la traducción existente de FalsoNDK para convertir el control Xbox lógico a lo que el juego espera internamente. Eso no cambia el contrato: la **capa configurable es Xbox**.
+
+No introducir nombres Android en `controls.txt`, no documentarlos como opciones para el usuario y no obligar al usuario a conocer keycodes o ejes Android.
 
 ## Ejemplo de perfil Shooter manual
 
@@ -243,10 +278,10 @@ Compatibilidad:
 
 - Ignorar líneas vacías y comentarios `#`.
 - Ignorar claves físicas desconocidas con warning, sin abortar.
-- Si una acción lógica es desconocida, conservar el mapping default de ese botón y loguear warning.
+- Si un control Xbox lógico es desconocido, conservar el mapping default de ese botón y loguear warning.
 - No hacer crash por archivo incompleto.
 - Un archivo parcial debe sobrescribir sólo las entradas presentes; el resto conserva defaults.
-- Permitir duplicar una acción lógica en varios botones físicos para facilitar pruebas, pero registrar el mapping final completo al inicio.
+- Permitir duplicar un mismo control Xbox lógico en varios botones físicos para facilitar pruebas, pero registrar el mapping final completo al inicio.
 - No guardar/reordenar automáticamente el archivo del usuario durante el arranque.
 
 ## Logging requerido
@@ -254,19 +289,19 @@ Compatibilidad:
 Al cargar:
 
 ```text
-[INPUT] vita_mapping source=defaults
+[INPUT] vita_mapping source=defaults emulation=xbox
 ```
 
 o:
 
 ```text
-[INPUT] vita_mapping source=controls.txt
+[INPUT] vita_mapping source=controls.txt emulation=xbox
 ```
 
-Luego registrar una línea compacta con el mapping efectivo, por ejemplo:
+Luego registrar una línea compacta con el mapping Xbox efectivo, por ejemplo:
 
 ```text
-[INPUT] map cross=A circle=B square=X triangle=Y l=LT r=RT rear_left=LB rear_right=RB start=START select=BACK
+[INPUT] xbox_map cross=A circle=B square=X triangle=Y l=LT r=RT rear_left=LB rear_right=RB start=START select=BACK
 ```
 
 En Debug se pueden mantener trazas de transición. En Release evitar spam por frame; el mapping efectivo sólo necesita imprimirse al inicio.
@@ -275,20 +310,22 @@ En Debug se pueden mantener trazas de transición. En Release evitar spam por fr
 
 Extender `tests/run_gamepad_regression.sh`/tests relacionados para cubrir:
 
-1. archivo inexistente -> defaults actuales;
+1. archivo inexistente -> defaults actuales expresados como Xbox;
 2. archivo parcial -> sólo cambia lo especificado;
 3. perfil estándar explícito;
 4. perfil Shooter explícito;
 5. face buttons remapeados;
-6. `NONE`;
-7. nombre físico inválido;
-8. acción lógica inválida;
-9. duplicados lógicos permitidos;
-10. DS3/DS4 no afectados;
-11. release sin trazas por frame;
-12. reinicio de la app aplica cambios de archivo sin recompilar.
+6. `LS`/`RS` asignables a un botón físico;
+7. `NONE`;
+8. nombre físico inválido;
+9. control Xbox lógico inválido;
+10. duplicados lógicos permitidos;
+11. LT/RT digitales conservan semántica correcta de trigger Xbox;
+12. DS3/DS4 no afectados;
+13. Release sin trazas por frame;
+14. reinicio de la app aplica cambios de archivo sin recompilar.
 
-No declarar el mapping final correcto hasta recorrer el tutorial en Vita real y anotar qué acción realiza realmente cada botón.
+No declarar el mapping final correcto hasta recorrer el tutorial en Vita real y anotar qué acción realiza realmente cada control Xbox lógico.
 
 ---
 
@@ -298,7 +335,7 @@ No declarar el mapping final correcto hasta recorrer el tutorial en Vita real y 
 2. Analizar los logs físicos y decidir qué parte de `render_scale` es segura para integrar.
 3. Integrar primero el sistema de configuración de resolución de forma aislada.
 4. Build + host tests + Vita real.
-5. Después implementar `controls.txt` sin cambiar renderer/audio.
+5. Después implementar `controls.txt` como capa `PS Vita físico -> Xbox lógico`, sin cambiar renderer/audio.
 6. Hacer tests host de input.
 7. Probar en Vita real tutorial/menús/gameplay y corregir únicamente el mapping del archivo/defaults.
 8. Sólo cuando ambas funciones estén verificadas, actualizar documentación de estado y considerar limpiar/deprecar `vita_shooter`.
@@ -308,6 +345,7 @@ No declarar el mapping final correcto hasta recorrer el tutorial en Vita real y 
 La meta es que **un mismo Release VPK** pueda usarse para experimentar sin recompilar:
 
 - cambiar resolución editando `config.txt` y reiniciando;
-- cambiar botones Vita editando `controls.txt` y reiniciando;
-- preservar Android InputDevice/FalsoNDK, mandos externos, audio, renderer y SO canónico;
+- cambiar la emulación de botones Vita como mando Xbox editando `controls.txt` y reiniciando;
+- mantener la interfaz del usuario completamente en términos Xbox, aunque el backend interno use FalsoNDK/Android para comunicarse con el juego;
+- preservar mandos externos, audio, renderer y SO canónico;
 - producir logs que indiquen exactamente qué configuración estuvo activa durante cada prueba física.
