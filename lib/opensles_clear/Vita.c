@@ -18,6 +18,7 @@
 
 #include "sles_allinclusive.h"
 #include <vitasdk.h>
+#include <psp2/kernel/cpu.h>
 
 #include "utils/logger.h"
 #include "utils/perf.h"
@@ -26,6 +27,12 @@
 #else
 #define AUDIO_WARN(...) ((void)0)
 #endif
+
+/* Optional compressed-music mixer provided by source/utils/audio_stream.c.
+ * It never owns a second sceAudioOut port: music is mixed into this same
+ * OpenSL output buffer, matching MetalSyntax's single-mixer architecture. */
+extern void zombie_music_mix(int16_t *samples, unsigned frames);
+extern void zombie_music_shutdown(void);
 
 /** \brief Called by SDL to fill the next audio output buffer */
 static IEngine *slEngine;
@@ -68,15 +75,18 @@ static int opensles_output_freq(void) {
 static void fill_output_buffer(uint8_t *stream, SLuint32 size) {
 	sceClibMemset(stream, 0, (size_t)size);
 
-	if (NULL == slEngine) {
-		return;
+	if (NULL != slEngine) {
+		COutputMix *outputMix = slEngine->mOutputMix;
+		if (NULL != outputMix) {
+			SLOutputMixExtItf OutputMixExt = &outputMix->mOutputMixExt.mItf;
+			IOutputMixExt_FillBuffer(OutputMixExt, stream, size);
+		}
 	}
 
-	COutputMix *outputMix = slEngine->mOutputMix;
-	if (NULL != outputMix) {
-		SLOutputMixExtItf OutputMixExt = &outputMix->mOutputMixExt.mItf;
-		IOutputMixExt_FillBuffer(OutputMixExt, stream, size);
-	}
+	/* Stereo signed 16-bit PCM: four bytes per frame.  The compressed OGG
+	 * decoder works from RAM only here, so no filesystem I/O can stall this
+	 * real-time output thread. */
+	zombie_music_mix((int16_t *)stream, (unsigned)(size / 4));
 }
 
 #ifdef HAVE_PTHREAD
@@ -88,6 +98,13 @@ static int audioThread(unsigned int args, void *arg) {
 #ifndef HAVE_PTHREAD
 	(void)args;
 #endif
+
+	/* Keep audio decode/mix away from the main software-render thread.  This is
+	 * the same user-core separation used by MetalSyntax ports; failure is not
+	 * fatal and only leaves scheduling to the kernel. */
+	int affinity_res=sceKernelChangeThreadCpuAffinityMask(
+		sceKernelGetThreadId(),SCE_KERNEL_CPU_MASK_USER_1);
+	_log_print(1,"[AUDIO] mixer affinity user_core=1 result=0x%08X",(unsigned)affinity_res);
 
 	int ch = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, SndFile_BUFSIZE / 4,
 															 opensles_output_freq(),
@@ -196,7 +213,6 @@ void SDL_open(IEngine *thisEngine)
 #endif
 }
 
-
 /** \brief Called during Object::Destroy */
 
 void SDL_close(void)
@@ -219,6 +235,7 @@ void SDL_close(void)
 		sceAudioOutReleasePort(audio_port);
 		audio_port = -1;
 	}
+	zombie_music_shutdown();
 	audio_thread_running = 0;
 	audio_port = -1;
 	slEngine = NULL;
