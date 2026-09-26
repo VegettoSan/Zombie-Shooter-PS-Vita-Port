@@ -17,6 +17,7 @@
 void gamepad_config_load(void) __attribute__((weak));
 
 int setting_software_width;
+int setting_music_mode;
 int setting_vita_shooter;
 int  setting_sampleSetting;
 bool setting_sampleSetting2;
@@ -26,9 +27,10 @@ static void settings_load_dependent_configs(void) {
 }
 
 void settings_reset() {
-    /* Safe default for run #16 recovery: preserve the engine's original
-     * Android-selected work resolution and do not install the scale hook. */
+    /* Safe defaults for run #17 recovery: preserve the engine's original
+     * work resolution and do not install the PCM music hook. */
     setting_software_width = 0;
+    setting_music_mode = 0;
     setting_vita_shooter = 0; // Legacy fallback only; controls.txt wins on Vita.
     setting_sampleSetting  = 1;
     setting_sampleSetting2 = true;
@@ -43,8 +45,12 @@ void settings_save() {
         fprintf(config, "#   0   = original Android engine policy (~1024x580 on Vita, no scale hook)\n");
         fprintf(config, "#   960 = cap work surface to ~960x544\n");
         fprintf(config, "#   864 = cap work surface to ~864x489\n");
-        fprintf(config, "# Restart the game after changing this value.\n");
+        fprintf(config, "# music_mode modes:\n");
+        fprintf(config, "#   0 = original game M4A path; PCM sidecar hook is NOT installed\n");
+        fprintf(config, "#   1 = redirect the five music tracks to PCM16 WAV sidecars\n");
+        fprintf(config, "# Restart the game after changing these values.\n");
         fprintf(config, "software_width %d\n", setting_software_width);
+        fprintf(config, "music_mode %d\n", setting_music_mode);
         fprintf(config, "vita_shooter %d\n", setting_vita_shooter);
         fprintf(config, "%s %d\n", "setting_sampleSetting", (int)(setting_sampleSetting));
         fprintf(config, "%s %d\n", "setting_sampleSetting2", (int)(setting_sampleSetting2));
@@ -62,9 +68,8 @@ void settings_load() {
     FILE *config = fopen(CONFIG_FILE_PATH, "r");
 
     if (!config) {
-        /* DATA_PATH already exists when the canonical SO is loaded.  Create a
-         * documented, safe config on first boot so one VPK can exercise all
-         * three resolution modes without rebuilding. */
+        /* DATA_PATH already exists when the canonical SO is loaded. Create a
+         * documented safe config once; never overwrite it on later boots. */
         settings_save();
         settings_load_dependent_configs();
         return;
@@ -74,6 +79,10 @@ void settings_load() {
         if (sscanf(line, "%29s %d", buffer, &value) != 2) continue;
         if (strcmp("software_width", buffer) == 0) {
             setting_software_width = value==0 || value==864 || value==960 ? value : 0;
+            continue;
+        }
+        if (strcmp("music_mode", buffer) == 0) {
+            setting_music_mode = value == 1 ? 1 : 0;
             continue;
         }
         if (strcmp("vita_shooter", buffer) == 0) {
