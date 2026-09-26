@@ -40,7 +40,7 @@ void audio_perf_snapshot(AudioPerfStats *out) {
  * costs no atomic RMW on asset reads; only first registration uses CAS. */
 typedef struct { unsigned calls, bytes, samples, us, max_us, errors; } IOStats;
 typedef struct { unsigned calls, us, max_us, positive, infinite, max_timeout; } WaitStats;
-static struct { int owner; IOStats asset, file, read, asset_open, asset_seek, asset_open_ok, asset_open_fail, bulk_fill; WaitStats once, all; } slots[16];
+static struct { int owner; IOStats asset, file, read, asset_open, asset_seek, asset_open_ok, asset_open_fail, bulk_fill, engine[PERF_ENGINE_COUNT]; WaitStats once, all; } slots[16];
 static unsigned dropped_threads;
 static int slot_index(void) {
     int tid = sceKernelGetThreadId();
@@ -65,6 +65,10 @@ static void io_record(IOStats *s, int bytes, uint64_t start) {
 }
 void perf_bulk_memset(size_t bytes,uint64_t start) {
     int i=slot_index();io_record(i<0?NULL:&slots[i].bulk_fill,(int)bytes,start);
+}
+void perf_engine_phase(unsigned phase,uint64_t start) {
+    if(phase>=PERF_ENGINE_COUNT) return;
+    int i=slot_index();io_record(i<0?NULL:&slots[i].engine[phase],0,start);
 }
 #ifdef NDK_PORT
 /* At most one slow success/failure path per 5-second report. The short lock
@@ -161,7 +165,9 @@ ssize_t read_perf(int fd,void *buf,size_t count) {
 #endif
     io_record(s,(int)ret,start); return ret;
 }
+void raster_palette_report(void);
 void perf_report(void) {
+    raster_palette_report();
     static AudioPerfStats previous;
     static LoggerStats old_log;
     AudioPerfStats now; audio_perf_snapshot(&now);
@@ -190,6 +196,18 @@ void perf_report(void) {
             unsigned max=LOAD(&ws[j]->max_us); if(max>waits[j].max_us) waits[j].max_us=max;
             max=LOAD(&ws[j]->max_timeout); if(max>waits[j].max_timeout) waits[j].max_timeout=max;
         }
+    }
+    static IOStats old_engine[PERF_ENGINE_COUNT];
+    const char *phase_names[]={"graph", "software", "map", "pre", "post"};
+    for(unsigned j=0;j<PERF_ENGINE_COUNT;++j) {
+        IOStats total={0};
+        for(int i=0;i<16;++i) if(LOAD(&slots[i].owner)) {
+            IOStats *src=&slots[i].engine[j];
+            total.calls+=LOAD(&src->calls);total.us+=LOAD(&src->us);
+            unsigned max=LOAD(&src->max_us);if(max>total.max_us) total.max_us=max;
+        }
+        l_perf("engine phase=%s calls=%u total_us=%u max_us_lifetime=%u inclusive=1",phase_names[j],total.calls-old_engine[j].calls,total.us-old_engine[j].us,total.max_us);
+        old_engine[j]=total;
     }
     const char *names[]={"asset_sampled","fread","read","asset_open","asset_seek","asset_open_ok","asset_open_fail","bulk_fill"};
     for(int j=0;j<8;++j) {

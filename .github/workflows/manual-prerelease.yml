@@ -36,6 +36,11 @@ jobs:
           tests/run_logger_regression.sh
           bash tests/run_texture_update_regression.sh
           bash tests/run_asset_index_regression.sh
+          bash tests/run_engine_probe_regression.sh
+      - name: Palette ARM regression against canonical SO
+        run: |
+          python3 -m pip install --target /tmp/zombie-arm-test-deps unicorn==2.1.4 pyelftools==0.32
+          PYTHONPATH=/tmp/zombie-arm-test-deps bash tests/run_raster_palette_regression.sh
       - name: Build Debug VPK
         run: |
           set -euo pipefail

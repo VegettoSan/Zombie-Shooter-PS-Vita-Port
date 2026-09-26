@@ -31,6 +31,8 @@ extern "C"
 #include "utils/logger.h"
 #include "utils/dialog.h"
 #include "utils/so_trace.h"
+#include "utils/perf.h"
+#include "utils/engine_probe.h"
 #include "reimpl/sys.h"
 #include <stdbool.h>
 
@@ -317,6 +319,64 @@ void __kuser_memory_barrier(void) {
 	__sync_synchronize();
 }
 
+/* Low-frequency engine phases, no instruction writes/cache flush per call.
+ * These five canonical prologues end exactly at byte 8 and do not use PC.
+ * Opaque r0 return preserved; all explicit arguments are this + optional int.
+ * No floating-point, hidden result, or stack arguments in these signatures. */
+#ifdef NDK_PORT
+static uintptr_t engine_original[PERF_ENGINE_COUNT];
+#define ENGINE_INT_PROBE(tag, phase) \
+static uintptr_t probe_##tag(void *self,int argument) { \
+    uint64_t start=sceKernelGetProcessTimeWide(); \
+    uintptr_t ret=((uintptr_t (*)(void *,int))engine_original[phase])(self,argument); \
+    perf_engine_phase(phase,start);return ret; \
+}
+#define ENGINE_THIS_PROBE(tag, phase) \
+static uintptr_t probe_##tag(void *self) { \
+    uint64_t start=sceKernelGetProcessTimeWide(); \
+    uintptr_t ret=((uintptr_t (*)(void *))engine_original[phase])(self); \
+    perf_engine_phase(phase,start);return ret; \
+}
+ENGINE_INT_PROBE(graph,PERF_ENGINE_GRAPH)
+ENGINE_INT_PROBE(software,PERF_ENGINE_SOFTWARE)
+ENGINE_THIS_PROBE(map,PERF_ENGINE_MAP)
+ENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)
+ENGINE_INT_PROBE(post,PERF_ENGINE_POST)
+void raster_palette_install(void);
+static void install_engine_probes(void) {
+    static const struct {
+        const char *symbol;unsigned offset;uint32_t prologue[2];uintptr_t replacement;
+    } probes[]={
+        {"_ZN5GRAPH4TactEi",0x410a30,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_graph},
+        {"_ZN5GRAPH12softwareTactEi",0x410458,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_software},
+        {"_ZN3MAP4tactEv",0x4372c4,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_map},
+        {"_ZN8OpenGLES7preTactEv",0x46aa2c,{0xaf03b5f0,0xbd04f84d},(uintptr_t)probe_pre},
+        {"_ZN8OpenGLES8PostTactEi",0x46af1c,{0xaf03b5f0,0x8d04f84d},(uintptr_t)probe_post}
+    };
+    for(unsigned i=0;i<PERF_ENGINE_COUNT;++i) {
+        uintptr_t address=(uintptr_t)so_symbol(&so_mod,probes[i].symbol);
+        uintptr_t entry=address&~(uintptr_t)1;
+        uintptr_t arena=(so_mod.patch_head+3)&~(uintptr_t)3;
+        if(!(address&1) || entry!=so_mod.load_addr+probes[i].offset ||
+           arena<so_mod.patch_base || arena>so_mod.patch_base+so_mod.patch_size ||
+           so_mod.patch_base+so_mod.patch_size-arena<16) {
+            l_warn("[PATCH] engine probe disabled: %s address/arena mismatch",probes[i].symbol);continue;
+        }
+        uint32_t code[4];
+        if(!engine_probe_trampoline(code,(void *)entry,probes[i].prologue,(uint32_t)(entry+8))) {
+            l_warn("[PATCH] engine probe disabled: %s prologue mismatch",probes[i].symbol);continue;
+        }
+        sceClibMemcpy((void *)arena,code,sizeof(code));
+        engine_original[i]=arena|1;
+        so_mod.patch_head=arena+sizeof(code);
+        hook_addr(address,probes[i].replacement);
+        kuKernelFlushCaches((void *)arena,sizeof(code));
+        kuKernelFlushCaches((void *)entry,8);
+        l_info("[PATCH] engine probe installed: %s so+0x%X",probes[i].symbol,probes[i].offset);
+    }
+}
+#endif
+
 static void patch_kuser_pointer(const char *symbol, uint32_t android_addr,
 		uint32_t vita_addr) {
 	uintptr_t symbol_addr = so_symbol(&so_mod, symbol);
@@ -390,6 +450,8 @@ void so_patch(void) {
 	kuser_patch();
 #ifdef NDK_PORT
 	install_startup_diagnostics();
+	install_engine_probes();
+	raster_palette_install();
 #endif
 	// Sample hook with symbol name
 	// hook_addr((uintptr_t)so_symbol(&so_mod, "_ZN6glitch2os7Printer5printEPKcz"), (uintptr_t)&hookedFunction);

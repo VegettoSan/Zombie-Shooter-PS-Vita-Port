@@ -21,7 +21,8 @@ static struct DirectoryIndex {
     uint64_t *hashes;
     unsigned count, capacity;
     int state; /* 0 unbuilt, 1 complete, -1 uncertain: original path only */
-} directories[]={{"vid/",0,0,0,0},{"menus/img/",0,0,0,0},{"menus/items/",0,0,0,0}};
+} directories[]={{"vid/",0,0,0,0},{"menus/img/",0,0,0,0},{"menus/items/",0,0,0,0},
+    {"menus/",0,0,0,0},{"menus/rpg/",0,0,0,0},{"menus/img/supply_boxes/",0,0,0,0}};
 static pthread_mutex_t index_lock=PTHREAD_MUTEX_INITIALIZER;
 static struct { unsigned lookups,present,absent,fallback,builds,failed,listed,build_us; } stats;
 /* Conservative ASCII leaves. Avoid aliases, separators, wildcard/path syntax,

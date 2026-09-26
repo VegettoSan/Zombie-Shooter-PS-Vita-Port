@@ -1,5 +1,32 @@
 # Zombie Shooter Vita: mapa confirmado
 
+## Baseline físico pase5: log_0009 y pase6 (2026-09-26)
+
+Usuario completó tutorial/nivel2 con zombies, disparos y explosiones; build
+local-35ea6e0-9c21ebbd26 verificada en ese recorrido. Sondas de las cinco fases
+funcionan: software49,30ms/frame en ventanas20–48 (~10,05FPS),60,89ms en61–66
+(~8,65FPS). Map incluye software/graph: no sumar tiempos. Índice6 carpetas sinfallos.
+Pase6 acelera ocho rutinas palette SOFT_DRAW relacionadas con esa fase, mediante
+punteros locales y bloquesNEON exactos; filas<32 conservan camino original directo.
+No cambia escena/resolución/efectos. Equivalencia contra ARM canónico:792casos por
+O0/O3, dispatcher/trampolines/ABI y regresiones pasan. Debug/Release/VPK nuevos
+local-35ea6e0-99f6b9bfcf verificados; uso real de rutas rápidas y nuevosFPS pendientes Vita.
+Detalle: docs/PERFORMANCE_PASS_6_2026-09-26.md. SO/NativeActivity/SoftFP intactos.
+
+
+## Baseline físico pase 4: log_0008 (2026-09-26)
+
+Release local-8282fe9-64dee46461: usuario confirma Loading inicial ~2 minutos;
+FPS prácticamente iguales (+1 ocasional). Índice3 carpetas/1271 entradas/16 KiB,
+0 fallos de construcción. El coste de opens fallidos del tramo inicial bajó;
+no se registra mejora sostenida de FPS. Ventanas39–46:8,473FPS, TexSub21,583ms/frame,
+opens agregados395ms/40,363s; draws CPU muestreados pequeños, no medición GPU.
+Pase5: ampliar índice a tres carpetas con fallos lentos observados y medir cinco
+fases del motor con trampolines exactos y guardados. Nueva build local-35ea6e0-9c21ebbd26,
+Debug/Release/VPK verificados; ejecución de sondas y FPS nuevos pendientes Vita.
+Informe docs/PERFORMANCE_PASS_5_2026-09-26.md; SO/ABI/NativeActivity intactos.
+
+
 ## Baseline físico pase 3: log_0007 (2026-09-26)
 
 Build local-8282fe9-b3b1dfa9b9, MSAA NONE y RGB565 optimizado confirmados.

@@ -35,7 +35,7 @@ static void *checked_realloc(void *ptr,size_t n) { return fail_alloc?NULL:reallo
 static void l_perf(const char *fmt,...) { (void)fmt; }
 #include "utils/asset_index.c"
 static void reset(void) {
-    for(unsigned i=0;i<3;++i) {
+    for(unsigned i=0;i<sizeof(directories)/sizeof(directories[0]);++i) {
         free(directories[i].hashes);directories[i].hashes=NULL;
         directories[i].count=directories[i].capacity=0;directories[i].state=0;
     }
@@ -64,6 +64,13 @@ int main(void) {
     assert(!asset_index_missing(NULL));assert(opens==1);
     assert(asset_index_missing("menus/img/missing.png"));
     assert(asset_index_missing("menus/items/missing.png"));assert(opens==3 && closes==3);
+    assert(asset_index_missing("menus/missing.bmp"));
+    assert(asset_index_missing("menus/rpg/missing.png"));
+    assert(asset_index_missing("menus/img/supply_boxes/missing.png"));
+    assert(opens==6 && closes==6);
+    /* Parent prefix must not prevent a deeper supported directory match. */
+    assert(!asset_index_missing("menus/rpg/game_logo.png"));
+    assert(!asset_index_missing("menus/img/supply_boxes/game_logo.png"));
     for(int f=1;f<=4;++f) {
         reset();fault=f;
         assert(!asset_index_missing("vid/missing.png")); /* unknown never becomes absence */
