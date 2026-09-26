@@ -40,16 +40,17 @@ Receta exacta e instrucciones: `docs/REPRODUCIBLE_BUILD.md`.
 
 ## HIPÓTESIS y pendientes
 
-El último crash limpio aportado por el usuario tiene PC `0x8100AFB8`, LR
-`0x983CBB31`, DFAR `0x0000776F`. La ruta GetFieldID → GetObjectField →
-GetArrayLength → GetObjectArrayElement y el fieldID 0 de WINDOW_SERVICE pueden
-confundir un field desconocido (NULL=0) con `"window"`. Sus bytes en +4 coinciden
-con DFAR. Las tablas locales efectivamente usan ID 0 para WINDOW_SERVICE.
-Es una hipótesis fuerte, no una corrección verificada. Se conserva el puente JNI
-local sin cambiar IDs/arrays antes de probar el baseline en hardware.
+La colisión JNI ya se confirmó en Release run 12: PC `0x8100B834`, LR
+`0x983CBB31`, DFAR `0x0000776F`. `signatures` ausente retorna ID 0 y se confunde
+con WINDOW_SERVICE. Debug lee falsa longitud 0 por su layout; Release lee 105
+y accede a 0x776F. Evidencia: `docs/CRASH_RELEASE_JNI_2026-09-25.md`.
+En esta iteración local se reservan IDs no NULL y los fields object ausentes
+retornan NULL. La prueba de regresión pasa O0/O3 y ambos VPK compilan; queda
+pendiente confirmar en hardware el Release corregido. No se publica esta
+iteración bajo la autorización excepcional anterior.
 
 Continúan abiertos estabilidad al reentrar/cambiar zona, audio, FPS, controles
-físicos y la posible colisión JNI. Siguiente iteración: instalar este Debug en
+físicos y la validación física del cambio JNI. Siguiente iteración: instalar este Debug en
 Vita real, reproducir el recorrido que arrancaba y después la transición problemática;
 recoger sólo el último log y un dump nuevo, comparándolos con el ELF de este build.
 

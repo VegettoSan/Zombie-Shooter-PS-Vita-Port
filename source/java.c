@@ -142,9 +142,16 @@ char WINDOW_SERVICE[] = "window";
 // Possible values: https://developer.android.com/reference/android/os/Build.VERSION_CODES
 const int SDK_INT = 24; // Matches the APK's minSdk and native build target.
 
+/* JNI NULL (0) is reserved for an unknown field. These IDs are opaque:
+ * native callers obtain them by name, never by a hardcoded numeric value. */
+enum {
+    FIELD_WINDOW_SERVICE = 1000,
+    FIELD_SDK_INT = 1001,
+};
+
 NameToFieldID nameToFieldId[] = {
-		{ 0, "WINDOW_SERVICE", FIELD_TYPE_OBJECT }, 
-		{ 1, "SDK_INT", FIELD_TYPE_INT },
+		{ FIELD_WINDOW_SERVICE, "WINDOW_SERVICE", FIELD_TYPE_OBJECT },
+		{ FIELD_SDK_INT, "SDK_INT", FIELD_TYPE_INT },
 };
 
 FieldsBoolean fieldsBoolean[] = {};
@@ -153,10 +160,10 @@ FieldsChar fieldsChar[] = {};
 FieldsDouble fieldsDouble[] = {};
 FieldsFloat fieldsFloat[] = {};
 FieldsInt fieldsInt[] = {
-		{ 1, SDK_INT },
+		{ FIELD_SDK_INT, SDK_INT },
 };
 FieldsObject fieldsObject[] = {
-		{ 0, WINDOW_SERVICE },
+		{ FIELD_WINDOW_SERVICE, WINDOW_SERVICE },
 };
 FieldsLong fieldsLong[] = {};
 FieldsShort fieldsShort[] = {};

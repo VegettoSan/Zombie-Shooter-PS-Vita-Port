@@ -1,5 +1,14 @@
 # Progreso del port
 
+## Checkpoint actual: crash Release JNI al salir del logo VitaGL
+
+- Hardware: Release de run 12 cae; Debug de run 12 arranca según el usuario.
+- Dump `psp2core-1790390763-0x000005349b-eboot.bin.psp2dmp`: PC=0x8100B834 en GetObjectArrayElement, LR=0x983CBB31 en checkPackageCertificate, DFAR=0x776F; índice 0 y base 0x776F.
+- Confirmado: signatures desconocido retorna fieldID NULL=0 y se confunde con WINDOW_SERVICE="window". Debug lee longitud 0 en los datos siguientes; Release lee 105 e intenta usar los bytes +4 como puntero.
+- Fix mínimo: reservar IDs no NULL en las tablas y devolver NULL para fields object ausentes. Se versiona en falso_jni.patch y su lock; no cambian flags, VitaGL ni el SO.
+- Regresión sobre fuentes reales: falla antes; pasa con O0/O3 después, conservando WINDOW_SERVICE, SDK_INT=24 y arrays válidos. Builds Debug/Release y VPK ZIP verificados; falta probar este cambio en Vita.
+- Evidencia y desensamblado: `docs/CRASH_RELEASE_JNI_2026-09-25.md`. Siguiente prueba: Release nuevo hasta menú/tutorial; último log y dump si cae.
+
 ## Checkpoint actual: segunda espera OpenSL ES durante el tutorial
 
 - Vita real `log_0014.log`: el límite previo de `IBufferQueue_Clear` se activó cuatro veces y permitió continuar moviéndose y disparando. El juego siguió sin sonido, a 4–7 FPS, antes de congelarse. Tras 48 s sin un present, el watchdog Debug generó deliberadamente `psp2core-1790322024-0x0001423379-eboot.bin.psp2dmp`.

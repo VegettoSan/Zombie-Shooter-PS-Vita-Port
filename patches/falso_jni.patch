@@ -117,3 +117,19 @@ index cfea61b..ea6e96a 100644
 +    va_end(args);
  #endif
  }
+diff --git a/FalsoJNI_ImplBridge.c b/FalsoJNI_ImplBridge.c
+index 127dd72..dd1e6c0 100644
+--- a/FalsoJNI_ImplBridge.c
++++ b/FalsoJNI_ImplBridge.c
+@@ -88,3 +88,10 @@ jsize getFieldTypeSize(FIELD_TYPE fieldType) {
+ jobject getObjectFieldValueById(jfieldID id) {
+-    getFieldValueById(jobject, FIELD_TYPE_OBJECT, FieldsObject, fieldsObject, fieldsObject_size, id, (jobject)0x42424242);
++    // ID 0 is JNI NULL, never a valid object field. Both GetObjectField and
++    // GetStaticObjectField use this path; missing fields must not become
++    // a string or the activity sentinel masquerading as a Java array.
++    if (!id) {
++        fjni_log_warn("Object field ID 0 is invalid: returning NULL");
++        return NULL;
++    }
++    getFieldValueById(jobject, FIELD_TYPE_OBJECT, FieldsObject, fieldsObject, fieldsObject_size, id, NULL);
+ }

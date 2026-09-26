@@ -24,3 +24,6 @@ cmake --build build-session-debug -j"$(nproc)"
 ```
 
 Véase `docs/REPRODUCIBLE_BUILD.md` para instalar el SDK exacto y ambos builds.
+
+La iteración JNI posterior a la restauración añade IDs object no NULL y retorno NULL
+para campos ausentes; véase `docs/CRASH_RELEASE_JNI_2026-09-25.md`.
