@@ -18,7 +18,6 @@ void gamepad_config_load(void) __attribute__((weak));
 
 int setting_software_width;
 int setting_music_mode;
-int setting_perf_probes;
 int setting_vita_shooter;
 int  setting_sampleSetting;
 bool setting_sampleSetting2;
@@ -29,11 +28,10 @@ static void settings_load_dependent_configs(void) {
 
 void settings_reset() {
     /* 864x489 is now physically validated on real Vita and is the preferred
-     * baseline. Music experiments stay opt-in. Detailed engine-phase probes
-     * are disabled for normal play now that their bottlenecks are known. */
+     * baseline. Keep replacement music opt-in until each backend is physically
+     * validated. */
     setting_software_width = 864;
     setting_music_mode = 0;
-    setting_perf_probes = 0;
     setting_vita_shooter = 0; // Legacy fallback only; controls.txt wins on Vita.
     setting_sampleSetting  = 1;
     setting_sampleSetting2 = true;
@@ -52,13 +50,9 @@ void settings_save() {
         fprintf(config, "#   0 = no replacement music backend; stable/silent fallback\n");
         fprintf(config, "#   1 = LEGACY PCM16 WAV hook; confirmed OpenSL crash, diagnostic only\n");
         fprintf(config, "#   2 = compressed OGG/Vorbis Vita mixer; no giant PCM WAV files\n");
-        fprintf(config, "# perf_probes modes:\n");
-        fprintf(config, "#   0 = normal play/performance; skip detailed engine phase hooks\n");
-        fprintf(config, "#   1 = diagnostics; enable GRAPH/software/MAP/OpenGLES/collector timing hooks\n");
         fprintf(config, "# Restart the game after changing these values.\n");
         fprintf(config, "software_width %d\n", setting_software_width);
         fprintf(config, "music_mode %d\n", setting_music_mode);
-        fprintf(config, "perf_probes %d\n", setting_perf_probes);
         fprintf(config, "vita_shooter %d\n", setting_vita_shooter);
         fprintf(config, "%s %d\n", "setting_sampleSetting", (int)(setting_sampleSetting));
         fprintf(config, "%s %d\n", "setting_sampleSetting2", (int)(setting_sampleSetting2));
@@ -91,10 +85,6 @@ void settings_load() {
         }
         if (strcmp("music_mode", buffer) == 0) {
             setting_music_mode = value>=0 && value<=2 ? value : 0;
-            continue;
-        }
-        if (strcmp("perf_probes", buffer) == 0) {
-            setting_perf_probes = value == 1;
             continue;
         }
         if (strcmp("vita_shooter", buffer) == 0) {
