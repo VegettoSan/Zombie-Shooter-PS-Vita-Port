@@ -166,8 +166,10 @@ ssize_t read_perf(int fd,void *buf,size_t count) {
     io_record(s,(int)ret,start); return ret;
 }
 void raster_palette_report(void);
+void raster_alpha_report(void);
 void perf_report(void) {
     raster_palette_report();
+    raster_alpha_report();
     static AudioPerfStats previous;
     static LoggerStats old_log;
     AudioPerfStats now; audio_perf_snapshot(&now);
@@ -198,7 +200,7 @@ void perf_report(void) {
         }
     }
     static IOStats old_engine[PERF_ENGINE_COUNT];
-    const char *phase_names[]={"graph", "software", "map", "pre", "post"};
+    const char *phase_names[]={"graph", "software", "map", "pre", "post", "collector"};
     for(unsigned j=0;j<PERF_ENGINE_COUNT;++j) {
         IOStats total={0};
         for(int i=0;i<16;++i) if(LOAD(&slots[i].owner)) {

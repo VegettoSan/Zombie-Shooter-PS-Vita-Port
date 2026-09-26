@@ -342,7 +342,15 @@ ENGINE_INT_PROBE(software,PERF_ENGINE_SOFTWARE)
 ENGINE_THIS_PROBE(map,PERF_ENGINE_MAP)
 ENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)
 ENGINE_INT_PROBE(post,PERF_ENGINE_POST)
+/* DrawLayer has two by-reference VECTOR2s (pointer arguments), two bools on
+ * incoming stack; no float ABI. Timed once per layer, not once per pixel. */
+static uintptr_t probe_collector(void *self,int layer,const void *a,const void *b,bool c,bool d) {
+    uint64_t start=sceKernelGetProcessTimeWide();
+    uintptr_t ret=((uintptr_t (*)(void *,int,const void *,const void *,bool,bool))engine_original[PERF_ENGINE_COLLECTOR])(self,layer,a,b,c,d);
+    perf_engine_phase(PERF_ENGINE_COLLECTOR,start);return ret;
+}
 void raster_palette_install(void);
+void raster_alpha_install(void);
 static void install_engine_probes(void) {
     static const struct {
         const char *symbol;unsigned offset;uint32_t prologue[2];uintptr_t replacement;
@@ -351,7 +359,8 @@ static void install_engine_probes(void) {
         {"_ZN5GRAPH12softwareTactEi",0x410458,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_software},
         {"_ZN3MAP4tactEv",0x4372c4,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_map},
         {"_ZN8OpenGLES7preTactEv",0x46aa2c,{0xaf03b5f0,0xbd04f84d},(uintptr_t)probe_pre},
-        {"_ZN8OpenGLES8PostTactEi",0x46af1c,{0xaf03b5f0,0x8d04f84d},(uintptr_t)probe_post}
+        {"_ZN8OpenGLES8PostTactEi",0x46af1c,{0xaf03b5f0,0x8d04f84d},(uintptr_t)probe_post},
+        {"_ZNK16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb",0x4f4b20,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_collector}
     };
     for(unsigned i=0;i<PERF_ENGINE_COUNT;++i) {
         uintptr_t address=(uintptr_t)so_symbol(&so_mod,probes[i].symbol);
@@ -452,6 +461,7 @@ void so_patch(void) {
 	install_startup_diagnostics();
 	install_engine_probes();
 	raster_palette_install();
+	raster_alpha_install();
 #endif
 	// Sample hook with symbol name
 	// hook_addr((uintptr_t)so_symbol(&so_mod, "_ZN6glitch2os7Printer5printEPKcz"), (uintptr_t)&hookedFunction);

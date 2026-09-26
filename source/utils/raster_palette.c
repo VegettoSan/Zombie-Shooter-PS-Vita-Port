@@ -9,6 +9,7 @@
 extern so_module so_mod;
 typedef void (*PaletteOriginal)(void *,uint32_t **,const uint32_t *,uint16_t **,uint16_t **,uint8_t **,int,int);
 static PaletteOriginal originals[8];
+static unsigned installed;
 static struct { unsigned calls,fast,pixels,vector,skipped,samples,us,max; } counters[8];
 #define ADD(p,v) __atomic_fetch_add((p),(v),__ATOMIC_RELAXED)
 #define LOAD(p) __atomic_load_n((p),__ATOMIC_RELAXED)
@@ -59,10 +60,12 @@ void raster_palette_install(void) {
         sceClibMemcpy((void *)(arena+size),dispatch,sizeof(dispatch));
         so_mod.patch_head=arena+allocation;hook_addr(addr,arena+size);
         kuKernelFlushCaches((void *)arena,allocation);kuKernelFlushCaches((void *)entry,(entry&2)?10:8);
+        installed|=1u<<i;
         l_info("[PATCH] palette row %u installed: so+0x%X",i,hooks[i].offset);
     }
 }
 void raster_palette_report(void) {
+    l_perf("palette_hooks installed_mask=%u expected_mask=255 min_count=32",installed);
     static unsigned previous[8][7];
     for(unsigned i=0;i<8;++i) {
         unsigned now[]={LOAD(&counters[i].calls),LOAD(&counters[i].fast),LOAD(&counters[i].pixels),LOAD(&counters[i].vector),LOAD(&counters[i].skipped),LOAD(&counters[i].samples),LOAD(&counters[i].us)};

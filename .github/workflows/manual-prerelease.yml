@@ -41,6 +41,7 @@ jobs:
         run: |
           python3 -m pip install --target /tmp/zombie-arm-test-deps unicorn==2.1.4 pyelftools==0.32
           PYTHONPATH=/tmp/zombie-arm-test-deps bash tests/run_raster_palette_regression.sh
+          PYTHONPATH=/tmp/zombie-arm-test-deps bash tests/run_raster_alpha_regression.sh
       - name: Build Debug VPK
         run: |
           set -euo pipefail

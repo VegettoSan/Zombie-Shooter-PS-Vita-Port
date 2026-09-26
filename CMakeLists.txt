@@ -134,6 +134,7 @@ set(SOURCES
     source/utils/perf.c
     source/utils/asset_index.c
     source/utils/raster_palette.c
+    source/utils/raster_alpha.c
     source/utils/settings.c
     source/utils/utils.c
     lib/falso_jni/FalsoJNI.c

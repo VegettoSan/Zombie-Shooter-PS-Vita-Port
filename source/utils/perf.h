@@ -13,7 +13,7 @@ void audio_perf_output(int result);
 void audio_perf_snapshot(AudioPerfStats *out);
 void perf_bulk_memset(size_t bytes, uint64_t start);
 enum { PERF_ENGINE_GRAPH, PERF_ENGINE_SOFTWARE, PERF_ENGINE_MAP,
-       PERF_ENGINE_PRE, PERF_ENGINE_POST, PERF_ENGINE_COUNT };
+       PERF_ENGINE_PRE, PERF_ENGINE_POST, PERF_ENGINE_COLLECTOR, PERF_ENGINE_COUNT };
 void perf_engine_phase(unsigned phase, uint64_t start);
 void perf_report(void);
 #ifdef __cplusplus

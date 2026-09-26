@@ -1,5 +1,21 @@
 # Actualización 2026-09-25: nuevo baseline funcional
 
+## Pase7 y resultado físico pase6 (2026-09-26)
+
+Usuario/log0010: FPS parecidos, carga inicial casi2min; NO mejora confirmada
+pase6. No hay contadores palette de filas>=32: cobertura desconocida; ahora
+máscara instalación visible. Software47,74ms/frame ventanas19–48 (~10,54FPS),
+59,92ms en79–96 (~8,47FPS); map incluye software/graph. Primeras17ventanas:
+asset_open_ok54,60s (incluye carga buffer/cierre), shader_link5,91s; los
+shaders medidos no explican toda la demora. Carga inicial sigue pendiente.
+Pase7 adapta dos rutinas alpha32 diferentes usadas por VID_SOFTWARE::draw_impl,
+NEON8píxeles y mezcla escalar exacta; Zreadonly/transparencia original, fallback
+conservador. Nueva sonda collector y counters alpha incluso0. Equivalencia
+contra ARM original432casos/O0/O3 +54entradas SO parcheadas/ABI/fallback pasan.
+Debug/Release/VPK local-b827208-4403ffbcce verificados; FPS reales nuevos PENDIENTES Vita.
+Detalles: docs/PERFORMANCE_PASS_7_2026-09-26.md. NativeActivity/SoftFP/SO intactos.
+
+
 ## Baseline físico pase5: log_0009 y pase6 (2026-09-26)
 
 Usuario completó tutorial/nivel2 con zombies, disparos y explosiones; build
