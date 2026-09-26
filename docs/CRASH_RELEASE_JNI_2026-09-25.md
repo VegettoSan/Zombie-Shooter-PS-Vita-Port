@@ -76,13 +76,13 @@ La prueba host omite únicamente el helper variádico ARM _AtoV, incompatible co
 va_list array de x86_64 y ajeno al camino probado; no sustituye los getters.
 
 Debug y Release se reconstruyen con el SDK SoftFP y pasan validación ZIP del VPK.
-BUILD VERIFIED / VPK VERIFIED; pendiente REAL VITA VERIFIED del cambio JNI.
-La evidencia física confirma el bug anterior y el arranque del Debug anterior.
+BUILD VERIFIED / VPK VERIFIED / **REAL VITA VERIFIED** del cambio JNI.
+El usuario probó el Release de master bd2dc1a: tutorial, movimiento, disparos,
+explosiones y audio funcionan; estabilidad inicial con aproximadamente 5 FPS.
 
-Prueba siguiente: instalar el Release local nuevo, mantener los mismos assets y
-recorrido, comprobar si supera el logo y llega al menú/tutorial. Si falla, devolver
-el último log y su dump nuevo. No mezclar dumps de los VPK anteriores con símbolos
-nuevos. Los archivos de prueba originales permanecen intactos.
+La primera prueba física del fix ya se completó. Siguiente prueba: Release del
+pase de rendimiento 1, mismos assets/tutorial y log con identidad de build.
+Los archivos de prueba originales permanecen intactos.
 
-No se hizo commit, fetch, push ni lanzamiento de Actions en esta iteración:
-la excepción de publicación de la restauración anterior ya terminó.
+El fix fue publicado como bd2dc1a8bd6067d0508381a5f4a8e1d8748b9969 y ya
+pertenecía a master/origin/master al comenzar el pase de rendimiento 1.

@@ -36,6 +36,14 @@ void glDeleteBuffers_soloader(GLsizei n, const GLuint *buffers);
 void glGetIntegerv_soloader(GLenum pname, GLint *data);
 void glDrawElements_soloader(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices);
 
+void glDrawArrays_soloader(GLenum mode, GLint first, GLsizei count);
+void glFinish_soloader(void);
+void glFlush_soloader(void);
+void glBufferData_soloader(GLenum target, GLsizei size, const GLvoid *data, GLenum usage);
+void glBufferSubData_soloader(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data);
+void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data);
+void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data);
+
 void glCompileShader_soloader(GLuint shader);
 
 void glShaderSource_soloader(GLuint shader, GLsizei count,

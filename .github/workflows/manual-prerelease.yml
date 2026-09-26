@@ -29,11 +29,16 @@ jobs:
           fetch-depth: 0
       - name: Install the exact functional local SoftFP SDK
         run: bash scripts/install_baseline_sdk.sh
+      - name: Host regressions
+        run: |
+          tests/run_jni_field_regression.sh
+          tests/run_gl_buffer_regression.sh
+          tests/run_logger_regression.sh
       - name: Build Debug VPK
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-session-debug -DCMAKE_BUILD_TYPE=Debug
+          cmake -S . -B build-session-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
           cmake --build build-session-debug -j"$(nproc)" 2>&1 | tee build-debug.log
           test -s build-session-debug/zombie_shooter.vpk
           unzip -t build-session-debug/zombie_shooter.vpk
@@ -41,10 +46,11 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-session-release -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build-session-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
           cmake --build build-session-release -j"$(nproc)" 2>&1 | tee build-release.log
           test -s build-session-release/zombie_shooter.vpk
           unzip -t build-session-release/zombie_shooter.vpk
+          python3 scripts/check_release_flags.py build-session-release
       - name: Record baseline evidence and package two VPKs
         id: meta
         run: |
@@ -86,7 +92,9 @@ jobs:
           prerelease: true
           make_latest: false
           body: |
-            Restored functional local baseline, built with its exact SoftFP SDK.
+            Performance pass 1: quiet Release, GL binding fast path and aggregate profiling.
+            Baseline bd2dc1a was verified on real Vita at approximately 5 FPS with audio.
+            New performance result requires a physical Vita test.
             Commit: `${{ github.sha }}`
             Includes exactly Debug and Release loader VPKs; game assets are not packaged.
             Physical Vita verification remains separate from build verification.

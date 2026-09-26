@@ -140,11 +140,18 @@ void soloader_init_all() {
             sceAppMgrLoadExec("app0:/configurator.bin", NULL, NULL);
     }
 
-    scePowerSetArmClockFrequency(444);
-    scePowerSetBusClockFrequency(222);
-    scePowerSetGpuClockFrequency(222);
-    scePowerSetGpuXbarClockFrequency(166);
-    l_info("Clocks set: ARM 444 / BUS 222 / GPU 222 / XBAR 166");
+    /* Read failure leaves the external setting untouched; never lower PSVshell. */
+    int arm = scePowerGetArmClockFrequency();
+    int bus = scePowerGetBusClockFrequency();
+    int gpu = scePowerGetGpuClockFrequency();
+    int xbar = scePowerGetGpuXbarClockFrequency();
+    if (arm > 0 && arm < 444) scePowerSetArmClockFrequency(444);
+    if (bus > 0 && bus < 222) scePowerSetBusClockFrequency(222);
+    if (gpu > 0 && gpu < 222) scePowerSetGpuClockFrequency(222);
+    if (xbar > 0 && xbar < 166) scePowerSetGpuXbarClockFrequency(166);
+    l_perf("clocks arm=%d bus=%d gpu=%d xbar=%d", scePowerGetArmClockFrequency(),
+           scePowerGetBusClockFrequency(), scePowerGetGpuClockFrequency(),
+           scePowerGetGpuXbarClockFrequency());
 
 #ifdef USE_SCELIBC_IO
     l_info("Initializing FIOS with path %s ...", DATA_PATH);

@@ -20,8 +20,10 @@
         case ANDROID_LOG_WARN: \
             l_warn("[ALOG][%s] %s", tag, text); \
             break; \
-        case ANDROID_LOG_ERROR: \
         case ANDROID_LOG_FATAL: \
+            l_fatal("[ALOG][%s] %s", tag, text); \
+            break; \
+        case ANDROID_LOG_ERROR: \
             l_error("[ALOG][%s] %s", tag, text); \
             break; \
         case ANDROID_LOG_UNKNOWN: \
@@ -40,6 +42,9 @@ int __android_log_write(int prio, const char* tag, const char* text) {
 }
 
 int __android_log_print(int prio, const char* tag, const char* fmt, ...) {
+    #ifdef ZOMBIE_RELEASE_BUILD
+    if (prio < ANDROID_LOG_ERROR) return 0;
+    #endif
     va_list list;
     char text[1024];
 
@@ -53,6 +58,9 @@ int __android_log_print(int prio, const char* tag, const char* fmt, ...) {
 }
 
 int __android_log_vprint(int prio, const char* tag, const char* fmt, va_list ap) {
+#ifdef ZOMBIE_RELEASE_BUILD
+    if (prio < ANDROID_LOG_ERROR) return 0;
+#endif
     char text[1024];
 
     sceClibVsnprintf(text, sizeof(text), fmt, ap);

@@ -39,6 +39,7 @@
 #include "utils/glutil.h"
 #include "utils/utils.h"
 #include "utils/logger.h"
+#include "utils/perf.h"
 
 #ifdef USE_SCELIBC_IO
 #include <libc_bridge/libc_bridge.h>
@@ -63,6 +64,13 @@
 #include <falso_ndk/linux/fndk_eventfd.h>
 #endif
 
+size_t fread_perf(void *, size_t, size_t, FILE *);
+ssize_t read_perf(int, void *, size_t);
+#ifdef NDK_PORT
+int AAsset_read_perf(AAsset *, void *, size_t);
+int ALooper_pollOnce_perf(int, int *, int *, void **);
+int ALooper_pollAll_perf(int, int *, int *, void **);
+#endif
 const unsigned int __page_size = PAGE_SIZE;
 
 extern void * _ZNSt9exceptionD2Ev;
@@ -137,6 +145,7 @@ static FILE *bionic_stdout;
 static FILE *bionic_stderr;
 
 void *dlsym_soloader(void * handle, const char * symbol);
+static void (*eglGetProcAddress_soloader(const char *name))(void);
 
 so_default_dynlib default_dynlib[] = {
         // Common C/C++ internals
@@ -327,7 +336,7 @@ so_default_dynlib default_dynlib[] = {
         { "AAsset_close", (uintptr_t)&AAsset_close },
         { "AAsset_getLength", (uintptr_t)&AAsset_getLength },
         { "AAsset_getRemainingLength", (uintptr_t)&AAsset_getRemainingLength },
-        { "AAsset_read", (uintptr_t)&AAsset_read },
+        { "AAsset_read", (uintptr_t)&AAsset_read_perf },
         { "AAsset_seek", (uintptr_t)&AAsset_seek },
         { "AAsset_openFileDescriptor", (uintptr_t)&AAsset_openFileDescriptor },
         { "AAssetDir_close", (uintptr_t)&AAssetDir_close },
@@ -359,8 +368,8 @@ so_default_dynlib default_dynlib[] = {
         {"AKeyEvent_getAction", (uintptr_t)&AKeyEvent_getAction},
         {"AKeyEvent_getKeyCode", (uintptr_t)&AKeyEvent_getKeyCode},
         {"ALooper_addFd", (uintptr_t)&ALooper_addFd},
-        {"ALooper_pollAll", (uintptr_t)&ALooper_pollAll},
-        {"ALooper_pollOnce", (uintptr_t)&ALooper_pollOnce},
+        {"ALooper_pollAll", (uintptr_t)&ALooper_pollAll_perf},
+        {"ALooper_pollOnce", (uintptr_t)&ALooper_pollOnce_perf},
         {"ALooper_prepare", (uintptr_t)&ALooper_prepare},
         {"AMotionEvent_getAction", (uintptr_t)&AMotionEvent_getAction},
         {"AMotionEvent_getAxisValue", (uintptr_t)&AMotionEvent_getAxisValue},
@@ -524,7 +533,7 @@ so_default_dynlib default_dynlib[] = {
             { "fileno", (uintptr_t)&sceLibcBridge_fileno },
             { "fputc", (uintptr_t)&sceLibcBridge_fputc },
             { "fputs", (uintptr_t)&sceLibcBridge_fputs },
-            { "fread", (uintptr_t)&sceLibcBridge_fread },
+            { "fread", (uintptr_t)&fread_perf },
             { "freopen", (uintptr_t)&sceLibcBridge_freopen },
             { "fseek", (uintptr_t)&sceLibcBridge_fseek },
             { "fsetpos", (uintptr_t)&sceLibcBridge_fsetpos },
@@ -551,7 +560,7 @@ so_default_dynlib default_dynlib[] = {
             { "fileno", (uintptr_t)&fileno },
             { "fputc", (uintptr_t)&fputc },
             { "fputs", (uintptr_t)&fputs },
-            { "fread", (uintptr_t)&fread },
+            { "fread", (uintptr_t)&fread_perf },
             { "freopen", (uintptr_t)&freopen },
             { "fseek", (uintptr_t)&fseek },
             { "fsetpos", (uintptr_t)&fsetpos },
@@ -584,10 +593,10 @@ so_default_dynlib default_dynlib[] = {
         { "mkdir", (uintptr_t)&mkdir },
 #ifndef NDK_PORT
         { "pipe", (uintptr_t)&pipe },
-        { "read", (uintptr_t)&read },
+        { "read", (uintptr_t)&read_perf },
 #else
         { "pipe", (uintptr_t)&fndk_pipe },
-        { "read", (uintptr_t)&fndk_read },
+        { "read", (uintptr_t)&read_perf },
 #endif
         { "realpath", (uintptr_t)&realpath },
         { "remove", (uintptr_t)&remove },
@@ -640,7 +649,7 @@ so_default_dynlib default_dynlib[] = {
         { "eglGetCurrentContext", (uintptr_t)&eglGetCurrentContext },
         { "eglGetDisplay", (uintptr_t)&eglGetDisplay },
         { "eglGetError", (uintptr_t)&eglGetError },
-        { "eglGetProcAddress", (uintptr_t)&eglGetProcAddress },
+        { "eglGetProcAddress", (uintptr_t)&eglGetProcAddress_soloader },
         { "eglInitialize", (uintptr_t)&eglInitialize },
         { "eglMakeCurrent", (uintptr_t)&eglMakeCurrent },
         { "eglQueryContext", (uintptr_t)&eglQueryContext },
@@ -670,8 +679,8 @@ so_default_dynlib default_dynlib[] = {
         { "glBlendFunc", (uintptr_t)&glBlendFunc },
         { "glBlendFuncSeparate", (uintptr_t)&glBlendFuncSeparate },
         { "glBlendFuncSeparateOES", (uintptr_t)&glBlendFuncSeparate },
-        { "glBufferData", (uintptr_t)&glBufferData },
-        { "glBufferSubData", (uintptr_t)&glBufferSubData },
+        { "glBufferData", (uintptr_t)&glBufferData_soloader },
+        { "glBufferSubData", (uintptr_t)&glBufferSubData_soloader },
         { "glCheckFramebufferStatus", (uintptr_t)&glCheckFramebufferStatus },
         { "glCheckFramebufferStatusOES", (uintptr_t)&glCheckFramebufferStatus },
         { "glClear", (uintptr_t)&glClear },
@@ -713,7 +722,7 @@ so_default_dynlib default_dynlib[] = {
         { "glDisable", (uintptr_t)&glDisable },
         { "glDisableClientState", (uintptr_t)&glDisableClientState },
         { "glDisableVertexAttribArray", (uintptr_t)&glDisableVertexAttribArray },
-        { "glDrawArrays", (uintptr_t)&glDrawArrays },
+        { "glDrawArrays", (uintptr_t)&glDrawArrays_soloader },
         { "glDrawElements", (uintptr_t)&glDrawElements_soloader },
         { "glDrawTexfOES", (uintptr_t)&ret0 },
         { "glDrawTexfvOES", (uintptr_t)&ret0 },
@@ -728,8 +737,8 @@ so_default_dynlib default_dynlib[] = {
         { "glEnable", (uintptr_t)&glEnable },
         { "glEnableClientState", (uintptr_t)&glEnableClientState },
         { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
-        { "glFinish", (uintptr_t)&glFinish },
-        { "glFlush", (uintptr_t)&glFlush },
+        { "glFinish", (uintptr_t)&glFinish_soloader },
+        { "glFlush", (uintptr_t)&glFlush_soloader },
         { "glFogf", (uintptr_t)&glFogf },
         { "glFogfv", (uintptr_t)&glFogfv },
         { "glFogx", (uintptr_t)&glFogx },
@@ -868,14 +877,14 @@ so_default_dynlib default_dynlib[] = {
         { "glTexGenivOES", (uintptr_t)&ret0 },
         { "glTexGenxOES", (uintptr_t)&ret0 },
         { "glTexGenxvOES", (uintptr_t)&ret0 },
-        { "glTexImage2D", (uintptr_t)&glTexImage2D },
+        { "glTexImage2D", (uintptr_t)&glTexImage2D_soloader },
         { "glTexParameterf", (uintptr_t)&glTexParameterf },
         { "glTexParameterfv", (uintptr_t)&ret0 },
         { "glTexParameteri", (uintptr_t)&glTexParameteri },
         { "glTexParameteriv", (uintptr_t)&glTexParameteriv },
         { "glTexParameterx", (uintptr_t)&glTexParameterx },
         { "glTexParameterxv", (uintptr_t)&ret0 },
-        { "glTexSubImage2D", (uintptr_t)&glTexSubImage2D },
+        { "glTexSubImage2D", (uintptr_t)&glTexSubImage2D_soloader },
         { "glTranslatef", (uintptr_t)&glTranslatef },
         { "glTranslatex", (uintptr_t)&glTranslatex },
         { "glUniform1f", (uintptr_t)&glUniform1f },
@@ -1216,4 +1225,17 @@ void resolve_imports(so_module* mod) {
     bionic_stderr = stderr;
 
     so_resolve(mod, default_dynlib, sizeof(default_dynlib), 0);
+}
+
+/* Extension lookup must not escape the guest-name or profiling bridges. */
+static void (*eglGetProcAddress_soloader(const char *name))(void) {
+    if (!name) return NULL;
+#define GL_BRIDGE(fn) if (strcmp(name, #fn) == 0) return (void (*)(void))fn##_soloader
+    GL_BRIDGE(glGenBuffers); GL_BRIDGE(glBindBuffer); GL_BRIDGE(glDeleteBuffers);
+    GL_BRIDGE(glGetIntegerv); GL_BRIDGE(glDrawElements); GL_BRIDGE(glDrawArrays);
+    GL_BRIDGE(glBufferData); GL_BRIDGE(glBufferSubData);
+    GL_BRIDGE(glTexImage2D); GL_BRIDGE(glTexSubImage2D);
+    GL_BRIDGE(glFinish); GL_BRIDGE(glFlush);
+#undef GL_BRIDGE
+    return eglGetProcAddress(name);
 }

@@ -24,6 +24,7 @@ extern "C" {
 #define LT_FATAL   4
 #define LT_SUCCESS 5
 #define LT_WAIT    6
+#define LT_PERF    7
 
 #ifdef DEBUG_SOLOADER
 #define l_debug(...)   _log_print(LT_DEBUG,   __VA_ARGS__)
@@ -39,11 +40,16 @@ extern "C" {
 #define l_wait(...)
 #endif
 
+#define l_perf(...)    _log_print(LT_PERF, __VA_ARGS__)
+
 #define l_error(...)   _log_print(LT_ERROR,   __VA_ARGS__)
 #define l_fatal(...)   _log_print(LT_FATAL,   __VA_ARGS__)
 
 void _log_print(int t, const char* fmt, ...)
                 __attribute__ ((format (printf, 2, 3)));
+typedef struct { unsigned lines, syncs, sync_us, suppressed, total_us; } LoggerStats;
+void logger_get_stats(LoggerStats *stats);
+void logger_force_sync(void);
 void logger_get_sync_stats(unsigned *count, unsigned *microseconds);
 
 #ifdef __cplusplus

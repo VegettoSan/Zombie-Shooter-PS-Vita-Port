@@ -1,13 +1,22 @@
 # Progreso del port
 
-## Checkpoint actual: crash Release JNI al salir del logo VitaGL
+## Checkpoint actual: baseline REAL VITA VERIFIED y pase FPS 1
+
+- Baseline master `bd2dc1a`: Release supera logos/LOADING y llega al tutorial; movimiento, disparos, explosiones y sonidos funcionan. El usuario caminó durante un buen rato con respuesta estable inicial y aproximadamente 5 FPS.
+- Corrección JNI signatures/WINDOW_SERVICE: **REAL VITA VERIFIED**. Las notas antiguas que pedían una primera prueba física quedan superadas por este reporte. `bd2dc1a` ya fue commit/push y está en master.
+- Este pase elimina logging/sync/console de hot paths y traducción inversa de bindings GL; añade métricas agregadas y clocks mínimos que respetan PSVshell. Audio conserva exactamente los waits de 100 ms.
+- Pruebas JNI, bridge GL y logger pasan O0/O3. La mejora de FPS de la nueva build permanece pendiente de Vita real. Informe: `docs/PERFORMANCE_PASS_1_2026-09-25.md`.
+
+## Historial anterior (las pendientes de hardware se leen con su fecha)
+
+## Historial: crash Release JNI al salir del logo VitaGL
 
 - Hardware: Release de run 12 cae; Debug de run 12 arranca según el usuario.
 - Dump `psp2core-1790390763-0x000005349b-eboot.bin.psp2dmp`: PC=0x8100B834 en GetObjectArrayElement, LR=0x983CBB31 en checkPackageCertificate, DFAR=0x776F; índice 0 y base 0x776F.
 - Confirmado: signatures desconocido retorna fieldID NULL=0 y se confunde con WINDOW_SERVICE="window". Debug lee longitud 0 en los datos siguientes; Release lee 105 e intenta usar los bytes +4 como puntero.
 - Fix mínimo: reservar IDs no NULL en las tablas y devolver NULL para fields object ausentes. Se versiona en falso_jni.patch y su lock; no cambian flags, VitaGL ni el SO.
-- Regresión sobre fuentes reales: falla antes; pasa con O0/O3 después, conservando WINDOW_SERVICE, SDK_INT=24 y arrays válidos. Builds Debug/Release y VPK ZIP verificados; falta probar este cambio en Vita.
-- Evidencia y desensamblado: `docs/CRASH_RELEASE_JNI_2026-09-25.md`. Siguiente prueba: Release nuevo hasta menú/tutorial; último log y dump si cae.
+- Regresión sobre fuentes reales: falla antes; pasa con O0/O3 después, conservando WINDOW_SERVICE, SDK_INT=24 y arrays válidos. Builds Debug/Release y VPK ZIP verificados; ahora REAL VITA VERIFIED en bd2dc1a.
+- Evidencia y desensamblado: `docs/CRASH_RELEASE_JNI_2026-09-25.md`. La prueba Release hasta tutorial ya pasó; siguiente prueba: rendimiento con la build FPS 1.
 
 ## Checkpoint actual: segunda espera OpenSL ES durante el tutorial
 

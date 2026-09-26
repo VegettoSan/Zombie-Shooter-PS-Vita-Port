@@ -20,7 +20,14 @@
 #include <time.h>
 
 extern int zombie_opensles_backend_running(void);
-extern void _log_print(int level, const char *format, ...);
+#include "utils/logger.h"
+#include "utils/perf.h"
+#include <psp2/kernel/processmgr.h>
+#if defined(ZOMBIE_Debug_AUDIO)
+#define AUDIO_WARN(...) _log_print(LT_WARN, __VA_ARGS__)
+#else
+#define AUDIO_WARN(...) ((void)0)
+#endif
 
 
 /** \brief Hook called by Object::Realize when an audio player is realized */
@@ -77,6 +84,7 @@ void CAudioPlayer_Destroy(void *self)
 
 bool CAudioPlayer_PreDestroy(void *self)
 {
+    audio_perf_call(1);
 #ifdef USE_OUTPUTMIXEXT
     CAudioPlayer *this = (CAudioPlayer *) self;
     // Safe to proceed immediately if a track has not yet been assigned
@@ -103,8 +111,10 @@ bool CAudioPlayer_PreDestroy(void *self)
         if (!zombie_opensles_backend_running())
             break;
         IObject *object = (IObject *)self;
+        uint64_t wait_start = sceKernelGetProcessTimeWide();
         int wait_result = pthread_cond_timedwait(&object->mCond,
                                                  &object->mMutex, &deadline);
+        audio_perf_wait(1, (unsigned)(sceKernelGetProcessTimeWide()-wait_start), wait_result == ETIMEDOUT);
         if (wait_result == ETIMEDOUT)
             break;
         if (wait_result != 0 && wait_result != EINTR) {
@@ -115,10 +125,12 @@ bool CAudioPlayer_PreDestroy(void *self)
     }
     if (this->mDestroyRequested) {
         if (zombie_opensles_backend_running()) {
-            static volatile unsigned destroy_timeouts;
-            unsigned count = __sync_fetch_and_add(&destroy_timeouts, 1);
+#ifdef ZOMBIE_Debug_AUDIO
+            static unsigned destroy_timeouts;
+            unsigned count = destroy_timeouts++;
             if (count < 4 || (count % 128) == 0)
-                _log_print(2, "[AUDIO] player destroy timed out while mixer active (count=%u)", count + 1);
+                AUDIO_WARN( "[AUDIO] player destroy timed out while mixer active (count=%u)", count + 1);
+#endif
             // Keep the player alive: the mixer may still be reading its track.
             return false;
         }
@@ -137,7 +149,7 @@ bool CAudioPlayer_PreDestroy(void *self)
             mix->mActiveMask &= ~(1u << index);
             this->mTrack = NULL;
             this->mDestroyRequested = false;
-            _log_print(2, "[AUDIO] detached player track %u after playback thread exit", index);
+            AUDIO_WARN( "[AUDIO] detached player track %u after playback thread exit", index);
         }
         object_unlock_exclusive(&outputMix->mObject);
         if (this->mDestroyRequested)

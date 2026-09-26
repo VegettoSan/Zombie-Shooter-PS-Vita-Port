@@ -1,15 +1,23 @@
 diff --git a/FalsoNDK_Utils.cpp b/FalsoNDK_Utils.cpp
-index b600e3d..c4934b8 100644
+index b600e3d..5b30221 100644
 --- a/FalsoNDK_Utils.cpp
 +++ b/FalsoNDK_Utils.cpp
-@@ -44,6 +44,7 @@ __attribute__((noreturn))
- void LOG_ALWAYS_FATAL(const char * fmt, ...) {
-     LOG_PRINT(FALSONDK_LOG_FATAL, fmt);
+@@ -46,2 +46,3 @@ void LOG_ALWAYS_FATAL(const char * fmt, ...) {
      sceClibAbort();
 +    __builtin_unreachable();
  }
- 
- void ALOGE(const char * fmt, ...) {
+@@ -53,3 +54,5 @@ void ALOGE(const char * fmt, ...) {
+ void ALOGW(const char * fmt, ...) {
++#ifndef ZOMBIE_RELEASE_BUILD
+     LOG_PRINT(FALSONDK_LOG_WARN, fmt);
++#endif
+ }
+@@ -57,3 +60,5 @@ void ALOGW(const char * fmt, ...) {
+ void ALOGD(const char * fmt, ...) {
++#ifndef ZOMBIE_RELEASE_BUILD
+     LOG_PRINT(FALSONDK_LOG_DEBUG, fmt);
++#endif
+ }
 diff --git a/android/AAssetManager.cpp b/android/AAssetManager.cpp
 index 3e61b41..4cab4e1 100644
 --- a/android/AAssetManager.cpp

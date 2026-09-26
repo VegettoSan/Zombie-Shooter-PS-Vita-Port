@@ -19,7 +19,13 @@
 #include "sles_allinclusive.h"
 #include <vitasdk.h>
 
-extern void _log_print(int level, const char *format, ...);
+#include "utils/logger.h"
+#include "utils/perf.h"
+#if defined(ZOMBIE_Debug_AUDIO)
+#define AUDIO_WARN(...) _log_print(LT_WARN, __VA_ARGS__)
+#else
+#define AUDIO_WARN(...) ((void)0)
+#endif
 
 /** \brief Called by SDL to fill the next audio output buffer */
 static IEngine *slEngine;
@@ -124,6 +130,7 @@ static int audioThread(unsigned int args, void *arg) {
 
 		fill_output_buffer(stream, (SLuint32)SndFile_BUFSIZE);
 		res = sceAudioOutOutput(ch, stream);
+		audio_perf_output(res);
 		if (res < 0) {
 			_log_print(3, "[AUDIO] sceAudioOutOutput failed: port=%d result=0x%08X",
 				ch, (unsigned)res);
@@ -133,7 +140,7 @@ static int audioThread(unsigned int args, void *arg) {
 	}
 
 exit_thread:
-	_log_print(2, "[AUDIO] OpenSLES Playback exiting: shutdown=%d last_result=0x%08X",
+	AUDIO_WARN( "[AUDIO] OpenSLES Playback exiting: shutdown=%d last_result=0x%08X",
 		audio_shutdown_requested, (unsigned)res);
 	if (audio_port == ch) {
 		sceAudioOutReleasePort(ch);

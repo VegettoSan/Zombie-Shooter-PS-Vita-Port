@@ -558,7 +558,7 @@ int pthread_setname_np_soloader(pthread_t thread, const char* thread_name) {
         return ERANGE;
     }
 
-    sceClibPrintf("PTHREAD: pthread_setname_np with name %s for thread:0x%x\n", thread_name, pthread_self());
+    l_info("PTHREAD: pthread_setname_np with name %s for thread:0x%x", thread_name, pthread_self());
 
     return 0;
 }

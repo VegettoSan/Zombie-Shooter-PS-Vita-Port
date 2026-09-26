@@ -20,7 +20,14 @@
 #include <time.h>
 
 /* Port logger; bounded messages keep runtime logs useful. */
-extern void _log_print(int level, const char *format, ...);
+#include "utils/logger.h"
+#include "utils/perf.h"
+#include <psp2/kernel/processmgr.h>
+#if defined(ZOMBIE_Debug_AUDIO)
+#define AUDIO_WARN(...) _log_print(LT_WARN, __VA_ARGS__)
+#else
+#define AUDIO_WARN(...) ((void)0)
+#endif
 
 
 /** Determine the state of the audio player or audio recorder associated with a buffer queue.
@@ -165,6 +172,7 @@ fail:
 
 SLresult IBufferQueue_Clear(SLBufferQueueItf self)
 {
+    audio_perf_call(0);
     SL_ENTER_INTERFACE
 
     result = SL_RESULT_SUCCESS;
@@ -207,14 +215,18 @@ SLresult IBufferQueue_Clear(SLBufferQueueItf self)
         }
         while (this->mClearRequested) {
             IObject *object = InterfaceToIObject(this);
+            uint64_t wait_start = sceKernelGetProcessTimeWide();
             wait_result = pthread_cond_timedwait(&object->mCond,
                                                  &object->mMutex, &deadline);
+            audio_perf_wait(0, (unsigned)(sceKernelGetProcessTimeWide()-wait_start), wait_result == ETIMEDOUT);
             if (wait_result == ETIMEDOUT) {
-                static volatile unsigned clear_timeouts;
-                unsigned count = __sync_fetch_and_add(&clear_timeouts, 1);
+#ifdef ZOMBIE_Debug_AUDIO
+                static unsigned clear_timeouts;
+                unsigned count = clear_timeouts++;
                 if (count < 4 || (count % 128) == 0) {
-                    _log_print(2, "[AUDIO] OpenSLES buffer Clear timed out (count=%u); mixer acknowledgement pending", count + 1);
+                    AUDIO_WARN( "[AUDIO] OpenSLES buffer Clear timed out (count=%u); mixer acknowledgement pending", count + 1);
                 }
+#endif
                 result = SL_RESULT_RESOURCE_ERROR;
                 break;
             }

@@ -38,6 +38,8 @@ void fndk_log(int severity, const char *message) {
     if (!message) return;
     switch (severity) {
         case FALSONDK_LOG_FATAL:
+            l_fatal("[FalsoNDK] %s", message);
+            break;
         case FALSONDK_LOG_ERROR:
             l_error("[FalsoNDK] %s", message);
             break;

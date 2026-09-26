@@ -77,15 +77,20 @@ if (DUMP_COMPILED_SHADERS)
   endif()
 endif()
 
-# Detailed logging always enabled for diagnostics (hardware testing)
-add_definitions(-DDEBUG_SOLOADER)
-add_definitions(-DSO_UTIL_VERBOSE=1)
+# Identity is present even when normal Release logging is compiled out.
+set(ZOMBIE_BUILD_ID "" CACHE STRING "Source identity for hardware logs")
+if(NOT ZOMBIE_BUILD_ID)
+  execute_process(COMMAND ${ZOMBIE_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/local_build_id.py
+                  OUTPUT_VARIABLE ZOMBIE_BUILD_ID OUTPUT_STRIP_TRAILING_WHITESPACE
+                  COMMAND_ERROR_IS_FATAL ANY)
+endif()
+add_definitions(-DZOMBIE_BUILD_ID="${ZOMBIE_BUILD_ID}" -DZOMBIE_BUILD_VARIANT="${CMAKE_BUILD_TYPE}")
 # add_definitions(-DDEBUG_OPENGL)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 TEST=1 LOG_ERRORS=1")
 else()
-  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 LOG_ERRORS=1")
+  set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1")
 endif()
 
 # makes sincos, sincosf, etc. visible
@@ -99,12 +104,13 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Granular JNI/thread traces are for the hardware diagnostic VPK only.
-    add_definitions(-DFALSOJNI_DEBUGLEVEL=0 -DZOMBIE_THREAD_TRACE=1 -DZOMBIE_STALL_DUMP=1)
+    add_definitions(-DDEBUG_SOLOADER -DSO_UTIL_VERBOSE=1 -DFALSOJNI_DEBUGLEVEL=0 -DZOMBIE_THREAD_TRACE=1 -DZOMBIE_STALL_DUMP=1 -DZOMBIE_DEBUG_BUILD=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -g3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g3")
 else ()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g1")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g1")
+    add_definitions(-DFALSOJNI_DEBUGLEVEL=3 -DZOMBIE_RELEASE_BUILD=1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g1")
 endif()
 
 set(SOURCES
@@ -125,6 +131,7 @@ set(SOURCES
     source/utils/glutil.c
     source/utils/init.c
     source/utils/logger.c
+    source/utils/perf.c
     source/utils/settings.c
     source/utils/utils.c
     lib/falso_jni/FalsoJNI.c
@@ -204,6 +211,8 @@ foreach(OPEN_SLES_MEMBER IBufferQueue CAudioPlayer Vita)
     OUTPUT ${OPEN_SLES_OBJ}
     COMMAND ${CMAKE_C_COMPILER} -std=gnu17 -O3
             -I${OPEN_SLES_CLEAR_DIR}
+            -I${CMAKE_SOURCE_DIR}/source
+            -DZOMBIE_${CMAKE_BUILD_TYPE}_AUDIO=1
             -I${VITASDK}/arm-vita-eabi/include
             -DUSE_OUTPUTMIXEXT -DUSE_SDL -DUSE_SNDFILE
             -c ${OPEN_SLES_CLEAR_DIR}/${OPEN_SLES_MEMBER}.c -o ${OPEN_SLES_OBJ}

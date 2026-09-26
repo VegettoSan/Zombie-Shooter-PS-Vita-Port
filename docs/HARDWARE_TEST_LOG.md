@@ -1,3 +1,29 @@
+# Actualización 2026-09-25: nuevo baseline funcional
+
+Baseline: `bd2dc1a8bd6067d0508381a5f4a8e1d8748b9969`, ya publicado en master.
+Fuente: nueva prueba física reportada por el usuario en el documento de este pase.
+
+| Elemento | Resultado real PS Vita |
+| --- | --- |
+| Release / VitaGL / logos / LOADING | OK |
+| Tutorial / movimiento / disparos / explosiones | OK |
+| Sonidos / audio | OK |
+| Estabilidad inicial durante recorrido prolongado del tutorial | OK |
+| JNI signatures/WINDOW_SERVICE, crash DFAR 0x776F | **REAL VITA VERIFIED**: corregido |
+| FPS sostenidos observados | aproximadamente 5 FPS |
+
+No implica estabilidad de todas las zonas ni mejoras medidas del pase FPS 1.
+La build siguiente conserva audio, timeout de 100 ms, 960x544 y MSAA 4x.
+Prueba siguiente: mismo recorrido en Release y devolver un log completo con
+header BUILD y varias ventanas `[PERF]`. Ver `PERFORMANCE_PASS_1_2026-09-25.md`.
+
+Los registros siguientes son históricos. MSAA NONE/quiet Release antiguos,
+notas sin audio y pendientes del fix JNI no describen el baseline bd2dc1a.
+La restricción histórica local-only no aplica a esta iteración: el usuario
+pidió explícitamente commit/push y Manual Vita VPK Pre-release.
+
+---
+
 > Archivo histórico conservado de `2809a6951cec83a460be5777f388edf04a76f259`, respaldado en `backup/before-local-restore-20260925`. Sus observaciones de hardware siguen siendo evidencia de esos builds; las descripciones de código, flags, clocks, MSAA y workflow corresponden a esa rama y no implican que estén activas en master restaurado. Estado actual: `PORT_STATUS.md`.
 
 # Zombie Shooter Vita — registro persistente de pruebas en hardware
