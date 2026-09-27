@@ -59,6 +59,11 @@ def main():
            if not (SDK / name).is_file() or digest(SDK / name) != sha]
     if bad:
         raise RuntimeError('SDK differs from the functional baseline: ' + ', '.join(bad[:12]))
+    music_manifest = json.loads((ROOT / 'scripts/music-sdk-libs.sha256.json').read_text())
+    bad = [name for name, sha in music_manifest.items()
+           if not (SDK / 'arm-vita-eabi/lib' / name).is_file() or digest(SDK / 'arm-vita-eabi/lib' / name) != sha]
+    if bad:
+        raise RuntimeError('Original AAC SoftFP dependencies differ: ' + ', '.join(bad))
     abi = subprocess.check_output([str(SDK / 'bin/arm-vita-eabi-gcc'),
                                    '-Q', '--help=target'], text=True)
     if not any('-mfloat-abi=' in line and line.split()[-1] == 'softfp'

@@ -1,14 +1,7 @@
-/* MIT. Zombie Shooter music experiments.
- *
- * music_mode 0: stable fallback; do not patch music creation.
- * music_mode 1: legacy PCM16/WAV createMusicPlayer hook retained only to
- *               reproduce the confirmed OpenSL crash.
- * music_mode 2: MetalSyntax-style compressed music path. Intercept the
- *               engine's BaseStream command before OpenSL, keep only the
- *               active OGG/Vorbis files compressed in RAM, decode small PCM
- *               grains with libvorbisfile, and mix them into the existing
- *               Vita OpenSL/sceAudioOut output buffer.
- */
+/* MIT. Mode 0 silent; mode 1 retained crash diagnostic; mode 2 decodes the
+ * original M4A/AAC in a worker and mixes bounded PCM into the existing port.
+ * BaseStream owns filenames, playing state, fades, next-file and loop semantics.
+ * Only MusicPlayer virtual backend methods are replaced, all guarded first. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,27 +9,30 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <pthread.h>
-#include <sndfile.h>
-#include <vorbis/vorbisfile.h>
-#include <so_util/so_util.h>
-#include <kubridge.h>
-#include <psp2/io/fcntl.h>
-#include <psp2/kernel/clib.h>
+#include "utils/music_decoder.h"
 
-#include "utils/logger.h"
 #include "utils/settings.h"
 
-extern so_module so_mod;
 
 /* ------------------------------------------------------------------------- */
 /* Legacy mode 1: keep the exact PCM experiment for A/B crash reproduction. */
 
+static const char *(*string_data)(const void *);
+static const char *names[]={"menu_mus01","mus01","mus02","amb01","rain"};
+#ifndef ZOMBIE_MUSIC_HOST
+#include <sndfile.h>
+#include <so_util/so_util.h>
+#include <kubridge.h>
+#include <psp2/io/fcntl.h>
+#include <psp2/kernel/clib.h>
+#include <psp2/kernel/processmgr.h>
+#include <psp2/kernel/threadmgr.h>
+#include "utils/logger.h"
+extern so_module so_mod;
 typedef void (*CreateMusic)(void *, const void *, const void *);
 static CreateMusic legacy_original;
 static void (*string_init)(void *, const char *);
 static void (*string_destroy)(void *);
-static const char *(*string_data)(const void *);
-static const char *names[]={"menu_mus01","mus01","mus02","amb01","rain"};
 static unsigned reported, missing;
 
 static void legacy_create_music(void *result,const void *engine,const void *filename) {
@@ -108,393 +104,198 @@ static void install_legacy_pcm_hook(void) {
     l_perf("audio_stream installed=1 music_mode=1 legacy_pcm_crash_reproducer=1 pcm_sidecars=5");
 }
 
-/* ------------------------------------------------------------------------- */
-/* Mode 2: compressed OGG decoder mixed into the existing Vita output. */
 
-#define MUSIC_VOICE_COUNT 4
-#define MUSIC_DECODE_FRAMES 256
-#define MUSIC_FILE_LIMIT (16u * 1024u * 1024u)
 
+#endif
+#define MUSIC_VOICES 4
+#define MUSIC_RING_FRAMES 8192u
+#define MUSIC_CHUNK 1024u
+#define MUSIC_COMPRESSED_BUDGET (8u*1024u*1024u)
 typedef struct {
-    uint8_t *bytes;
-    size_t size;
-    size_t pos;
-    OggVorbis_File vf;
-    int opened;
-    int channels;
-    long rate;
-    char track[24];
-} MusicDecoder;
-
-typedef struct {
-    void *owner;
-    MusicDecoder *decoder;
-    unsigned serial;
-    int claimed;
-    int paused;
-    int loop;
-    int gain_q15;
-} MusicVoice;
-
-static MusicVoice music_voices[MUSIC_VOICE_COUNT];
+    void *owner;unsigned generation;int claimed,paused,loop,gain,ready,eof,failed;
+    unsigned read,write,count;char track[24];
+    int16_t pcm[MUSIC_RING_FRAMES*2];
+} Voice;
+static Voice voices[MUSIC_VOICES];
 static pthread_mutex_t music_mutex=PTHREAD_MUTEX_INITIALIZER;
-static unsigned music_serial;
-static int16_t music_decode_buffer[MUSIC_DECODE_FRAMES*2];
-
-static so_hook base_play_hook;
-static so_hook base_stop_hook;
-static so_hook base_pause_hook;
-static so_hook base_resume_hook;
-static so_hook base_volume_hook;
-
-static size_t ogg_mem_read(void *ptr,size_t size,size_t nmemb,void *datasource) {
-    MusicDecoder *d=(MusicDecoder *)datasource;
-    if(!d || !ptr || !size || !nmemb) return 0;
-    if(nmemb>SIZE_MAX/size) return 0;
-    size_t request=size*nmemb;
-    size_t available=d->pos<d->size ? d->size-d->pos : 0;
-    size_t take=request<available?request:available;
-    take-=take%size;
-    if(take) memcpy(ptr,d->bytes+d->pos,take);
-    d->pos+=take;
-    return take/size;
-}
-
-static int ogg_mem_seek(void *datasource,ogg_int64_t offset,int whence) {
-    MusicDecoder *d=(MusicDecoder *)datasource;
-    if(!d) return -1;
-    ogg_int64_t base;
-    if(whence==SEEK_SET) base=0;
-    else if(whence==SEEK_CUR) base=(ogg_int64_t)d->pos;
-    else if(whence==SEEK_END) base=(ogg_int64_t)d->size;
-    else return -1;
-    ogg_int64_t next=base+offset;
-    if(next<0 || (uint64_t)next>d->size) return -1;
-    d->pos=(size_t)next;
-    return 0;
-}
-
-static long ogg_mem_tell(void *datasource) {
-    MusicDecoder *d=(MusicDecoder *)datasource;
-    if(!d || d->pos>(size_t)LONG_MAX) return -1;
-    return (long)d->pos;
-}
-
-static int ogg_mem_close(void *datasource) {
-    (void)datasource;
-    return 0;
-}
-
-static const ov_callbacks ogg_memory_callbacks={
-    ogg_mem_read,ogg_mem_seek,ogg_mem_close,ogg_mem_tell
-};
-
-static void decoder_destroy(MusicDecoder *d) {
-    if(!d) return;
-    if(d->opened) ov_clear(&d->vf);
-    free(d->bytes);
-    free(d);
-}
-
-static MusicDecoder *decoder_open(const char *track) {
-    char path[256];
-    snprintf(path,sizeof(path),DATA_PATH "assets/music/%s.ogg",track);
-    SceUID fd=sceIoOpen(path,SCE_O_RDONLY,0);
-    if(fd<0) {
-        l_perf("music_ogg open_failed track=%s path=%s result=0x%08X",track,path,(unsigned)fd);
-        return NULL;
-    }
-    SceOff end=sceIoLseek(fd,0,SEEK_END);
-    if(end<=0 || (uint64_t)end>MUSIC_FILE_LIMIT || sceIoLseek(fd,0,SEEK_SET)<0) {
-        l_perf("music_ogg invalid_size track=%s bytes=%lld",track,(long long)end);
-        sceIoClose(fd);
-        return NULL;
-    }
-    MusicDecoder *d=(MusicDecoder *)calloc(1,sizeof(*d));
-    if(!d) { sceIoClose(fd); return NULL; }
-    d->size=(size_t)end;
-    d->bytes=(uint8_t *)malloc(d->size);
-    if(!d->bytes) { sceIoClose(fd); decoder_destroy(d); return NULL; }
-    size_t done=0;
-    while(done<d->size) {
-        int got=sceIoRead(fd,d->bytes+done,(SceSize)(d->size-done));
-        if(got<=0) break;
-        done+=(size_t)got;
-    }
-    sceIoClose(fd);
-    if(done!=d->size) {
-        l_perf("music_ogg read_failed track=%s read=%u expected=%u",track,(unsigned)done,(unsigned)d->size);
-        decoder_destroy(d);return NULL;
-    }
-    strncpy(d->track,track,sizeof(d->track)-1);
-    if(ov_open_callbacks(d,&d->vf,NULL,0,ogg_memory_callbacks)<0) {
-        l_perf("music_ogg decoder_open_failed track=%s",track);
-        decoder_destroy(d);return NULL;
-    }
-    d->opened=1;
-    vorbis_info *info=ov_info(&d->vf,-1);
-    if(!info || (info->channels!=1 && info->channels!=2) || info->rate!=44100) {
-        l_perf("music_ogg unsupported track=%s rate=%ld channels=%d expected=44100_stereo_or_mono",
-               track,info?info->rate:0,info?info->channels:0);
-        decoder_destroy(d);return NULL;
-    }
-    d->channels=info->channels;
-    d->rate=info->rate;
-    return d;
-}
-
+static pthread_t worker;static int worker_valid,worker_stop;
+static unsigned next_generation;
+static int music_backend_installed;
+static struct { unsigned underruns,lock_misses,decoded_frames,loops,open_errors,decode_errors,decode_us,decode_max,active,compressed_bytes,peak_bytes; } music_stats;
+static void (*native_stop)(void *);
+static unsigned char *owner_byte(void *self,unsigned offset) { return (unsigned char *)self+offset; }
+static int owner_int(void *self,unsigned offset) { int v;memcpy(&v,(char *)self+offset,4);return v; }
 static const char *known_track(const char *path) {
-    if(!path) return NULL;
-    const char *base=path;
-    for(const char *p=path;*p;++p) if(*p=='/' || *p=='\\') base=p+1;
-    size_t base_len=strlen(base);
-    for(unsigned i=0;i<sizeof(names)/sizeof(names[0]);++i) {
+    if(!path) return NULL;const char *base=path;
+    for(const char *p=path;*p;p++) if(*p=='/' || *p=='\\') base=p+1;
+    for(unsigned i=0;i<5;i++) {
         size_t n=strlen(names[i]);
-        if(base_len<n || strncmp(base,names[i],n)) continue;
-        const char *tail=base+n;
-        if(*tail==0 || !strcmp(tail,".ogg") || !strcmp(tail,".m4a")) return names[i];
+        if(!strncmp(base,names[i],n) && (!strcmp(base+n,".ogg") || !strcmp(base+n,".m4a") || !base[n])) return names[i];
     }
     return NULL;
 }
-
-static int voice_index_locked(void *owner) {
-    for(int i=0;i<MUSIC_VOICE_COUNT;++i)
-        if(music_voices[i].claimed && music_voices[i].owner==owner) return i;
-    return -1;
+static int find_owner(void *owner) {
+    for(int i=0;i<MUSIC_VOICES;i++) if(voices[i].claimed && voices[i].owner==owner) return i;return -1;
 }
-
-static int owner_claimed(void *owner) {
-    int found;
-    pthread_mutex_lock(&music_mutex);
-    found=voice_index_locked(owner)>=0;
-    pthread_mutex_unlock(&music_mutex);
-    return found;
-}
-
-static void voice_release_locked(MusicVoice *v) {
-    decoder_destroy(v->decoder);
-    memset(v,0,sizeof(*v));
-}
-
-static void music_claim_and_play(void *owner,const char *track,int loop) {
-    MusicDecoder *fresh=decoder_open(track); /* disk I/O stays off audio mutex */
-    pthread_mutex_lock(&music_mutex);
-    int slot=voice_index_locked(owner);
-    if(slot<0) {
-        for(int i=0;i<MUSIC_VOICE_COUNT;++i) if(!music_voices[i].claimed) { slot=i; break; }
+static int gain_from_percent(int v) { if(v<0) v=0;if(v>100) v=100;return v*32767/100; }
+static bool music_open(void *self,const void *filename) {
+    const char *track=known_track(string_data(filename));if(!track || !worker_valid) return false;
+    pthread_mutex_lock(&music_mutex);int i=find_owner(self);
+    if(i<0) for(int j=0;j<MUSIC_VOICES;j++) if(!voices[j].claimed) { i=j;break; }
+    if(i>=0) {
+        Voice *v=voices+i;memset(v,0,sizeof(*v));v->owner=self;v->claimed=1;
+        v->loop=*owner_byte(self,40)!=0;v->gain=gain_from_percent(owner_int(self,32));
+        strcpy(v->track,track);v->generation=++next_generation;
+        // Original onOpen resets MusicPlayer::setShouldStop flag.
+        __atomic_store_n(owner_byte(self,68),0,__ATOMIC_RELEASE);
     }
-    if(slot<0) {
-        slot=0;
-        for(int i=1;i<MUSIC_VOICE_COUNT;++i)
-            if(music_voices[i].serial<music_voices[slot].serial) slot=i;
-    }
-    voice_release_locked(&music_voices[slot]);
-    MusicVoice *v=&music_voices[slot];
-    v->owner=owner;
-    v->decoder=fresh;
-    v->claimed=1;
-    v->paused=0;
-    v->loop=loop;
-    v->gain_q15=32767;
-    v->serial=++music_serial;
-    pthread_mutex_unlock(&music_mutex);
-    if(fresh)
-        l_perf("music_ogg play track=%s compressed_bytes=%u rate=%ld channels=%d slot=%d loop=%d",
-               track,(unsigned)fresh->size,fresh->rate,fresh->channels,slot,loop);
-    else
-        l_perf("music_ogg silent_claim track=%s slot=%d reason=missing_or_invalid_sidecar",track,slot);
+    pthread_mutex_unlock(&music_mutex);return i>=0;
 }
-
-static void music_stop_owner(void *owner) {
-    pthread_mutex_lock(&music_mutex);
-    int slot=voice_index_locked(owner);
-    if(slot>=0) voice_release_locked(&music_voices[slot]);
+static void music_close(void *self) {
+    pthread_mutex_lock(&music_mutex);int i=find_owner(self);
+    if(i>=0) { memset(voices+i,0,sizeof(Voice));voices[i].generation=++next_generation; }
     pthread_mutex_unlock(&music_mutex);
 }
-
-static void music_pause_owner(void *owner,int paused) {
-    pthread_mutex_lock(&music_mutex);
-    int slot=voice_index_locked(owner);
-    if(slot>=0) music_voices[slot].paused=paused;
+static void music_pause(void *self) {
+    pthread_mutex_lock(&music_mutex);int i=find_owner(self);if(i>=0) voices[i].paused=1;pthread_mutex_unlock(&music_mutex);
+}
+static void music_resume(void *self) {
+    pthread_mutex_lock(&music_mutex);int i=find_owner(self);if(i>=0) voices[i].paused=0;pthread_mutex_unlock(&music_mutex);
+}
+static void music_volume(void *self,int percent) {
+    pthread_mutex_lock(&music_mutex);int i=find_owner(self);if(i>=0) voices[i].gain=gain_from_percent(percent);pthread_mutex_unlock(&music_mutex);
+}
+static void music_update(void *self) {
+    pthread_mutex_lock(&music_mutex);int i=find_owner(self);
+    int done=i>=0 && (voices[i].failed || (voices[i].eof && !voices[i].count));
     pthread_mutex_unlock(&music_mutex);
+    if(done || __atomic_load_n(owner_byte(self,68),__ATOMIC_ACQUIRE)) native_stop(self);
 }
-
-static void music_volume_owner(void *owner,float value) {
-    if(value<0.f) value=0.f;
-    if(value>1.f) value=1.f;
-    pthread_mutex_lock(&music_mutex);
-    int slot=voice_index_locked(owner);
-    if(slot>=0) music_voices[slot].gain_q15=(int)(value*32767.f+0.5f);
-    pthread_mutex_unlock(&music_mutex);
-}
-
-static int decoder_read_frames(MusicDecoder *d,int16_t *dst,int max_frames,int loop) {
-    int total=0,guard=0;
-    while(total<max_frames && guard<8) {
-        int bitstream=0;
-        int bytes_per_frame=d->channels*2;
-        long got=ov_read(&d->vf,(char *)(dst+total*d->channels),
-                         (max_frames-total)*bytes_per_frame,0,2,1,&bitstream);
-        if(got>0) {
-            int frames=(int)(got/bytes_per_frame);
-            if(frames<=0) break;
-            total+=frames;
-            guard=0;
-            continue;
-        }
-        if(got==0) {
-            if(loop && ov_pcm_seek(&d->vf,0)==0) { ++guard; continue; }
-            break;
-        }
-        /* OV_HOLE and other recoverable packet errors: bounded retry. */
-        ++guard;
-    }
-    return total;
-}
-
-void zombie_music_mix(int16_t *samples,unsigned frames) {
-    if(setting_music_mode!=2 || !samples || !frames) return;
-    pthread_mutex_lock(&music_mutex);
-    for(int vi=0;vi<MUSIC_VOICE_COUNT;++vi) {
-        MusicVoice *v=&music_voices[vi];
-        if(!v->claimed || v->paused || !v->decoder) continue;
-        unsigned cursor=0;
-        while(cursor<frames) {
-            unsigned chunk=frames-cursor;
-            if(chunk>MUSIC_DECODE_FRAMES) chunk=MUSIC_DECODE_FRAMES;
-            int got=decoder_read_frames(v->decoder,music_decode_buffer,(int)chunk,v->loop);
-            if(got<=0) {
-                if(!v->loop) voice_release_locked(v);
-                break;
-            }
-            for(int f=0;f<got;++f) {
-                int16_t left,right;
-                if(v->decoder->channels==2) {
-                    left=music_decode_buffer[f*2];right=music_decode_buffer[f*2+1];
-                } else {
-                    left=right=music_decode_buffer[f];
+static void *music_worker(void *unused) {
+    (void)unused;MusicDecoder *decoder[MUSIC_VOICES]={0};unsigned generation[MUSIC_VOICES]={0};
+    int16_t pcm[MUSIC_CHUNK*2];
+    while(!__atomic_load_n(&worker_stop,__ATOMIC_ACQUIRE)) {
+        int progressed=0;
+        for(int i=0;i<MUSIC_VOICES;i++) {
+            pthread_mutex_lock(&music_mutex);Voice *v=voices+i;
+            unsigned serial=v->generation;int claimed=v->claimed,paused=v->paused,loop=v->loop;
+            unsigned count=v->count;int eof=v->eof,failed=v->failed;char track[24];strcpy(track,v->track);
+            pthread_mutex_unlock(&music_mutex);
+            if(serial!=generation[i]) {
+                size_t old_bytes=music_decoder_bytes(decoder[i]);music_decoder_destroy(decoder[i]);decoder[i]=NULL;
+                pthread_mutex_lock(&music_mutex);music_stats.compressed_bytes-=(unsigned)old_bytes;pthread_mutex_unlock(&music_mutex);
+                generation[i]=serial;
+                if(claimed) {
+                    char path[256];snprintf(path,sizeof(path),DATA_PATH "assets/music/%s.m4a",track);
+                    decoder[i]=music_decoder_open(path);
+                    size_t bytes=music_decoder_bytes(decoder[i]);
+                    pthread_mutex_lock(&music_mutex);
+                    if(bytes+music_stats.compressed_bytes>MUSIC_COMPRESSED_BUDGET) {
+                        pthread_mutex_unlock(&music_mutex);music_decoder_destroy(decoder[i]);decoder[i]=NULL;bytes=0;
+                        pthread_mutex_lock(&music_mutex);
+                    }
+                    music_stats.compressed_bytes+=(unsigned)bytes;
+                    if(music_stats.compressed_bytes>music_stats.peak_bytes) music_stats.peak_bytes=music_stats.compressed_bytes;
+                    if(!decoder[i]) music_stats.open_errors++;
+                    if(voices[i].generation==serial) { voices[i].ready=0;voices[i].failed=decoder[i]==NULL; }
+                    pthread_mutex_unlock(&music_mutex);
                 }
-                int scaled_l=(left*v->gain_q15)>>15;
-                int scaled_r=(right*v->gain_q15)>>15;
-                unsigned out=(cursor+(unsigned)f)*2;
-                int mix_l=(int)samples[out]+scaled_l;
-                int mix_r=(int)samples[out+1]+scaled_r;
-                if(mix_l>32767) mix_l=32767; else if(mix_l<-32768) mix_l=-32768;
-                if(mix_r>32767) mix_r=32767; else if(mix_r<-32768) mix_r=-32768;
-                samples[out]=(int16_t)mix_l;samples[out+1]=(int16_t)mix_r;
+                progressed=1;continue;
             }
-            cursor+=(unsigned)got;
-            if((unsigned)got<chunk) break;
+            if(!claimed || paused || eof || failed || !decoder[i] || count>MUSIC_RING_FRAMES-MUSIC_CHUNK) continue;
+            uint64_t begin=sceKernelGetProcessTimeWide();
+            int got=music_decoder_read(decoder[i],pcm,MUSIC_CHUNK,loop);
+            unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-begin);
+            pthread_mutex_lock(&music_mutex);music_stats.decode_us+=us;if(us>music_stats.decode_max) music_stats.decode_max=us;
+            v=voices+i;
+            if(v->generation==serial) {
+                if(got<0) { v->failed=1;music_stats.decode_errors++; }
+                else if(!got) { v->eof=1;if(v->count) v->ready=1; }
+                else {
+                    for(int f=0;f<got;f++) { v->pcm[v->write*2]=pcm[f*2];v->pcm[v->write*2+1]=pcm[f*2+1];v->write=(v->write+1)%MUSIC_RING_FRAMES; }
+                    v->count+=(unsigned)got;if(v->count>=2048) v->ready=1;music_stats.decoded_frames+=(unsigned)got;
+                }
+            }
+            pthread_mutex_unlock(&music_mutex);progressed=1;
+        }
+        if(!progressed) sceKernelDelayThread(2000);
+    }
+    for(int i=0;i<MUSIC_VOICES;i++) music_decoder_destroy(decoder[i]);return NULL;
+}
+void zombie_music_mix(int16_t *samples,unsigned frames) {
+    if(setting_music_mode!=2 || !samples || !worker_valid) return;
+    if(pthread_mutex_trylock(&music_mutex)) { __atomic_fetch_add(&music_stats.lock_misses,1,__ATOMIC_RELAXED);return; }
+    for(int i=0;i<MUSIC_VOICES;i++) {
+        Voice *v=voices+i;if(!v->claimed || v->paused || !v->ready || v->failed) continue;
+        unsigned n=frames<v->count?frames:v->count;
+        if(n<frames && !v->eof) music_stats.underruns++;
+        for(unsigned f=0;f<n;f++) {
+            for(unsigned c=0;c<2;c++) {
+                int mixed=samples[f*2+c]+(v->pcm[v->read*2+c]*v->gain)/32767;
+                if(mixed>32767) mixed=32767;if(mixed<-32768) mixed=-32768;samples[f*2+c]=(int16_t)mixed;
+            }
+            v->read=(v->read+1)%MUSIC_RING_FRAMES;
+        }
+        v->count-=n;
+    }
+    pthread_mutex_unlock(&music_mutex);
+}
+void zombie_music_start(void) {
+    if(setting_music_mode!=2 || !music_backend_installed || worker_valid) return;
+    worker_stop=0;
+    if(!pthread_create(&worker,NULL,music_worker,NULL)) worker_valid=1;
+    else l_perf("music worker_start_failed=1");
+}
+void zombie_music_shutdown(void) {
+    if(worker_valid) { __atomic_store_n(&worker_stop,1,__ATOMIC_RELEASE);pthread_join(worker,NULL);worker_valid=0; }
+    pthread_mutex_lock(&music_mutex);memset(voices,0,sizeof(voices));music_stats.compressed_bytes=0;pthread_mutex_unlock(&music_mutex);
+}
+void zombie_music_report(void) {
+    static unsigned old_underruns,old_misses,old_decoded,old_open,old_error,old_us;
+    pthread_mutex_lock(&music_mutex);
+    unsigned active=0,queued=0;for(int i=0;i<MUSIC_VOICES;i++) if(voices[i].claimed) { active++;queued+=voices[i].count; }
+    unsigned underruns=music_stats.underruns,misses=__atomic_load_n(&music_stats.lock_misses,__ATOMIC_RELAXED),decoded=music_stats.decoded_frames;
+    unsigned opens=music_stats.open_errors,errors=music_stats.decode_errors,us=music_stats.decode_us,max=music_stats.decode_max,bytes=music_stats.compressed_bytes,peak=music_stats.peak_bytes;
+    pthread_mutex_unlock(&music_mutex);
+    l_perf("music backend=original_m4a_aac worker=%d active=%u queued_frames=%u ring_bytes=%u decoder_accounted_bytes=%u decoder_peak_accounted_bytes=%u decoded_frames=%u underrun_chunks=%u mixer_lock_misses=%u open_errors=%u decode_errors=%u decode_us=%u decode_max_us_lifetime=%u native_codec_heap_not_included=1",
+        worker_valid,active,queued,(unsigned)sizeof(voices),bytes,peak,decoded-old_decoded,underruns-old_underruns,misses-old_misses,opens-old_open,errors-old_error,us-old_us,max);
+    old_underruns=underruns;old_misses=misses;old_decoded=decoded;old_open=opens;old_error=errors;old_us=us;
+}
+#ifndef ZOMBIE_MUSIC_HOST
+static void install_original_music(void) {
+    const struct { const char *name;unsigned offset;uint32_t prologue[2];uintptr_t replacement; } hooks[]={
+        {"_ZN5sound11MusicPlayer6onOpenERK6STRING",0x4d4174,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_open},
+        {"_ZN5sound11MusicPlayer7onCloseEv",0x4d46e8,{0xaf03b5f0,0x8d04f84d},(uintptr_t)music_close},
+        {"_ZN5sound11MusicPlayer8onUpdateEv",0x4d485c,{0xaf02b5b0,0x4941b0a6},(uintptr_t)music_update},
+        {"_ZN5sound11MusicPlayer7onPauseEv",0x4d4990,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_pause},
+        {"_ZN5sound11MusicPlayer8onResumeEv",0x4d4ad0,{0xaf02b5b0,0x0438f100},(uintptr_t)music_resume},
+        {"_ZN5sound11MusicPlayer12updateVolumeEi",0x4d4058,{0xaf02b5b0,0x4a3bb0a6},(uintptr_t)music_volume}
+    };
+    uintptr_t addresses[6];
+    string_data=(void *)so_symbol(&so_mod,"_ZNK6STRING5c_strEv");
+    native_stop=(void *)so_symbol(&so_mod,"_ZN5sound10BaseStream4stopEv");
+    const uint32_t string_prologue=0x47706800u;
+    const uint32_t stop_prologue[]={0xaf02b5b0u,0x4604b0a4u};
+    if((uintptr_t)string_data!=so_mod.load_addr+0x3dc789u ||
+       (uintptr_t)native_stop!=so_mod.load_addr+0x4d4da9u ||
+       memcmp((void *)((uintptr_t)string_data&~1u),&string_prologue,4) ||
+       memcmp((void *)((uintptr_t)native_stop&~1u),stop_prologue,8)) {
+        l_perf("audio_stream installed=0 music_mode=2 guard_failed=backend_helpers");return;
+    }
+    for(unsigned i=0;i<6;i++) {
+        addresses[i]=(uintptr_t)so_symbol(&so_mod,hooks[i].name);
+        if(addresses[i]!=so_mod.load_addr+hooks[i].offset+1 || memcmp((void *)(addresses[i]&~1u),hooks[i].prologue,8)) {
+            l_perf("audio_stream installed=0 music_mode=2 guard_failed=%s",hooks[i].name);return;
         }
     }
-    pthread_mutex_unlock(&music_mutex);
+    for(unsigned i=0;i<6;i++) { hook_addr(addresses[i],hooks[i].replacement);kuKernelFlushCaches((void *)(addresses[i]&~1u),8); }
+    music_backend_installed=1;
+    l_perf("audio_stream installed=1 music_mode=2 backend=original_m4a_aac_single_mixer guarded_methods=6 voices=4 ring_frames_per_voice=8192 compressed_budget_mib=8");
 }
-
-void zombie_music_shutdown(void) {
-    pthread_mutex_lock(&music_mutex);
-    for(int i=0;i<MUSIC_VOICE_COUNT;++i) voice_release_locked(&music_voices[i]);
-    pthread_mutex_unlock(&music_mutex);
-}
-
-/* hook_addr()/SO_CONTINUE's generic helper is intentionally not used for
- * these methods. Typed calls preserve the exact C++ softfp argument ABI,
- * especially setVolume(float). */
-static void restore_hook(const so_hook *h) {
-    sceClibMemcpy((void *)h->addr,h->orig_instr,sizeof(h->orig_instr));
-    kuKernelFlushCaches((void *)h->addr,sizeof(h->orig_instr));
-}
-static void repatch_hook(const so_hook *h) {
-    sceClibMemcpy((void *)h->addr,h->patch_instr,sizeof(h->patch_instr));
-    kuKernelFlushCaches((void *)h->addr,sizeof(h->patch_instr));
-}
-static uintptr_t hook_target(const so_hook *h) { return h->thumb_addr?h->thumb_addr:h->addr; }
-
-static void continue_play(void *self,const void *filename,bool a,bool b) {
-    restore_hook(&base_play_hook);
-    ((void (*)(void *,const void *,bool,bool))hook_target(&base_play_hook))(self,filename,a,b);
-    repatch_hook(&base_play_hook);
-}
-static void continue_self(const so_hook *h,void *self) {
-    restore_hook(h);
-    ((void (*)(void *))hook_target(h))(self);
-    repatch_hook(h);
-}
-static void continue_volume(void *self,float value) {
-    restore_hook(&base_volume_hook);
-    ((void (*)(void *,float))hook_target(&base_volume_hook))(self,value);
-    repatch_hook(&base_volume_hook);
-}
-
-static void hooked_base_play(void *self,const void *filename,bool a,bool b) {
-    const char *path=string_data?string_data(filename):NULL;
-    const char *track=known_track(path);
-    if(track) {
-        static unsigned reports;
-        if(__atomic_fetch_add(&reports,1,__ATOMIC_RELAXED)<16)
-            l_perf("music_ogg request path=%s arg_a=%d arg_b=%d owner=%p",path?path:"(null)",a,b,self);
-        /* All five shipped tracks are music/ambience loops. The engine stop
-         * hook still controls transitions, so this avoids depending on the
-         * undocumented meaning of the two BaseStream::play bools. */
-        music_claim_and_play(self,track,1);
-        return;
-    }
-    continue_play(self,filename,a,b);
-}
-
-static void hooked_base_stop(void *self) {
-    if(owner_claimed(self)) { music_stop_owner(self); return; }
-    continue_self(&base_stop_hook,self);
-}
-static void hooked_base_pause(void *self) {
-    if(owner_claimed(self)) { music_pause_owner(self,1); return; }
-    continue_self(&base_pause_hook,self);
-}
-static void hooked_base_resume(void *self) {
-    if(owner_claimed(self)) { music_pause_owner(self,0); return; }
-    continue_self(&base_resume_hook,self);
-}
-static void hooked_base_volume(void *self,float value) {
-    if(owner_claimed(self)) { music_volume_owner(self,value); return; }
-    continue_volume(self,value);
-}
-
-static void install_optional_hook(const char *symbol,uintptr_t replacement,so_hook *out,unsigned bit,unsigned *mask) {
-    uintptr_t addr=(uintptr_t)so_symbol(&so_mod,symbol);
-    if(!addr) return;
-    *out=hook_addr(addr,replacement);
-    if(out->addr) *mask|=bit;
-}
-
-static void install_ogg_backend(void) {
-    string_data=(void *)so_symbol(&so_mod,"_ZNK6STRING5c_strEv");
-    uintptr_t play=(uintptr_t)so_symbol(&so_mod,"_ZN5sound10BaseStream4playERK6STRINGbb");
-    if(!string_data || !play) {
-        l_perf("audio_stream installed=0 music_mode=2 reason=BaseStream_play_or_STRING_c_str_not_exported play=%p c_str=%p",
-               (void *)play,(void *)string_data);
-        return;
-    }
-    base_play_hook=hook_addr(play,(uintptr_t)hooked_base_play);
-    if(!base_play_hook.addr) {
-        l_perf("audio_stream installed=0 music_mode=2 reason=BaseStream_play_hook_failed");
-        return;
-    }
-    unsigned optional=0;
-    install_optional_hook("_ZN5sound10BaseStream4stopEv",(uintptr_t)hooked_base_stop,&base_stop_hook,1,&optional);
-    install_optional_hook("_ZN5sound10BaseStream5pauseEv",(uintptr_t)hooked_base_pause,&base_pause_hook,2,&optional);
-    install_optional_hook("_ZN5sound10BaseStream6resumeEv",(uintptr_t)hooked_base_resume,&base_resume_hook,4,&optional);
-    install_optional_hook("_ZN5sound10BaseStream9setVolumeEf",(uintptr_t)hooked_base_volume,&base_volume_hook,8,&optional);
-    l_perf("audio_stream installed=1 music_mode=2 backend=ogg_vorbis_existing_sceAudioOut play=%p optional_hooks=0x%X voices=%d",
-           (void *)play,optional,MUSIC_VOICE_COUNT);
-}
-
 void audio_stream_install(void) {
-    if(setting_music_mode==2) {
-        install_ogg_backend();
-        return;
-    }
-    if(setting_music_mode==1) {
-        install_legacy_pcm_hook();
-        return;
-    }
+    if(setting_music_mode==2) { install_original_music();return; }
+    if(setting_music_mode==1) { install_legacy_pcm_hook();return; }
     l_perf("audio_stream installed=0 music_mode=0 backend=stable_silent_fallback music_hook_skipped=1");
 }
+
+#endif

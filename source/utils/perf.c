@@ -3,6 +3,7 @@
 #include "utils/perf.h"
 #include "utils/logger.h"
 #include "utils/asset_index.h"
+#include "utils/asset_cache.h"
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
 #include <stdio.h>
@@ -29,6 +30,35 @@ void audio_perf_wait(unsigned kind, unsigned us, int timeout) {
     if (timeout) ADD(&s->timeouts, 1);
 }
 void audio_perf_output(int result) { ADD(&audio.output_calls, 1); if (result < 0) ADD(&audio.output_errors, 1); }
+static struct { unsigned frames,rate,fill_us,fill_max,gap_max,late,deadline_misses,silence,enqueues,enqueue_errors,source_bytes,converted_bytes,allocations,depth_max; } at;
+void audio_perf_enqueue(unsigned bytes,unsigned converted_bytes,unsigned depth,int result) {
+    ADD(&at.enqueues,1);if(result) ADD(&at.enqueue_errors,1);
+    ADD(&at.source_bytes,bytes);ADD(&at.converted_bytes,converted_bytes);
+    if(converted_bytes) ADD(&at.allocations,1);max_relaxed(&at.depth_max,depth);
+}
+void audio_perf_output_timing(int result,uint64_t begin,uint64_t submit,unsigned frames,unsigned rate,const void *pcm) {
+    static uint64_t last_submit;
+    unsigned fill=(unsigned)(submit-begin),expected=(unsigned)((uint64_t)frames*1000000/rate);
+    ADD(&at.fill_us,fill);max_relaxed(&at.fill_max,fill);
+    __atomic_store_n(&at.frames,frames,__ATOMIC_RELAXED);__atomic_store_n(&at.rate,rate,__ATOMIC_RELAXED);
+    if(last_submit) { unsigned gap=(unsigned)(submit-last_submit);max_relaxed(&at.gap_max,gap);
+        if(gap>expected+2000) ADD(&at.late,1);if(gap>expected*2) ADD(&at.deadline_misses,1); }
+    last_submit=submit;
+    const uint32_t *words=pcm;unsigned nonzero=0;
+    for(unsigned i=0;i<frames;i++) if(words[i]) { nonzero=1;break; }
+    if(!nonzero) ADD(&at.silence,1);
+    audio_perf_output(result);
+}
+void audio_timing_report(void) {
+    static unsigned old_fill,old_late,old_miss,old_silence,old_enqueue,old_errors,old_bytes,old_converted,old_alloc;
+    unsigned fill=LOAD(&at.fill_us),late=LOAD(&at.late),miss=LOAD(&at.deadline_misses),silence=LOAD(&at.silence);
+    unsigned enq=LOAD(&at.enqueues),err=LOAD(&at.enqueue_errors),bytes=LOAD(&at.source_bytes),converted=LOAD(&at.converted_bytes),alloc=LOAD(&at.allocations);
+    unsigned frames=LOAD(&at.frames),rate=LOAD(&at.rate);
+    l_perf("audio_timing frames=%u rate=%u expected_us=%u fill_total_us=%u fill_max_us_lifetime=%u max_output_gap_us_lifetime=%u late_wakeups=%u deadline_misses=%u silence_buffers=%u enqueues=%u enqueue_errors=%u source_bytes=%u converted_bytes=%u enqueue_allocations=%u queue_depth_max_lifetime=%u silence_is_not_underrun=1",
+        frames,rate,rate?(unsigned)((uint64_t)frames*1000000/rate):0,fill-old_fill,LOAD(&at.fill_max),LOAD(&at.gap_max),late-old_late,miss-old_miss,silence-old_silence,
+        enq-old_enqueue,err-old_errors,bytes-old_bytes,converted-old_converted,alloc-old_alloc,LOAD(&at.depth_max));
+    old_fill=fill;old_late=late;old_miss=miss;old_silence=silence;old_enqueue=enq;old_errors=err;old_bytes=bytes;old_converted=converted;old_alloc=alloc;
+}
 void audio_perf_snapshot(AudioPerfStats *out) {
 #define COPY(member) out->member = LOAD(&audio.member)
     COPY(clear.calls); COPY(clear.wait_calls); COPY(clear.wait_us); COPY(clear.max_us); COPY(clear.timeouts);
@@ -108,6 +138,10 @@ static void report_slow_opens(void) {
 AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode) {
     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset_open;
     uint64_t start=sceKernelGetProcessTimeWide();
+    char normalized[256];
+    if(name && strlen(name)<sizeof(normalized)) {
+        strcpy(normalized,name);for(char *p=normalized;*p;p++) if(*p=='\\') *p='/';name=normalized;
+    }
     AAsset *ret=asset_index_missing(name)?NULL:AAssetManager_open(mgr,name,mode);
     int saved_errno=errno;
     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
@@ -172,6 +206,11 @@ void perf_report(void) {
     raster_palette_report();
     raster_alpha_report();
     render_reuse_report();
+    audio_timing_report();
+    extern void map_profile_report(void);
+    map_profile_report();
+    extern void zombie_music_report(void);
+    zombie_music_report();
     static AudioPerfStats previous;
     static LoggerStats old_log;
     AudioPerfStats now; audio_perf_snapshot(&now);
@@ -225,6 +264,15 @@ void perf_report(void) {
 #ifdef NDK_PORT
     report_slow_opens();
     asset_index_report();
+    static AssetCacheStats old_cache;AssetCacheStats cache;asset_cache_snapshot(&cache);
+    l_perf("asset_cache hits=%u misses=%u evictions=%u avoided_opens=%u saved_read_bytes=%llu bytes=%u peak_bytes=%u limit_bytes=%u entries=%u pinned=%u fallback=%u",
+        cache.hits-old_cache.hits,cache.misses-old_cache.misses,cache.evictions-old_cache.evictions,
+        cache.avoided_opens-old_cache.avoided_opens,(unsigned long long)(cache.saved_read_bytes-old_cache.saved_read_bytes),
+        (unsigned)cache.bytes,(unsigned)cache.peak_bytes,(unsigned)cache.limit,cache.entries,cache.pinned,cache.fallback-old_cache.fallback);
+    old_cache=cache;
+    AssetPathStats paths[5];unsigned overflow=0,n=asset_cache_paths(paths,&overflow);
+    for(unsigned p=0;p<n;p++) l_perf("asset_path name=\"%s\" opens=%u hits=%u closes=%u size=%u closed_handle_read_bytes=%llu path_table_overflow=%u closed_reads_may_cross_window=1",
+        paths[p].key,paths[p].opens,paths[p].hits,paths[p].closes,(unsigned)paths[p].size,(unsigned long long)paths[p].read_bytes,overflow);
 #endif
     LoggerStats log={0}; logger_get_stats(&log);
     l_perf("logger lines=%u syncs=%u sync_total_us=%u suppressed_repeats=%u total_us=%u",log.lines-old_log.lines,log.syncs-old_log.syncs,log.sync_us-old_log.sync_us,log.suppressed-old_log.suppressed,log.total_us-old_log.total_us);

@@ -2,52 +2,110 @@ diff --git a/FalsoNDK_Utils.cpp b/FalsoNDK_Utils.cpp
 index b600e3d..5b30221 100644
 --- a/FalsoNDK_Utils.cpp
 +++ b/FalsoNDK_Utils.cpp
-@@ -46,2 +46,3 @@ void LOG_ALWAYS_FATAL(const char * fmt, ...) {
+@@ -44,6 +44,7 @@ __attribute__((noreturn))
+ void LOG_ALWAYS_FATAL(const char * fmt, ...) {
+     LOG_PRINT(FALSONDK_LOG_FATAL, fmt);
      sceClibAbort();
 +    __builtin_unreachable();
  }
-@@ -53,3 +54,5 @@ void ALOGE(const char * fmt, ...) {
+ 
+ void ALOGE(const char * fmt, ...) {
+@@ -51,9 +52,13 @@ void ALOGE(const char * fmt, ...) {
+ }
+ 
  void ALOGW(const char * fmt, ...) {
 +#ifndef ZOMBIE_RELEASE_BUILD
      LOG_PRINT(FALSONDK_LOG_WARN, fmt);
 +#endif
  }
-@@ -57,3 +60,5 @@ void ALOGW(const char * fmt, ...) {
+ 
  void ALOGD(const char * fmt, ...) {
 +#ifndef ZOMBIE_RELEASE_BUILD
      LOG_PRINT(FALSONDK_LOG_DEBUG, fmt);
 +#endif
  }
 diff --git a/android/AAssetManager.cpp b/android/AAssetManager.cpp
-index 3e61b41..4cab4e1 100644
+index 3e61b41..d447197 100644
 --- a/android/AAssetManager.cpp
 +++ b/android/AAssetManager.cpp
-@@ -3,2 +3,3 @@
+@@ -1,17 +1,25 @@
+ #include "android/AAssetManager.h"
+ 
++#ifndef ZOMBIE_ASSET_HOST
  #include <psp2/kernel/threadmgr.h>
 +#include <psp2/io/stat.h>
++#endif
  #include <malloc.h>
-@@ -8,2 +9,3 @@
+ #include <cstring>
+ #include <cstdio>
+ #include <string>
  #include <fcntl.h>
 +#include <cerrno>
  
-@@ -23,4 +25,8 @@ typedef struct aAsset {
+ #ifdef USE_SCELIBC_IO
+ #include <shim/libc_bridge.h>
+ #endif
+ 
++#ifndef ZOMBIE_ASSET_HOST
+ #include "FalsoNDK_Utils.h"
++#endif
++#include "../../../source/utils/asset_cache.h"
++#include <new>
+ 
+ typedef struct assetManager {
+     int dummy = 0; // TODO: mb we will need to store something here in future
+@@ -21,8 +29,13 @@ typedef struct assetManager {
+ typedef struct aAsset {
+     char * filename;
      FILE* f;
 +    unsigned char *buffer;
++    SharedAssetData *shared = nullptr;
 +    size_t position;
      size_t bytesRead;
      size_t fileSize;
 +    unsigned diagnosticReadCalls;
 +    bool traceFootsteps;
      bool opened = false;
-@@ -51,3 +57,7 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ } asset;
+ 
+@@ -40,16 +53,33 @@ AAssetManager * AAssetManager_create() {
+ }
+ 
+ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
++    if (!filename) return nullptr;
+ #ifdef DATA_PATH
+     std::string realp = std::string(DATA_PATH) + std::string("assets/") + std::string(filename);
+ #else
+     std::string realp = std::string("app0:") + std::string("assets/") + std::string(filename);
+ #endif
+ 
+-    auto * a = new aAsset;
++    // Android resource paths use slash separators; the SO also probes backslashes.
++    for (char &c : realp) if (c == '\\') c = '/';
++    auto * a = new (std::nothrow) aAsset;
++    if (!a) return nullptr;
+     a->filename = (char *) malloc(realp.length() + 1);
++    if (!a->filename) { delete a; return nullptr; }
      strcpy(a->filename, realp.c_str());
 +    a->buffer = nullptr;
 +    a->position = 0;
      a->bytesRead = 0;
 +    a->diagnosticReadCalls = 0;
 +    a->traceFootsteps = realp.find("wav/footsteps.wav") != std::string::npos;
++    a->shared = asset_cache_acquire(realp.c_str());
++    if (a->shared) {
++        a->buffer = const_cast<unsigned char *>(asset_cache_data(a->shared));
++        a->fileSize = asset_cache_size(a->shared);
++        a->f = nullptr;
++        return (AAsset *)a;
++    }
++
  
-@@ -60,2 +70,13 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ #ifdef USE_SCELIBC_IO
+     a->f = sceLibcBridge_fopen((const char *)a->filename, "r");
+@@ -58,6 +88,17 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ #endif
+ 
      if (!a->f) {
 +        int open_errno = errno;
 +        if (!strstr(filename, "i18n/") && !strstr(filename, "i18n\\")) {
@@ -61,7 +119,11 @@ index 3e61b41..4cab4e1 100644
 +            }
 +        }
          free(a->filename);
-@@ -74,2 +95,41 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+         delete a;
+         a = nullptr;
+@@ -72,6 +113,46 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+         fseek(a->f, 0, SEEK_SET);
+ #endif
          a->opened = true;
 +
 +        // The engine keeps many assets open at once. Vita's stdio file slots
@@ -86,6 +148,7 @@ index 3e61b41..4cab4e1 100644
 +#endif
 +                    a->f = nullptr;
 +                    a->opened = false;
++                    a->shared = asset_cache_adopt(realp.c_str(), &buffer, a->fileSize);
 +                    a->buffer = buffer;
 +                    static unsigned buffered_count = 0;
 +                    unsigned count = __sync_add_and_fetch(&buffered_count, 1);
@@ -103,7 +166,11 @@ index 3e61b41..4cab4e1 100644
 +            }
 +        }
      }
-@@ -82,6 +142,7 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ 
+     ALOGD("AAssetManager_open<%p>(%p, %s, %i): %p", __builtin_return_address(0), mgr, realp.c_str(), mode, a);
+@@ -80,10 +161,12 @@ AAsset* AAssetManager_open(AAssetManager* mgr, const char* filename, int mode) {
+ }
+ 
  void AAsset_close(AAsset* asset) {
 -    ALOGD("AAsset_close<%p>(%p)", __builtin_return_address(0), asset);
 -
@@ -112,25 +179,35 @@ index 3e61b41..4cab4e1 100644
 +        ALOGD("AAsset_close<%p>(%p, %s, read=%u/%u)",
 +              __builtin_return_address(0), asset, a->filename,
 +              (unsigned)a->bytesRead, (unsigned)a->fileSize);
++        asset_cache_note_close(a->filename,a->bytesRead,a->fileSize);
          free(a->filename);
-@@ -94,2 +155,3 @@ void AAsset_close(AAsset* asset) {
+         if (a->opened) {
+ #ifdef USE_SCELIBC_IO
+@@ -92,33 +175,66 @@ void AAsset_close(AAsset* asset) {
+             fclose(a->f);
+ #endif
          }
-+        free(a->buffer);
++        if (a->shared) asset_cache_release(a->shared);
++        else free(a->buffer);
          delete a;
-@@ -99,5 +161,4 @@ void AAsset_close(AAsset* asset) {
+     }
+ }
+ 
  int AAsset_read(AAsset* asset, void* buf, size_t count) {
 -    ALOGD("AAsset_read<%p>(%p, %p, %i)", __builtin_return_address(0), asset, buf, count);
 -
      if (!asset) {
 +        ALOGW("AAsset_read called with NULL asset");
          return -1;
-@@ -107,3 +168,4 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+     }
+ 
+     auto * a = (aAsset *) asset;
  
 -    if (!a->opened) {
 +    if (!a->opened && !a->buffer) {
 +        ALOGW("AAsset_read called on closed asset: %s", a->filename);
          return -1;
-@@ -111,12 +173,43 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+     }
  
 +    size_t ret;
 +    if (a->buffer) {
@@ -176,13 +253,21 @@ index 3e61b41..4cab4e1 100644
 +        }
 +        if (a->buffer) return 0;
  #ifdef USE_SCELIBC_IO
-@@ -128,2 +221,5 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+         if (sceLibcBridge_feof(a->f)) {
+ #else
+@@ -126,6 +242,9 @@ int AAsset_read(AAsset* asset, void* buf, size_t count) {
+ #endif
+             return 0;
          } else {
 +            ALOGW("AAsset_read failed: %s at %u/%u bytes",
 +                  a->filename, (unsigned)a->bytesRead,
 +                  (unsigned)a->fileSize);
              return -1;
-@@ -142,2 +238,12 @@ off_t AAsset_seek(AAsset* asset, off_t offset, int whence) {
+         }
+     }
+@@ -140,6 +259,16 @@ off_t AAsset_seek(AAsset* asset, off_t offset, int whence) {
+ 
+     auto * a = (aAsset *) asset;
  
 +    if (a->buffer) {
 +        int64_t base = whence == SEEK_SET ? 0 :
@@ -195,12 +280,20 @@ index 3e61b41..4cab4e1 100644
 +    }
 +
      if (!a->opened) {
-@@ -171,2 +277,4 @@ off_t AAsset_getRemainingLength(AAsset* asset) {
+         return -1;
+     }
+@@ -169,6 +298,8 @@ off_t AAsset_getRemainingLength(AAsset* asset) {
+ 
+     auto * a = (aAsset *) asset;
  
 +    if (a->buffer) return (off_t)(a->fileSize - a->position);
 +
      if (!a->opened) {
-@@ -216,2 +324,15 @@ int AAsset_openFileDescriptor(AAsset* asset, off_t* outStart, off_t* outLength)
+         return -1;
+     }
+@@ -214,6 +345,19 @@ int AAsset_openFileDescriptor(AAsset* asset, off_t* outStart, off_t* outLength)
+     auto * a = (aAsset *) asset;
+     if (outStart) *outStart = 0;
      if (outLength) *outLength = a->fileSize;
 +    // This port's OpenSL ES backend does not implement AndroidFD sources.
 +    // The game requests .m4a music through this API, then cannot create its
@@ -216,30 +309,50 @@ index 3e61b41..4cab4e1 100644
 +        return -1;
 +    }
      if (a->opened) {
+ #ifdef USE_SCELIBC_IO
+         sceLibcBridge_fclose(a->f);
 diff --git a/android/AInput.cpp b/android/AInput.cpp
 index 91f151d..c1c23d3 100644
 --- a/android/AInput.cpp
 +++ b/android/AInput.cpp
-@@ -5,2 +5,3 @@
+@@ -3,6 +3,7 @@
+ #include <deque>
+ #include <vector>
  #include <psp2/kernel/threadmgr.h>
 +#include <psp2/kernel/processmgr.h>
  #include <cstring>
-@@ -19,2 +20,5 @@ static int _event_pool_top = 0;
+ #include <cerrno>
+ 
+@@ -17,6 +18,9 @@ static inputEvent _event_pool_storage[EVENT_POOL_SIZE];
+ static inputEvent* _event_pool_free[EVENT_POOL_SIZE];
+ static int _event_pool_top = 0;
  static SceKernelLwMutexWork _event_pool_lock;
 +static volatile unsigned input_enqueued;
 +static volatile unsigned input_dequeued;
 +static volatile unsigned input_last_report_ms;
  
-@@ -45,2 +49,4 @@ AInputQueue * AInputQueue_create() {
+ __attribute__((constructor))
+ static void _event_pool_init() {
+@@ -43,6 +47,8 @@ AInputQueue * AInputQueue_create() {
+ 
+     if (iq->mDispatchFd < 0) {
          ALOGE("eventfd creation for AInputQueue failed: %s\n", strerror(errno));
 +        delete iq;
 +        return nullptr;
      } else {
-@@ -122,2 +128,3 @@ int32_t AInputQueue_getEvent(AInputQueue* queue, AInputEvent** outEvent) {
+         ALOGD("Created eventfd for AInputQueue: #%i", iq->mDispatchFd);
+     }
+@@ -120,6 +126,7 @@ int32_t AInputQueue_getEvent(AInputQueue* queue, AInputEvent** outEvent) {
+     if (!q->mPendingEvents.empty()) {
+         *outEvent = q->mPendingEvents.front();
          q->mPendingEvents.pop_front();
 +        __atomic_add_fetch(&input_dequeued, 1, __ATOMIC_RELAXED);
      }
-@@ -160,2 +167,7 @@ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+ 
+     if (q->mPendingEvents.empty()) {
+@@ -158,9 +165,16 @@ void AInputQueue_finishEvent(AInputQueue* queue, AInputEvent* event, int handled
+ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+     if (!queue || !event) return;
      auto * q = reinterpret_cast<inputQueue *>(queue);
 +    const inputEvent *sample = reinterpret_cast<const inputEvent *>(event);
 +    int sample_source = sample->source;
@@ -247,12 +360,16 @@ index 91f151d..c1c23d3 100644
 +    int sample_action = sample_type == AINPUT_EVENT_TYPE_MOTION
 +        ? sample->motion_action : sample->action;
  
-@@ -163,2 +175,4 @@ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+     sceKernelLockLwMutex(&q->mLock, 1, nullptr);
      q->mPendingEvents.push_back(event);
 +    unsigned pending = (unsigned)q->mPendingEvents.size();
 +    unsigned queued = __atomic_add_fetch(&input_enqueued, 1, __ATOMIC_RELAXED);
      if (q->mPendingEvents.size() == 1) {
-@@ -171,2 +185,12 @@ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+         uint64_t payload = 1;
+         int res = TEMP_FAILURE_RETRY(fndk_write(q->mDispatchFd, &payload, sizeof(payload)));
+@@ -169,6 +183,16 @@ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+         }
+     }
      sceKernelUnlockLwMutex(&q->mLock, 1);
 +
 +    unsigned now_ms = (unsigned)(sceKernelGetProcessTimeWide() / 1000);
@@ -265,12 +382,20 @@ index 91f151d..c1c23d3 100644
 +              sample_source, sample_type, sample_action);
 +    }
  }
-@@ -200,3 +224,3 @@ int32_t AInputEvent_getDeviceId(const AInputEvent* event) {
+ 
+ /**
+@@ -198,7 +222,7 @@ int32_t AInputEvent_getType(const AInputEvent* event) {
+ int32_t AInputEvent_getDeviceId(const AInputEvent* event) {
+     if (!event) return -1;
      auto * e = reinterpret_cast<const inputEvent *>(event);
 -    return e->source; // in our case that's fine, hopefully. unless there are external pads connected?
 +    return e->device_id;
  }
-@@ -266,2 +290,8 @@ float AMotionEvent_getY(const AInputEvent* motion_event, size_t pointer_index) {
+ 
+ int32_t AInputEvent_getSource(const AInputEvent* event) {
+@@ -264,11 +288,26 @@ float AMotionEvent_getY(const AInputEvent* motion_event, size_t pointer_index) {
+     return e->motion_y[pointer_index];
+ }
  
 +int32_t AMotionEvent_getButtonState(const AInputEvent* motion_event) {
 +    // Synthetic Vita motion events have no motion button bits. Pad buttons
@@ -279,7 +404,9 @@ index 91f151d..c1c23d3 100644
 +}
 +
  float AMotionEvent_getAxisValue(const AInputEvent* motion_event,
-@@ -271,2 +301,11 @@ int32_t axis, size_t pointer_index) {
+ int32_t axis, size_t pointer_index) {
+     if (!motion_event) return 0;
+     auto * e = reinterpret_cast<const inputEvent *>(motion_event);
      if (pointer_index >= 10) pointer_index = 9;
 +#ifdef ZOMBIE_DEBUG_BUILD
 +    // One trace per axis, including unsupported RX/RY. No per-frame logging.
@@ -291,37 +418,55 @@ index 91f151d..c1c23d3 100644
 +    }
 +#endif
      switch (axis) {
-@@ -295,3 +334,3 @@ int32_t axis, size_t pointer_index) {
+         case AMOTION_EVENT_AXIS_X:
+             return e->motion_x[pointer_index];
+@@ -293,7 +332,7 @@ int32_t axis, size_t pointer_index) {
+             // These are often requested for joysticks but not applicable to the Vita
+             return 0;
          default:
 -            ALOGE("AMotionEvent_getAxisValue: unexpected axis %i", axis);
 +            // Unsupported axes are neutral; the bounded Debug trace identifies them.
              return 0;
+     }
+ }
 diff --git a/android/AInput.h b/android/AInput.h
 index a4bb775..70975d1 100644
 --- a/android/AInput.h
 +++ b/android/AInput.h
-@@ -597,3 +597,6 @@ typedef struct AInputEvent AInputEvent;
+@@ -595,7 +595,10 @@ typedef struct AInputEvent AInputEvent;
+ /**
+  * [Non-Standard]: Real underlying structure for AInputEvent, can be used for creating AInputEvent
   */
 +enum { FNDK_GAMEPAD_DEVICE_ID = 1, FNDK_TOUCH_DEVICE_ID = 2 };
 +
  typedef struct inputEvent {
 +    int device_id; // Stable identity, independent of event source.
      int source; // one of AINPUT_SOURCE_* enum
-@@ -698,2 +701,5 @@ float AMotionEvent_getY(const AInputEvent *motion_event, size_t pointer_index);
+     int type; // one of AINPUT_EVENT_TYPE_* enum
+ 
+@@ -696,6 +699,9 @@ float AMotionEvent_getX(const AInputEvent *motion_event, size_t pointer_index);
+  */
+ float AMotionEvent_getY(const AInputEvent *motion_event, size_t pointer_index);
  
 +/** Get the state of motion event buttons. Controller buttons use key events here. */
 +int32_t AMotionEvent_getButtonState(const AInputEvent* motion_event);
 +
  /** Get the value of the request axis for the given pointer index. */
+ float AMotionEvent_getAxisValue(const AInputEvent* motion_event,
+                                 int32_t axis, size_t pointer_index);
 diff --git a/android/ANativeActivity.cpp b/android/ANativeActivity.cpp
 index efabbdf..f339b04 100644
 --- a/android/ANativeActivity.cpp
 +++ b/android/ANativeActivity.cpp
-@@ -1,2 +1,3 @@
+@@ -1,4 +1,5 @@
  #include "android/ANativeActivity.h"
 +#include "FalsoNDK_Utils.h"
  
-@@ -11,3 +12,6 @@ void ANativeActivity_setWindowFlags(ANativeActivity* activity, uint32_t addFlags
+ #include <cstdlib>
+ #include <cerrno>
+@@ -9,5 +10,8 @@ void ANativeActivity_setWindowFlags(ANativeActivity* activity, uint32_t addFlags
+ }
+ 
  void ANativeActivity_finish(ANativeActivity* activity) {
 -    free(activity);
 +    // Android only asks the framework to finish here.  The NativeActivity and
@@ -333,7 +478,9 @@ diff --git a/android/ANativeWindow.cpp b/android/ANativeWindow.cpp
 index 417bd71..ecf7668 100644
 --- a/android/ANativeWindow.cpp
 +++ b/android/ANativeWindow.cpp
-@@ -3,7 +3,10 @@
+@@ -1,35 +1,47 @@
+ #include "android/ANativeWindow.h"
+ 
  #include <cstdlib>
 -#include <cstring>
  #include <cstdio>
@@ -346,7 +493,7 @@ index 417bd71..ecf7668 100644
 +    int32_t format;
 +    int32_t refs;
  } nativeWindow;
-@@ -11,8 +14,9 @@ typedef struct nativeWindow {
+ 
  ANativeWindow * ANativeWindow_create() {
 -    nativeWindow win;
 -
@@ -362,25 +509,26 @@ index 417bd71..ecf7668 100644
 +    win->refs = 1;
 +    return reinterpret_cast<ANativeWindow *>(win);
  }
-@@ -20,3 +24,4 @@ ANativeWindow * ANativeWindow_create() {
+ 
  int32_t ANativeWindow_getWidth(ANativeWindow* window) {
 -    return 960;
 +    if (!window) return -EINVAL;
 +    return reinterpret_cast<nativeWindow *>(window)->width;
  }
-@@ -24,3 +29,4 @@ int32_t ANativeWindow_getWidth(ANativeWindow* window) {
+ 
  int32_t ANativeWindow_getHeight(ANativeWindow* window) {
 -    return 544;
 +    if (!window) return -EINVAL;
 +    return reinterpret_cast<nativeWindow *>(window)->height;
  }
-@@ -28,3 +34,4 @@ int32_t ANativeWindow_getHeight(ANativeWindow* window) {
+ 
  int32_t ANativeWindow_getFormat(ANativeWindow* window) {
 -    return 1; // AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
 +    if (!window) return -EINVAL;
 +    return reinterpret_cast<nativeWindow *>(window)->format;
  }
-@@ -33,2 +40,7 @@ int32_t ANativeWindow_setBuffersGeometry(ANativeWindow* window,
+ 
+ int32_t ANativeWindow_setBuffersGeometry(ANativeWindow* window,
                                           int32_t width, int32_t height, int32_t format) {
 +    if (!window || ((width == 0) != (height == 0))) return -EINVAL;
 +    auto *win = reinterpret_cast<nativeWindow *>(window);
@@ -388,25 +536,38 @@ index 417bd71..ecf7668 100644
 +    win->height = height ? height : 544;
 +    win->format = format ? format : 1;
      return 0;
+ }
 diff --git a/shim/fndk_controls.cpp b/shim/fndk_controls.cpp
 index 9a5866a..3cd4231 100644
 --- a/shim/fndk_controls.cpp
 +++ b/shim/fndk_controls.cpp
-@@ -19,2 +19,3 @@
+@@ -17,11 +17,15 @@
+ 
+ #include "android/keycodes.h"
  #include "android/AInput.h"
 +#include "FalsoNDK_Utils.h"
  
-@@ -24,2 +25,5 @@ extern "C" {
+ extern "C" {
+     float L_INNER_DEADZONE __attribute__((weak)) = 0.20f;
+     float R_INNER_DEADZONE __attribute__((weak)) = 0.20f;
      int fndk_button_event_source __attribute__((weak)) = AINPUT_SOURCE_GAMEPAD;
 +    uint32_t __attribute__((weak)) fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handheld) {
 +        return buttons | (handheld ? rear : 0);
 +    }
  }
-@@ -156,2 +160,3 @@ void pollTouch() {
+ 
+ #define L_OUTER_DEADZONE 0.99f
+@@ -154,6 +158,7 @@ void pollTouch() {
+                 int finger_id = slotAlloc(touch.report[i].id);
+                 if (finger_id == -1) continue;
  
 +                ev.device_id = FNDK_TOUCH_DEVICE_ID;
                  ev.source = AINPUT_SOURCE_TOUCHSCREEN;
-@@ -270,4 +275,6 @@ extern "C" {
+                 ev.motion_ptrcount = numPointersDown + 1;
+                 ev.motion_x[numPointersDown] = x;
+@@ -268,20 +273,23 @@ extern "C" {
+             { SCE_CTRL_R2,        AKEYCODE_BUTTON_R2 },
+             { SCE_CTRL_START,     AKEYCODE_BUTTON_START },
              { SCE_CTRL_SELECT,    AKEYCODE_BUTTON_SELECT },
 +            { SCE_CTRL_L3,        AKEYCODE_BUTTON_THUMBL },
 +            { SCE_CTRL_R3,        AKEYCODE_BUTTON_THUMBR },
@@ -414,7 +575,9 @@ index 9a5866a..3cd4231 100644
 -    int fndk_button_mapping_count __attribute__((weak)) = 14;
 +    int fndk_button_mapping_count __attribute__((weak)) = sizeof(fndk_button_mapping) / sizeof(fndk_button_mapping[0]);
  }
-@@ -277,9 +284,10 @@ float lx = 0, ly = 0, rx = 0, ry = 0, lastLx = 0, lastLy = 0, lastRx = 0, lastRy
+ 
+ uint32_t old_buttons = 0, current_buttons = 0, pressed_buttons = 0, released_buttons = 0;
+ float lx = 0, ly = 0, rx = 0, ry = 0, lastLx = 0, lastLy = 0, lastRx = 0, lastRy = 0;
  
 -inputEvent stickInputEvent;
 +inputEvent stickInputEvent{};
@@ -428,14 +591,22 @@ index 9a5866a..3cd4231 100644
      if (x != x_old || y != y_old || z != z_old || rz != rz_old || hat_x != hat_x_old || hat_y != hat_y_old || ltPressed != ltPressed_old || rtPressed != rtPressed_old) {
 +        stickInputEvent.device_id = FNDK_GAMEPAD_DEVICE_ID;
          stickInputEvent.source = AINPUT_SOURCE_JOYSTICK;
-@@ -292,4 +300,4 @@ void sendJoyEvent(float x, float y, float z, float rz, float hat_x, float hat_y,
+         stickInputEvent.motion_ptrcount = sticksDown + 1;
+         stickInputEvent.motion_x[0] = x;
+@@ -290,8 +298,8 @@ void sendJoyEvent(float x, float y, float z, float rz, float hat_x, float hat_y,
+         stickInputEvent.motion_rz[0] = rz;
+         stickInputEvent.motion_hat_x[0] = hat_x;
          stickInputEvent.motion_hat_y[0] = hat_y;
 -        stickInputEvent.motion_lt[0] = ltPressed ? 1.0 : 0.0;
 -        stickInputEvent.motion_rt[0] = rtPressed ? 1.0 : 0.0;
 +        stickInputEvent.motion_lt[0] = ltPressed;
 +        stickInputEvent.motion_rt[0] = rtPressed;
          stickInputEvent.motion_ptridx[0] = 0;
-@@ -313,18 +321,37 @@ void sendJoyEvent(float x, float y, float z, float rz, float hat_x, float hat_y,
+         stickInputEvent.type = AINPUT_EVENT_TYPE_MOTION;
+ 
+@@ -311,26 +319,47 @@ void sendJoyEvent(float x, float y, float z, float rz, float hat_x, float hat_y,
+ }
+ 
  void pollPad() {
 -    SceCtrlData pad;
 -    sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
@@ -489,12 +660,17 @@ index 9a5866a..3cd4231 100644
 +                        if (t.report[i].x < panelInfoBack.maxAaX - BACK_TOUCH_MARGIN) rear_buttons |= SCE_CTRL_R2;
 +                    }
                  }
-@@ -333,2 +360,4 @@ void pollPad() {
+             }
+         }
      }
 +    old_buttons = current_buttons;
 +    current_buttons = fndk_translate_pad_buttons(pad.buttons, rear_buttons, handheld);
  
-@@ -340,3 +369,6 @@ void pollPad() {
+     pressed_buttons = current_buttons & ~old_buttons;
+     released_buttons = ~current_buttons & old_buttons;
+@@ -338,21 +367,33 @@ void pollPad() {
+     for (int i = 0; i < fndk_button_mapping_count; i++) {
+         ButtonMapping & m = fndk_button_mapping[i];
          if (pressed_buttons & m.sce_button) {
 -            inputEvent e;
 +            inputEvent e{};
@@ -502,13 +678,15 @@ index 9a5866a..3cd4231 100644
 +            e.repeatcount = 0;
 +            e.scancode = 0;
              e.source = fndk_button_event_source; // Override fndk_button_event_source to change, e.g. to AINPUT_SOURCE_DPAD
-@@ -346,2 +378,5 @@ void pollPad() {
+             e.keycode = m.android_button;
+             e.action = AKEY_EVENT_ACTION_DOWN;
+             e.type = AINPUT_EVENT_TYPE_KEY;
  
 +#ifdef ZOMBIE_DEBUG_BUILD
 +            ALOGD("[INPUT] button deviceId=%d source=0x%x keycode=%d DOWN repeatcount=%d", e.device_id, e.source, e.keycode, e.repeatcount);
 +#endif
              AInputEvent* aie = AInputEvent_create(&e);
-@@ -349,3 +384,6 @@ void pollPad() {
+             AInputQueue_enqueueEvent(inputQueue, aie);
          } else if (released_buttons & m.sce_button) {
 -            inputEvent e;
 +            inputEvent e{};
@@ -516,13 +694,19 @@ index 9a5866a..3cd4231 100644
 +            e.repeatcount = 0;
 +            e.scancode = 0;
              e.source = fndk_button_event_source;
-@@ -355,2 +393,5 @@ void pollPad() {
+             e.keycode = m.android_button;
+             e.action = AKEY_EVENT_ACTION_UP;
+             e.type = AINPUT_EVENT_TYPE_KEY;
  
 +#ifdef ZOMBIE_DEBUG_BUILD
 +            ALOGD("[INPUT] button deviceId=%d source=0x%x keycode=%d UP repeatcount=%d", e.device_id, e.source, e.keycode, e.repeatcount);
 +#endif
              AInputEvent *aie = AInputEvent_create(&e);
-@@ -373,3 +414,10 @@ void pollPad() {
+             AInputQueue_enqueueEvent(inputQueue, aie);
+         }
+@@ -371,5 +412,12 @@ void pollPad() {
+     stickInputEvent.motion_action = AMOTION_EVENT_ACTION_MOVE;
+     stickInputEvent.type = AINPUT_EVENT_TYPE_MOTION;
  
 -    sendJoyEvent(lx, ly, rx, ry, 0, 0, current_buttons & SCE_CTRL_L2, current_buttons & SCE_CTRL_R2);
 +    float hat_x = float(bool(current_buttons & SCE_CTRL_RIGHT)) - float(bool(current_buttons & SCE_CTRL_LEFT));
@@ -538,9 +722,13 @@ diff --git a/shim/fndk_controls.h b/shim/fndk_controls.h
 index 7173262..4e9800e 100644
 --- a/shim/fndk_controls.h
 +++ b/shim/fndk_controls.h
-@@ -38,2 +38,5 @@ extern int fndk_button_event_source;
+@@ -36,6 +36,9 @@ extern int fndk_button_mapping_count;
+  * and others. */
+ extern int fndk_button_event_source;
  
 +/* Translate physical controls once before producing both keycodes and axes.
 + * Rear bits use SCE_CTRL_L2/R2. External controllers must stay standard. */
 +uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handheld);
  void fndk_controls_init(AInputQueue * queue);
+ int fndk_controls_poll(SceSize args, void * argp);
+ 

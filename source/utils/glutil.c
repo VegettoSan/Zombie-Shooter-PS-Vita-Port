@@ -206,6 +206,8 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
     static unsigned window_frames;
     static unsigned max_swap_us;
     static unsigned max_frame_us;
+    static uint64_t frame_total_us;
+    static unsigned intervals,over33,over50,over100;
 
     uint64_t start_us = sceKernelGetProcessTimeWide();
     EGLBoolean result = eglSwapBuffers(dpy, surface);
@@ -217,6 +219,7 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
     swap_total_us += swap_us;
     window_frames++;
     if (swap_us > max_swap_us) max_swap_us = swap_us;
+    if(frame_us) { frame_total_us+=frame_us;intervals++;over33+=frame_us>33333;over50+=frame_us>50000;over100+=frame_us>100000; }
     if (frame_us > max_frame_us) max_frame_us = frame_us;
     __atomic_store_n(&last_present_ms, (unsigned)(end_us / 1000), __ATOMIC_RELAXED);
     __atomic_add_fetch(&present_count, 1, __ATOMIC_RELAXED);
@@ -228,6 +231,11 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
                (unsigned)(((uint64_t)window_frames * 10000000) / elapsed_us),
                (unsigned)(swap_total_us / window_frames), max_swap_us,
                max_frame_us);
+        l_perf("pacing frame_avg_us=%u frame_max_us=%u intervals=%u stutters_over33=%u stutters_over50=%u stutters_over100=%u budget_us=33333 limiter=off",
+            intervals?(unsigned)(frame_total_us/intervals):0,max_frame_us,intervals,over33,over50,over100);
+        extern void perf_rates_report(uint64_t,unsigned);perf_rates_report(elapsed_us,window_frames);
+        struct mallinfo heap=mallinfo();
+        l_perf("heap allocated_bytes=%u free_bytes=%u arena_bytes=%u",(unsigned)heap.uordblks,(unsigned)heap.fordblks,(unsigned)heap.arena);
         l_perf("gl draws=%u draw_arrays=%u binds=%u rejected=%u", gl_perf.draws, gl_perf.arrays, gl_perf.binds, gl_perf.rejected);
 #define REPORT_GL(name, member) l_perf("gl " name "_calls=%u " name "_total_us=%u " name "_max_us=%u", gl_perf.member.calls, gl_perf.member.total_us, gl_perf.member.max_us)
         REPORT_GL("buffer_data", buffer_data); REPORT_GL("buffer_sub", buffer_sub);
@@ -248,7 +256,7 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
         window_frames = 0;
         swap_total_us = 0;
         max_swap_us = 0;
-        max_frame_us = 0;
+        max_frame_us = 0;frame_total_us=0;intervals=over33=over50=over100=0;
     }
     return result;
 }

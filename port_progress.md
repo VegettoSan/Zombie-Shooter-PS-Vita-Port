@@ -244,3 +244,16 @@ Build local-54fc2ef-0aeec2a806: Debug/Release/VPK y regresiones PASS; nueva mús
 asignación real de superficie y 25 FPS estables PENDIENTES de Vita.
 Esta nota actualiza los estados pendientes del informe Android Fidelity anterior.
 Informe/instalación: docs/FPS_PCM16_PASS_2026-09-26.md. Sin publicación.
+
+
+## Performance y audio stability — 2026-09-27
+
+Baseline master/HEAD4771a9c conservado. Build local-4771a9c-cc95d44a36
+Release/Debug/VPK/ELF SoftFP BUILD VERIFIED, host O0/O3 y ARM tests PASS.
+Cache read-only compartida8MiB en FalsoNDK activo, cursors propios/fallback/LRU;
+MAP10subfases reales con guards y rates ticks/presents/new/reuse; output1024frames
+separado de mix128, Clear ownership/timeout previo intacto. Música modo2 usa
+los5M4A/AAC originales por worker y mixerOpenSL único, sin sidecarsWAV/OGG.
+APK/SO y3642Datafiles hashes intactos. No commit/push/publicación.
+FPS25/30, eficacia cache/audio1024, música audible, loops y RAM en Vita PENDIENTES.
+Informe, hashes y prueba A/B: docs/PERFORMANCE_AUDIO_STABILITY_PASS_2026-09-27.md.

@@ -1,0 +1,6 @@
+{
+  "libavformat.a": "a22d63f16cd03fece668c48af510efd3b81f37fa6573e175a8a1114c9dec1145",
+  "libavcodec.a": "ce0e594f6c99ec9273556a9c1e1137718e0a6e6eb067ec1b5d8ab9322edfc1c5",
+  "libswresample.a": "122c9ff1c933abe7be15a075262f3fcc3294ec1c145814cf0ef0cef6351762e4",
+  "libavutil.a": "24f008e25d17f4c49329dd74f48f259ec675bc2d95a1f1bd04652c04a7c81eb9"
+}

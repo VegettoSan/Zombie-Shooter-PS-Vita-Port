@@ -10,6 +10,9 @@ typedef struct { AudioWaitStats clear, destroy; unsigned output_calls, output_er
 void audio_perf_call(unsigned kind);
 void audio_perf_wait(unsigned kind, unsigned us, int timeout);
 void audio_perf_output(int result);
+void audio_perf_output_timing(int result,uint64_t begin,uint64_t submit,unsigned frames,unsigned rate,const void *pcm);
+void audio_perf_enqueue(unsigned bytes,unsigned converted_bytes,unsigned depth,int result);
+void audio_timing_report(void);
 void audio_perf_snapshot(AudioPerfStats *out);
 void perf_bulk_memset(size_t bytes, uint64_t start);
 enum { PERF_ENGINE_GRAPH, PERF_ENGINE_SOFTWARE, PERF_ENGINE_MAP,

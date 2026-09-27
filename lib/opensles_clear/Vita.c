@@ -22,6 +22,7 @@
 
 #include "utils/logger.h"
 #include "utils/perf.h"
+#include "utils/settings.h"
 #if defined(ZOMBIE_Debug_AUDIO)
 #define AUDIO_WARN(...) _log_print(LT_WARN, __VA_ARGS__)
 #else
@@ -33,6 +34,7 @@
  * OpenSL output buffer, matching MetalSyntax's single-mixer architecture. */
 extern void zombie_music_mix(int16_t *samples, unsigned frames);
 extern void zombie_music_shutdown(void);
+extern void zombie_music_start(void);
 
 /** \brief Called by SDL to fill the next audio output buffer */
 static IEngine *slEngine;
@@ -52,7 +54,11 @@ static int audio_thread_valid;
 static SceUID audio_thread_handle = -1;
 #endif
 
-uint8_t audio_buffers[SndFile_NUMBUFS][SndFile_BUFSIZE];
+/* Output frames are independent of libsndfile's 512-sample decode grains.
+ * Keep 128-frame mixer chunks so queue callbacks see the original grain. */
+#define VITA_AUDIO_MAX_FRAMES 2048u
+#define VITA_MIX_FRAMES 128u
+static int16_t audio_buffers[2][VITA_AUDIO_MAX_FRAMES*2] __attribute__((aligned(64)));
 
 static void reset_audio_backend_state(void) {
 	audio_shutdown_requested = 1;
@@ -83,9 +89,8 @@ static void fill_output_buffer(uint8_t *stream, SLuint32 size) {
 		}
 	}
 
-	/* Stereo signed 16-bit PCM: four bytes per frame.  The compressed OGG
-	 * decoder works from RAM only here, so no filesystem I/O can stall this
-	 * real-time output thread. */
+	/* Stereo signed 16-bit PCM: four bytes per frame. The worker supplies
+	 * decoded original AAC; mixing here performs no filesystem or codec I/O. */
 	zombie_music_mix((int16_t *)stream, (unsigned)(size / 4));
 }
 
@@ -106,12 +111,12 @@ static int audioThread(unsigned int args, void *arg) {
 		sceKernelGetThreadId(),SCE_KERNEL_CPU_MASK_USER_1);
 	_log_print(1,"[AUDIO] mixer affinity user_core=1 result=0x%08X",(unsigned)affinity_res);
 
-	int ch = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, SndFile_BUFSIZE / 4,
+	int ch = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, setting_audio_frames,
 															 opensles_output_freq(),
 															 SCE_AUDIO_OUT_MODE_STEREO);
 	if (ch < 0) {
 		_log_print(3, "[AUDIO] sceAudioOutOpenPort(BGM, frames=%u, hz=%d) failed: 0x%08X",
-			(unsigned)(SndFile_BUFSIZE / 4), opensles_output_freq(), (unsigned)ch);
+			(unsigned)(setting_audio_frames), opensles_output_freq(), (unsigned)ch);
 		SL_LOGE("Unable to open Vita audio port: 0x%x", ch);
 #ifdef HAVE_PTHREAD
 		return NULL;
@@ -120,7 +125,7 @@ static int audioThread(unsigned int args, void *arg) {
 #endif
 	} else {
 		_log_print(1, "[AUDIO] sceAudioOutOpenPort OK port=%d frames=%u hz=%d",
-			ch, (unsigned)(SndFile_BUFSIZE / 4), opensles_output_freq());
+			ch, (unsigned)(setting_audio_frames), opensles_output_freq());
 		SL_LOGI("Opened Vita audio port %d", ch);
 	}
 
@@ -142,12 +147,15 @@ static int audioThread(unsigned int args, void *arg) {
 	int buf_idx = 0;
 
 	while (!audio_shutdown_requested) {
-		uint8_t *stream = audio_buffers[buf_idx];
-		buf_idx = (buf_idx + 1) % SndFile_NUMBUFS;
+		uint8_t *stream = (uint8_t *)audio_buffers[buf_idx];
+		buf_idx = (buf_idx + 1) % 2;
 
-		fill_output_buffer(stream, (SLuint32)SndFile_BUFSIZE);
-		res = sceAudioOutOutput(ch, stream);
-		audio_perf_output(res);
+        uint64_t begin=sceKernelGetProcessTimeWide();
+        for(unsigned offset=0;offset<(unsigned)setting_audio_frames;offset+=VITA_MIX_FRAMES)
+            fill_output_buffer(stream+offset*4,VITA_MIX_FRAMES*4);
+        uint64_t submit=sceKernelGetProcessTimeWide();
+        res = sceAudioOutOutput(ch, stream);
+        audio_perf_output_timing(res,begin,submit,(unsigned)setting_audio_frames,(unsigned)opensles_output_freq(),stream);
 		if (res < 0) {
 			_log_print(3, "[AUDIO] sceAudioOutOutput failed: port=%d result=0x%08X",
 				ch, (unsigned)res);
@@ -181,6 +189,7 @@ void SDL_open(IEngine *thisEngine)
 		return;
 	}
 	slEngine = thisEngine;
+    zombie_music_start();
 	audio_shutdown_requested = 0;
 	audio_thread_running = 0;
 #ifdef HAVE_PTHREAD

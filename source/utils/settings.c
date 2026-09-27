@@ -16,6 +16,8 @@
  * build. Keeping it weak preserves the standalone host settings regression. */
 void gamepad_config_load(void) __attribute__((weak));
 
+int setting_asset_cache_mib;
+int setting_audio_frames;
 int setting_software_width;
 int setting_music_mode;
 int setting_vita_shooter;
@@ -40,8 +42,10 @@ void settings_reset() {
      * Pass 11 enables conservative 2:1 software-frame reuse: game logic keeps
      * ticking, while the expensive software raster stage is reused every other
      * tick.  It is runtime-toggleable for A/B testing. */
+    setting_asset_cache_mib = 8;
+    setting_audio_frames = 1024;
     setting_software_width = 864;
-    setting_music_mode = 0;
+    setting_music_mode = 2;
     setting_vita_shooter = 0; // Legacy fallback only; controls.txt wins on Vita.
     setting_framebuffer_565 = 0;
     setting_software_frameskip = 1;
@@ -61,7 +65,7 @@ void settings_save() {
         fprintf(config, "# music_mode modes:\n");
         fprintf(config, "#   0 = no replacement music backend; stable/silent fallback\n");
         fprintf(config, "#   1 = LEGACY PCM16 WAV hook; confirmed OpenSL crash, diagnostic only\n");
-        fprintf(config, "#   2 = compressed OGG/Vorbis Vita mixer; no giant PCM WAV files\n");
+        fprintf(config, "#   2 = original M4A/AAC worker + existing Vita mixer; no conversion package\n");
         fprintf(config, "# framebuffer_565 modes:\n");
         fprintf(config, "#   0 = native RGBA8888 final upload (recommended; faster on real Vita)\n");
         fprintf(config, "#   2 = corrected RGBA8888->RGB565 diagnostic path; slower on Pass10 hardware test\n");
@@ -70,6 +74,9 @@ void settings_save() {
         fprintf(config, "#   0 = software-render every engine tick\n");
         fprintf(config, "#   1 = render every other tick and reuse the previous completed frame (recommended test)\n");
         fprintf(config, "# Restart the game after changing these values.\n");
+        fprintf(config, "# asset_cache_mib: 0 (A/B off), 8, 16; audio_frames: 128 (baseline), 1024, 2048\n");
+        fprintf(config, "asset_cache_mib %d\n", setting_asset_cache_mib);
+        fprintf(config, "audio_frames %d\n", setting_audio_frames);
         fprintf(config, "software_width %d\n", setting_software_width);
         fprintf(config, "music_mode %d\n", setting_music_mode);
         fprintf(config, "vita_shooter %d\n", setting_vita_shooter);
@@ -100,6 +107,12 @@ void settings_load() {
 
     while (fgets(line, sizeof(line), config)) {
         if (sscanf(line, "%29s %d", buffer, &value) != 2) continue;
+        if (!strcmp("asset_cache_mib",buffer)) {
+            setting_asset_cache_mib=value==0 || value==8 || value==16?value:8;continue;
+        }
+        if (!strcmp("audio_frames",buffer)) {
+            setting_audio_frames=value==128 || value==1024 || value==2048?value:1024;continue;
+        }
         if (strcmp("software_width", buffer) == 0) {
             setting_software_width = value==0 || value==864 || value==960 ? value : 864;
             continue;

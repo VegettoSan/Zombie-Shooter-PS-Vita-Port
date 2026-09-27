@@ -66,6 +66,7 @@ void IBufferQueue_ReleaseArrayBuffers(IBufferQueue *this)
 
 SLresult IBufferQueue_Enqueue(SLBufferQueueItf self, const void *pBuffer, SLuint32 size)
 {
+    unsigned source_size=size, converted_size=0, queue_depth=0;
     SL_ENTER_INTERFACE
     //SL_LOGV("IBufferQueue_Enqueue(%p, %p, %lu)", self, pBuffer, size);
 
@@ -83,7 +84,15 @@ SLresult IBufferQueue_Enqueue(SLBufferQueueItf self, const void *pBuffer, SLuint
         if (newRear == this->mFront) {
             result = SL_RESULT_BUFFER_INSUFFICIENT;
         } else {
-            int num_cycles = (&_opensles_user_freq!=NULL?_opensles_user_freq:44100) * 1000 / this->samplerate;
+            /* All 109 shipped effects are PCM16 mono 22050 Hz. Reject unsupported
+             * ratios instead of silently truncating a fractional ratio to zero/one. */
+            unsigned output_rate=(&_opensles_user_freq!=NULL && _opensles_user_freq>0?_opensles_user_freq:44100)*1000u;
+            if(!this->samplerate || output_rate%this->samplerate ||
+               (this->channels!=1 && this->channels!=2) || (this->bps!=8 && this->bps!=16) ||
+               size%(this->channels*(this->bps/8))) {
+                interface_unlock_exclusive(this);result=SL_RESULT_CONTENT_UNSUPPORTED;goto fail;
+            }
+            int num_cycles = output_rate / this->samplerate;
             int multiplier = 1;
             void *ownedBuffer = NULL;
             if (this->channels == 1)
@@ -91,6 +100,9 @@ SLresult IBufferQueue_Enqueue(SLBufferQueueItf self, const void *pBuffer, SLuint
             if (this->bps == 8)
                 multiplier *= 2;
             if (num_cycles != 1 || this->channels == 1 || this->bps == 8) {
+                if(num_cycles<=0 || (uint64_t)size*num_cycles*multiplier>UINT32_MAX) {
+                    interface_unlock_exclusive(this);result=SL_RESULT_RESOURCE_ERROR;goto fail;
+                }
                 ownedBuffer = calloc(1, size * num_cycles * multiplier);
                 if (NULL == ownedBuffer) {
                     interface_unlock_exclusive(this);
@@ -126,8 +138,8 @@ SLresult IBufferQueue_Enqueue(SLBufferQueueItf self, const void *pBuffer, SLuint
                         int16_t *dst = (int16_t *)ownedBuffer;
                         for (int j = 0; j < size; j += 2) {
                             for (int i = 0; i < num_cycles; i++) {
-                                dst[i*2] = ((int16_t)src[0] - 0x80) << 8;
-                                dst[i*2+1] = ((int16_t)src[1] - 0x80) << 8;
+                                dst[i*2] = ((int16_t)src[0] - 0x80) * 256;
+                                dst[i*2+1] = ((int16_t)src[1] - 0x80) * 256;
                             }
                             src += 2;
                             dst += num_cycles * 2;
@@ -137,22 +149,22 @@ SLresult IBufferQueue_Enqueue(SLBufferQueueItf self, const void *pBuffer, SLuint
                         int16_t *dst = (int16_t *)ownedBuffer;
                         for (int j = 0; j < size; j++) {
                             for (int i = 0; i < num_cycles; i++) {
-                                dst[i*2] = ((int16_t)*src - 0x80) << 8;
-                                dst[i*2+1] = ((int16_t)*src - 0x80) << 8;
+                                dst[i*2] = ((int16_t)*src - 0x80) * 256;
+                                dst[i*2+1] = ((int16_t)*src - 0x80) * 256;
                             }
                             src++;
                             dst += num_cycles * 2;
                         }
                     }
                 }
-                pBuffer = ownedBuffer;
+                pBuffer = ownedBuffer;converted_size=size*num_cycles*multiplier;
             }
             assert(NULL == oldRear->mOwnedBuffer);
             oldRear->mBuffer = pBuffer;
             oldRear->mSize = size * num_cycles * multiplier;
             oldRear->mOwnedBuffer = ownedBuffer;
             this->mRear = newRear;
-            ++this->mState.count;
+            ++this->mState.count;queue_depth=this->mState.count;
             if (SL_OBJECTID_AUDIOPLAYER == InterfaceToObjectID(this)) {
                 CAudioPlayer *audioPlayer = (CAudioPlayer *) this->mThis;
                 audioPlayer->mPlay.mHeadAtEnd = SL_BOOLEAN_FALSE;
@@ -166,6 +178,7 @@ SLresult IBufferQueue_Enqueue(SLBufferQueueItf self, const void *pBuffer, SLuint
             ATTR_ENQUEUE : ATTR_NONE);
     }
 fail:
+    audio_perf_enqueue(source_size,converted_size,queue_depth,result);
     SL_LEAVE_INTERFACE
 }
 

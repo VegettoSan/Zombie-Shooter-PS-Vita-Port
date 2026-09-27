@@ -348,6 +348,7 @@ ENGINE_INT_PROBE(graph,PERF_ENGINE_GRAPH)
 volatile int zombie_render_reuse_active_this_tick = 0;
 static uintptr_t render_reuse_last_software_result;
 static unsigned render_reuse_phase;
+static unsigned map_ticks;
 static unsigned render_reuse_rendered;
 static unsigned render_reuse_reused;
 static int render_reuse_has_frame;
@@ -370,6 +371,15 @@ static uintptr_t probe_software(void *self,int argument) {
     return ret;
 }
 
+void perf_rates_report(uint64_t elapsed_us,unsigned presents) {
+    static unsigned old_new,old_reuse,old_ticks;
+    unsigned rendered=render_reuse_rendered,reused=render_reuse_reused;
+    unsigned n=rendered-old_new,r=reused-old_reuse,ticks=map_ticks-old_ticks;
+    l_perf("rates ticks_x10=%u presents_x10=%u new_software_frames_x10=%u reused_frames_x10=%u ticks=%u presents=%u new_frames=%u reused_frames=%u elapsed_ms=%u",
+        (unsigned)((uint64_t)ticks*10000000/elapsed_us),(unsigned)((uint64_t)presents*10000000/elapsed_us),
+        (unsigned)((uint64_t)n*10000000/elapsed_us),(unsigned)((uint64_t)r*10000000/elapsed_us),ticks,presents,n,r,(unsigned)(elapsed_us/1000));
+    old_new=rendered;old_reuse=reused;old_ticks=map_ticks;
+}
 void render_reuse_report(void) {
     static unsigned old_rendered,old_reused;
     unsigned rendered=render_reuse_rendered, reused=render_reuse_reused;
@@ -379,7 +389,11 @@ void render_reuse_report(void) {
     old_rendered=rendered;old_reused=reused;
 }
 
-ENGINE_THIS_PROBE(map,PERF_ENGINE_MAP)
+static uintptr_t probe_map(void *self) {
+    map_ticks++;uint64_t start=sceKernelGetProcessTimeWide();
+    uintptr_t ret=((uintptr_t (*)(void *))engine_original[PERF_ENGINE_MAP])(self);
+    perf_engine_phase(PERF_ENGINE_MAP,start);return ret;
+}
 ENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)
 ENGINE_INT_PROBE(post,PERF_ENGINE_POST)
 /* DrawLayer has two by-reference VECTOR2s (pointer arguments), two bools on
@@ -394,6 +408,10 @@ void audio_stream_install(void);
 void render_scale_install(void);
 void raster_alpha_install(void);
 static void install_engine_probes(void) {
+    extern void map_profile_install(void);
+    map_profile_install();
+    extern void asset_cache_configure(size_t);
+    asset_cache_configure((size_t)setting_asset_cache_mib*1024*1024);
     static const struct {
         const char *symbol;unsigned offset;uint32_t prologue[2];uintptr_t replacement;
     } probes[]={

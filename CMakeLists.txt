@@ -152,8 +152,11 @@ set(SOURCES
     source/utils/init.c
     source/utils/logger.c
     source/utils/perf.c
+    source/utils/asset_cache.c
     source/utils/asset_index.c
     source/utils/render_scale.c
+    source/utils/map_profile.c
+    source/utils/music_decoder.c
     source/utils/audio_stream.c
     source/utils/raster_palette.c
     source/utils/raster_alpha.c
@@ -260,6 +263,10 @@ add_dependencies(${CMAKE_PROJECT_NAME} opensles_clear_archive)
 target_link_libraries(${CMAKE_PROJECT_NAME}
                       -Wl,--whole-archive pthread -Wl,--no-whole-archive
                       ${OPEN_SLES_PATCHED_LIB}
+                      avformat
+                      avcodec
+                      swresample
+                      avutil
                       sndfile
                       mp3lame
                       mpg123
