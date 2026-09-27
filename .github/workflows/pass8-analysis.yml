@@ -35,16 +35,23 @@ jobs:
           bash tests/run_engine_probe_regression.sh
           python3 tests/run_gamma_palette_regression.py
           grep -q 'software_frameskip' source/utils/settings.c
+          grep -q 'dynamic_shadows' source/utils/settings.c
           grep -q 'strategy=software_graph_adaptive30' source/patch.c
           grep -q 'RENDER_REUSE_TARGET_US 33333u' source/patch.c
           grep -q 'RENDER_REUSE_MAX_SKIPS 3u' source/patch.c
           grep -q 'static uintptr_t probe_map' source/patch.c
           grep -q 'render_reuse_choose_skips' source/patch.c
           grep -q 'graph_reused' source/patch.c
+          grep -q 'probe_show_shadows' source/patch.c
+          grep -q 'PASS12_SPRITE_SAMPLE_PERIOD 32u' source/patch.c
+          grep -q 'map_hot name=sprite_tact_base' source/patch.c
           ! grep -q 'render_reuse_phase' source/patch.c
           grep -q 'SOFTWARE_UNLOCK_TEXSUB_RETURN' source/utils/glutil.c
+          grep -q 'SCE_KERNEL_CPU_MASK_USER_0' source/utils/glutil.c
           grep -q '#define VITA_AUDIO_OUT_FRAMES 1024u' lib/opensles_clear/Vita.c
           grep -q '#define VITA_AUDIO_OUT_BUFFERS 4u' lib/opensles_clear/Vita.c
+          grep -q 'priority_target=85' lib/opensles_clear/Vita.c
+          grep -q 'sceKernelChangeThreadPriority(audio_tid,85)' lib/opensles_clear/Vita.c
           grep -q 'output_late_intervals' source/utils/perf.c
           grep -q 'output_frames' source/utils/perf.c
           ! grep -q 'SndFile_BUFSIZE / 4' lib/opensles_clear/Vita.c
@@ -83,6 +90,10 @@ jobs:
             '_ZN5GRAPH12softwareTactEi':0x410458,
             '_ZN3MAP4tactEv':0x4372c4,
           }
+          pass12={
+            '_ZNK3MAP13isShowShadowsEv':(0x435644,bytes.fromhex('f0b503af4df804bd'),172),
+            '_ZN6SPRITE4TactEv':(0x4dbe40,bytes.fromhex('f0b503af2de9000f'),8004),
+          }
           profiling_prologue=bytes.fromhex('f0b503af2de9000f')
           gamma_prologue=bytes.fromhex('f0b503af4df8048d')
           engine_prologue=bytes.fromhex('f0b503af2de9000f')
@@ -102,10 +113,15 @@ jobs:
               s=syms.get(name); assert s is not None,name
               assert (s['st_value'] & ~1)==addr,(name,hex(s['st_value']))
               assert data[addr-base:addr-base+8]==engine_prologue,(name,data[addr-base:addr-base+8].hex())
+            for name,(addr,prologue,size) in pass12.items():
+              s=syms.get(name); assert s is not None,name
+              assert (s['st_value'] & ~1)==addr,(name,hex(s['st_value']))
+              assert s['st_size']==size,(name,s['st_size'])
+              assert data[addr-base:addr-base+8]==prologue,(name,data[addr-base:addr-base+8].hex())
             assert syms['_ZN5GRAPH4TactEi']['st_size']==4512
             assert syms['_ZN5GRAPH12softwareTactEi']['st_size']==1148
             assert syms['_ZN3MAP4tactEv']['st_size']==1824
-            print('PASS canonical Pass12 render symbols, sizes and prologues')
+            print('PASS canonical Pass12 render/shadow/sprite symbols, sizes and prologues')
           PY
           arm-vita-eabi-objdump -d -C --start-address=0x437570 --stop-address=0x4375a0 demo/libzombie_shooter.so > /tmp/map-render-order.txt
           grep -qi '437580:.*8c77f0' /tmp/map-render-order.txt
