@@ -1,0 +1,35 @@
+name: Pass12 callgraph analysis
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-22.04
+    env:
+      VITASDK: /usr/local/vitasdk
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install exact SoftFP SDK
+        run: bash scripts/install_baseline_sdk.sh
+      - name: Analyze MAP and GRAPH call graph
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          {
+            echo '=== symbols ==='
+            arm-vita-eabi-nm -C -S --size-sort demo/libzombie_shooter.so | grep -E ' (MAP::tact\(\)|GRAPH::Tact\(int\)|GRAPH::softwareTact\(int\))$' || true
+            echo '=== GRAPH::Tact 0x410a30..0x410e60 ==='
+            arm-vita-eabi-objdump -d -C --start-address=0x410a30 --stop-address=0x410e60 demo/libzombie_shooter.so
+            echo '=== MAP::tact 0x4372c4..0x437a00 ==='
+            arm-vita-eabi-objdump -d -C --start-address=0x4372c4 --stop-address=0x437a00 demo/libzombie_shooter.so
+          } > pass12-callgraph.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pass12-callgraph
+          path: pass12-callgraph.txt
+          retention-days: 3
