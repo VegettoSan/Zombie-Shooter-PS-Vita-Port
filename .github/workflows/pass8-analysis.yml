@@ -1,4 +1,4 @@
-name: Pass10 validation
+name: Pass11 validation
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  validate-pass10:
+  validate-pass11:
     runs-on: ubuntu-22.04
     env:
       VITASDK: /usr/local/vitasdk
@@ -34,6 +34,9 @@ jobs:
           bash tests/run_asset_index_regression.sh
           bash tests/run_engine_probe_regression.sh
           python3 tests/run_gamma_palette_regression.py
+          grep -q 'software_frameskip' source/utils/settings.c
+          grep -q 'zombie_render_reuse_active_this_tick' source/patch.c
+          grep -q 'SOFTWARE_UNLOCK_TEXSUB_RETURN' source/utils/glutil.c
       - name: Verify canonical profiling and gamma symbols
         run: |
           set -euo pipefail
@@ -47,8 +50,10 @@ jobs:
             '_ZN12VID_SOFTWARE9draw_implEiiiiP5ColorPtiiPv':0x513610,
           }
           gamma={'_ZN3VID17SetGammaToPaletteEPhRK5Gamma':0x506378}
+          engine={'_ZN5GRAPH12softwareTactEi':0x410458}
           profiling_prologue=bytes.fromhex('f0b503af2de9000f')
           gamma_prologue=bytes.fromhex('f0b503af4df8048d')
+          engine_prologue=bytes.fromhex('f0b503af2de9000f')
           with open('demo/libzombie_shooter.so','rb') as f:
             elf=ELFFile(f); dyn=elf.get_section_by_name('.dynsym')
             syms={s.name:s for s in dyn.iter_symbols()}
@@ -61,7 +66,11 @@ jobs:
               s=syms.get(name); assert s is not None,name
               assert (s['st_value'] & ~1)==addr,(name,hex(s['st_value']))
               assert data[addr-base:addr-base+8]==gamma_prologue,(name,data[addr-base:addr-base+8].hex())
-              print('PASS gamma hook',name,hex(addr),gamma_prologue.hex())
+            for name,addr in engine.items():
+              s=syms.get(name); assert s is not None,name
+              assert (s['st_value'] & ~1)==addr,(name,hex(s['st_value']))
+              assert data[addr-base:addr-base+8]==engine_prologue,(name,data[addr-base:addr-base+8].hex())
+            print('PASS canonical profiling/gamma/softwareTact symbols and prologues')
           PY
       - name: ARM equivalence regressions
         run: |
@@ -72,36 +81,36 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-pass10-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
-          cmake --build build-pass10-debug -j"$(nproc)" 2>&1 | tee build-pass10-debug.log
-          test -s build-pass10-debug/zombie_shooter.vpk
-          test -s build-pass10-debug/so_loader
-          unzip -t build-pass10-debug/zombie_shooter.vpk
+          cmake -S . -B build-pass11-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass11-debug -j"$(nproc)" 2>&1 | tee build-pass11-debug.log
+          test -s build-pass11-debug/zombie_shooter.vpk
+          test -s build-pass11-debug/so_loader
+          unzip -t build-pass11-debug/zombie_shooter.vpk
       - name: Build Release
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-pass10-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
-          cmake --build build-pass10-release -j"$(nproc)" 2>&1 | tee build-pass10-release.log
-          test -s build-pass10-release/zombie_shooter.vpk
-          test -s build-pass10-release/so_loader
-          unzip -t build-pass10-release/zombie_shooter.vpk
-          python3 scripts/check_release_flags.py build-pass10-release
+          cmake -S . -B build-pass11-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass11-release -j"$(nproc)" 2>&1 | tee build-pass11-release.log
+          test -s build-pass11-release/zombie_shooter.vpk
+          test -s build-pass11-release/so_loader
+          unzip -t build-pass11-release/zombie_shooter.vpk
+          python3 scripts/check_release_flags.py build-pass11-release
           git diff --check
       - name: Package test build
         run: |
-          mkdir -p pass10-dist
-          cp build-pass10-release/zombie_shooter.vpk pass10-dist/Zombie-Shooter-Pass10-Release.vpk
-          cp build-pass10-release/so_loader pass10-dist/Zombie-Shooter-Pass10-Release.elf
-          cp build-pass10-debug/zombie_shooter.vpk pass10-dist/Zombie-Shooter-Pass10-Debug.vpk
-          cp build-pass10-debug/so_loader pass10-dist/Zombie-Shooter-Pass10-Debug.elf
-          cp build-pass10-release.log build-pass10-debug.log pass10-dist/
-          sha256sum pass10-dist/*.vpk pass10-dist/*.elf > pass10-dist/SHA256SUMS.txt
-          sha256sum demo/libzombie_shooter.so > pass10-dist/so-reference.sha256.txt
-      - name: Upload Pass10 build
+          mkdir -p pass11-dist
+          cp build-pass11-release/zombie_shooter.vpk pass11-dist/Zombie-Shooter-Pass11-Release.vpk
+          cp build-pass11-release/so_loader pass11-dist/Zombie-Shooter-Pass11-Release.elf
+          cp build-pass11-debug/zombie_shooter.vpk pass11-dist/Zombie-Shooter-Pass11-Debug.vpk
+          cp build-pass11-debug/so_loader pass11-dist/Zombie-Shooter-Pass11-Debug.elf
+          cp build-pass11-release.log build-pass11-debug.log pass11-dist/
+          sha256sum pass11-dist/*.vpk pass11-dist/*.elf > pass11-dist/SHA256SUMS.txt
+          sha256sum demo/libzombie_shooter.so > pass11-dist/so-reference.sha256.txt
+      - name: Upload Pass11 build
         uses: actions/upload-artifact@v4
         with:
-          name: Zombie-Shooter-Pass10-${{ github.sha }}
-          path: pass10-dist
+          name: Zombie-Shooter-Pass11-${{ github.sha }}
+          path: pass11-dist
           if-no-files-found: error
           retention-days: 14
