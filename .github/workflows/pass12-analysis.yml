@@ -1,0 +1,46 @@
+name: Pass12 map analysis
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-22.04
+    env:
+      VITASDK: /usr/local/vitasdk
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install exact SoftFP SDK
+        run: bash scripts/install_baseline_sdk.sh
+      - name: Analyze MAP and GRAPH hot call sites
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          OUT=pass12-analysis.txt
+          : > "$OUT"
+          echo '=== MAP/AI-related dynamic symbols ===' >> "$OUT"
+          arm-vita-eabi-nm -D -n -C demo/libzombie_shooter.so | grep -Ei 'MAP::|UNIT|ZOMB|MONSTER|ENEMY|BULLET|MISSILE|EXPLOS|PARTICLE|EFFECT|OBJECT|ACTOR|CREATURE|SPRITE_COLLECTOR' >> "$OUT" || true
+          echo >> "$OUT"
+          echo '=== MAP::tact symbol ===' >> "$OUT"
+          arm-vita-eabi-readelf -Ws demo/libzombie_shooter.so | grep '_ZN3MAP4tactEv' >> "$OUT" || true
+          echo >> "$OUT"
+          echo '=== MAP::tact full disassembly ===' >> "$OUT"
+          arm-vita-eabi-objdump -C -d --disassemble='_ZN3MAP4tactEv' demo/libzombie_shooter.so >> "$OUT" 2>&1 || true
+          echo >> "$OUT"
+          echo '=== MAP::tact direct calls only ===' >> "$OUT"
+          arm-vita-eabi-objdump -C -d --disassemble='_ZN3MAP4tactEv' demo/libzombie_shooter.so | grep -E '\b(bl|blx)\b' >> "$OUT" || true
+          echo >> "$OUT"
+          echo '=== GRAPH::Tact direct calls ===' >> "$OUT"
+          arm-vita-eabi-objdump -C -d --disassemble='_ZN5GRAPH4TactEi' demo/libzombie_shooter.so | grep -E '\b(bl|blx)\b' >> "$OUT" || true
+          echo >> "$OUT"
+          echo '=== likely tact/update symbols ===' >> "$OUT"
+          arm-vita-eabi-nm -D -n -C demo/libzombie_shooter.so | grep -Ei '::(tact|Tact|update|Update|process|Process|think|Think|draw|Draw)\(' >> "$OUT" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pass12-map-analysis
+          path: pass12-analysis.txt
+          retention-days: 3
