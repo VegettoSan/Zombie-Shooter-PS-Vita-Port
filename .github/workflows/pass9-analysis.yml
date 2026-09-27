@@ -26,8 +26,14 @@ jobs:
             arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so
             echo '=== DYNSYM ==='
             arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt
+            echo '=== VID SetGammaToPalette ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x506350 --stop-address=0x506410 demo/libzombie_shooter.so
+            echo '=== Gamma methods ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x416980 --stop-address=0x416f20 demo/libzombie_shooter.so
             echo '=== PREPARE PALETTE ==='
             arm-linux-gnueabihf-objdump -d -C --start-address=0x513488 --stop-address=0x513610 demo/libzombie_shooter.so
+            echo '=== SOFTWARE16 gamma ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x514d90 --stop-address=0x514e70 demo/libzombie_shooter.so
             echo '=== TARGET 8b8800..8b8c00 ==='
             arm-linux-gnueabihf-objdump -d -C --start-address=0x8b8800 --stop-address=0x8b8c00 demo/libzombie_shooter.so
             echo '=== TARGET 8c7800..8c8400 ==='
