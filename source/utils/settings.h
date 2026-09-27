@@ -22,7 +22,8 @@ extern "C" {
 extern int setting_software_width; // 0: Android policy; 960: native; 864: reduced
 extern int setting_music_mode;     // 0: stable/silent; 1: legacy PCM WAV; 2: compressed OGG Vita mixer
 extern int setting_vita_shooter;   // Legacy fallback only; controls.txt wins on handheld Vita
-extern int setting_framebuffer_565; // 1: direct RGBA->RGB565 software framebuffer upload; 0: original RGBA path
+extern int setting_framebuffer_565; // 0: original RGBA; 2: corrected RGB565 diagnostic (legacy value 1 is disabled)
+extern int setting_software_frameskip; // 0: render every tick; 1: reuse previous software frame every other tick
 extern int  setting_sampleSetting;
 extern bool setting_sampleSetting2;
 
