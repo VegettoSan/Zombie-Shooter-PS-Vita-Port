@@ -166,6 +166,8 @@ static void report_texture_costs(void) {
         framebuffer565.reinit_calls, framebuffer565.reinit_us, framebuffer565.reinit_max_us,
         cow.rgba565_calls, (unsigned long long)cow.rgba565_pixels, cow.rgba565_us, cow.rgba565_max_us,
         (unsigned long long)cow.rgba565_input_bytes, (unsigned long long)cow.rgba565_output_bytes);
+    l_perf("frame_reuse skipped_framebuffer_uploads_lifetime=%u caller=0x%08X strategy=caller_exact_full_rgba",
+        render_reuse_uploads_skipped,(unsigned)guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN));
     for (unsigned i=0;i<8;++i) if (upload_groups[i].calls) {
         l_perf("tex_upload caller=0x%08X calls=%u total_us=%u max_us=%u max_shape=%dx%d format=0x%X type=0x%X",
             (unsigned)upload_groups[i].caller,upload_groups[i].calls,upload_groups[i].us,upload_groups[i].max_us,
@@ -182,6 +184,8 @@ static void report_texture_costs(void) {
 }
 static volatile unsigned present_count;
 static volatile unsigned last_present_ms;
+extern volatile int zombie_render_reuse_active_this_tick;
+static unsigned render_reuse_uploads_skipped;
 
 unsigned egl_present_count(void) {
     return __atomic_load_n(&present_count, __ATOMIC_RELAXED);
@@ -294,6 +298,18 @@ void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint y
             last_width=width;last_height=height;
         }
     }
+    /* Pass 11: reuse only the proven final software-framebuffer upload.
+     * PostTact itself still runs, preserving OpenGLES lock/unlock/state semantics.
+     * The caller+shape+format gate prevents unrelated textures being skipped. */
+    if (setting_software_frameskip && zombie_render_reuse_active_this_tick && data &&
+        caller == guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN) &&
+        target == GL_TEXTURE_2D && level == 0 && xoffset == 0 && yoffset == 0 &&
+        format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
+        width >= 720 && width <= 1100 && height >= 400 && height <= 650) {
+        render_reuse_uploads_skipped++;
+        return;
+    }
+
     if (is_software_framebuffer_upload(caller,target,level,xoffset,yoffset,width,height,format,type,data))
         framebuffer565_reinit_if_needed(target,width,height);
 

@@ -32,6 +32,7 @@ extern "C"
 #include "utils/dialog.h"
 #include "utils/so_trace.h"
 #include "utils/perf.h"
+#include "utils/settings.h"
 #include "utils/engine_probe.h"
 #include "reimpl/sys.h"
 #include <stdbool.h>
@@ -338,7 +339,46 @@ static uintptr_t probe_##tag(void *self) { \
     perf_engine_phase(phase,start);return ret; \
 }
 ENGINE_INT_PROBE(graph,PERF_ENGINE_GRAPH)
-ENGINE_INT_PROBE(software,PERF_ENGINE_SOFTWARE)
+
+/* Pass 11: MetalSyntax-style render reuse.  GRAPH::Tact/MAP/input/audio keep
+ * running every engine tick; only the expensive software raster pass is
+ * reused every other tick.  The opaque original return is preserved so no
+ * caller contract changes.  glTexSubImage2D_soloader sees the per-tick flag
+ * and skips only OpenGLES::UnLock's full software-framebuffer upload. */
+volatile int zombie_render_reuse_active_this_tick = 0;
+static uintptr_t render_reuse_last_software_result;
+static unsigned render_reuse_phase;
+static unsigned render_reuse_rendered;
+static unsigned render_reuse_reused;
+static int render_reuse_has_frame;
+
+static uintptr_t probe_software(void *self,int argument) {
+    int reuse = setting_software_frameskip && render_reuse_has_frame &&
+                ((render_reuse_phase++ & 1u) != 0);
+    if (reuse) {
+        zombie_render_reuse_active_this_tick = 1;
+        render_reuse_reused++;
+        return render_reuse_last_software_result;
+    }
+    zombie_render_reuse_active_this_tick = 0;
+    uint64_t start=sceKernelGetProcessTimeWide();
+    uintptr_t ret=((uintptr_t (*)(void *,int))engine_original[PERF_ENGINE_SOFTWARE])(self,argument);
+    perf_engine_phase(PERF_ENGINE_SOFTWARE,start);
+    render_reuse_last_software_result=ret;
+    render_reuse_has_frame=1;
+    render_reuse_rendered++;
+    return ret;
+}
+
+void render_reuse_report(void) {
+    static unsigned old_rendered,old_reused;
+    unsigned rendered=render_reuse_rendered, reused=render_reuse_reused;
+    l_perf("render_reuse config=%d rendered_ticks=%u reused_ticks=%u has_frame=%d current_reuse=%d strategy=softwareTact_2to1",
+        setting_software_frameskip,rendered-old_rendered,reused-old_reused,
+        render_reuse_has_frame,zombie_render_reuse_active_this_tick);
+    old_rendered=rendered;old_reused=reused;
+}
+
 ENGINE_THIS_PROBE(map,PERF_ENGINE_MAP)
 ENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)
 ENGINE_INT_PROBE(post,PERF_ENGINE_POST)

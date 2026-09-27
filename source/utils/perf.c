@@ -167,9 +167,11 @@ ssize_t read_perf(int fd,void *buf,size_t count) {
 }
 void raster_palette_report(void);
 void raster_alpha_report(void);
+void render_reuse_report(void);
 void perf_report(void) {
     raster_palette_report();
     raster_alpha_report();
+    render_reuse_report();
     static AudioPerfStats previous;
     static LoggerStats old_log;
     AudioPerfStats now; audio_perf_snapshot(&now);
