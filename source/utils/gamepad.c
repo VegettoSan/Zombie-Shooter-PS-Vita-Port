@@ -1,6 +1,5 @@
 /* MIT. Runtime PS Vita -> Xbox logical control mapping for hardware tests. */
 #include "utils/gamepad.h"
-#include "utils/settings.h"
 #include "utils/logger.h"
 
 #include <stdint.h>
@@ -225,7 +224,7 @@ static bool write_default_controls(void) {
 }
 
 static void log_effective_mapping(const char *source) {
-    l_perf("[INPUT] xbox_map source=%s emulation=xbox input_mode=%s strict_key_count=%d active_key_count=%d external_mode=hybrid cross=%s circle=%s square=%s triangle=%s l=%s r=%s rear_left=%s rear_right=%s start=%s select=%s dpad_up=%s dpad_down=%s dpad_left=%s dpad_right=%s l3=%s r3=%s legacy_vita_shooter=%d_ignored",
+    l_perf("[INPUT] xbox_map source=%s emulation=xbox input_mode=%s strict_key_count=%d active_key_count=%d external_mode=hybrid cross=%s circle=%s square=%s triangle=%s l=%s r=%s rear_left=%s rear_right=%s start=%s select=%s dpad_up=%s dpad_down=%s dpad_left=%s dpad_right=%s l3=%s r3=%s",
            source, input_mode_name(), FNDK_STRICT_KEY_COUNT,
            input_mode == VITA_INPUT_HYBRID ? FNDK_HYBRID_KEY_COUNT : FNDK_STRICT_KEY_COUNT,
            xbox_name(bindings[0].xbox_mask), xbox_name(bindings[1].xbox_mask),
@@ -235,8 +234,7 @@ static void log_effective_mapping(const char *source) {
            xbox_name(bindings[8].xbox_mask), xbox_name(bindings[9].xbox_mask),
            xbox_name(bindings[10].xbox_mask), xbox_name(bindings[11].xbox_mask),
            xbox_name(bindings[12].xbox_mask), xbox_name(bindings[13].xbox_mask),
-           xbox_name(bindings[14].xbox_mask), xbox_name(bindings[15].xbox_mask),
-           setting_vita_shooter);
+           xbox_name(bindings[14].xbox_mask), xbox_name(bindings[15].xbox_mask));
 }
 
 void gamepad_config_load(void) {
@@ -292,18 +290,12 @@ uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handhe
         return buttons;
     }
 
-    /* Emergency fallback before startup loaded controls.txt: preserve the old
-     * behaviour rather than silently changing a path that should be unreachable
-     * on the real Vita. */
+    /* Startup should load controls.txt before the input queue starts. If that
+     * ordering ever changes, use the standard handheld mapping; do not revive
+     * the removed vita_shooter profile. */
     if (!controls_loaded) {
         fndk_button_mapping_count = FNDK_HYBRID_KEY_COUNT;
-        if (!setting_vita_shooter) return buttons | rear;
-        uint32_t logical = buttons & ~(SCE_CTRL_L1 | SCE_CTRL_R1);
-        if (buttons & SCE_CTRL_L1) logical |= SCE_CTRL_L2;
-        if (buttons & SCE_CTRL_R1) logical |= SCE_CTRL_R2;
-        if (rear & SCE_CTRL_L2) logical |= SCE_CTRL_L1;
-        if (rear & SCE_CTRL_R2) logical |= SCE_CTRL_R1;
-        return logical;
+        return buttons | rear;
     }
 
     fndk_button_mapping_count = input_mode == VITA_INPUT_HYBRID
