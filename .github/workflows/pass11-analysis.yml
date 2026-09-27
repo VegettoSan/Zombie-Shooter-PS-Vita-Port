@@ -17,8 +17,8 @@ jobs:
           set -euo pipefail
           git -C lib/vitagl apply --ignore-space-change --check "$GITHUB_WORKSPACE/patches/vitagl.patch"
           git -C lib/vitagl apply --ignore-space-change "$GITHUB_WORKSPACE/patches/vitagl.patch"
-          git -C lib/vitagl apply --ignore-space-change --check "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
-          git -C lib/vitagl apply --ignore-space-change "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
+          git -C lib/vitagl apply --recount --ignore-space-change --check "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
+          git -C lib/vitagl apply --recount --ignore-space-change "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
           python3 - <<'PY' > pass11-analysis.txt
           import hashlib
           from pathlib import Path
