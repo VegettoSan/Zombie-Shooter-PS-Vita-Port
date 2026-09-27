@@ -1,5 +1,22 @@
 # Estado del port de Zombie Shooter para PS Vita
 
+## Pase8: descomposición interna de VID_SOFTWARE (2026-09-26)
+
+El último perfil físico sigue dejando `GRAPH::softwareTact` en ~47,74–59,92
+ms/frame frente a ~17,66–18,05 ms/frame de TexSub; los tiempos MAP/GRAPH/software
+son inclusivos y no se suman. Pase8 no añade otro speedhack: analiza la SO
+canónica y confirma `Draw/DrawToVid -> preparePalette -> draw_impl`. El hallazgo
+principal es `VID_SOFTWARE::draw_impl` en so+0x513610, 5180 bytes, con la mayor
+parte del rasterizado restante inline; sus llamadas externas relevantes incluyen
+las rutas alpha32 ya cubiertas en pase7. Se añaden sondas muestreadas de bajo
+coste para Draw(1/32), DrawToVid(1/32), preparePalette(1/64) y draw_impl(1/32),
+con símbolo+offset+prólogo8bytes+arena validados y reporte inclusivo estimado.
+SHA del SO intacta. Host regressions + equivalencia ARM palette/alpha + Debug +
+Release + VPK + flags PASS en Actions run36282800949, artifact Pass8 generado.
+**PENDING REAL VITA**: no afirmar mejora de FPS; una sola prueba debe decidir si
+pase9 entra en loops inline de draw_impl o en setup/otra ruta. Detalles:
+`docs/PERFORMANCE_PASS_8_2026-09-26.md`.
+
 ## Pase7 y resultado físico pase6 (2026-09-26)
 
 Usuario/log0010: FPS parecidos, carga inicial casi2min; NO mejora confirmada
