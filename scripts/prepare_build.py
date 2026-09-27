@@ -10,6 +10,16 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 SDK = Path('/usr/local/vitasdk')
 
+# The baseline lock records the source state after the long-lived VitaGL patch.
+# Pass 10 is intentionally kept as a small second patch, so pin its two changed
+# final files here rather than silently weakening dependency verification.
+PASS10_FINAL_FILES = {
+    'lib/vitagl/source/textures.c':
+        '4655017c147ed010640481685a86668fbaa72361c97ed0a54410def6b71f9be2',
+    'lib/vitagl/source/utils/zombie_texture_update.h':
+        'f304fe25a0d5855b120aa21550bc45cc832a6a3201097c43bb9e1b1866aad7be',
+}
+
 
 def digest(path, normalize=False):
     data = path.read_bytes()
@@ -53,15 +63,17 @@ def main():
         apply_patch(module, ROOT / 'patches' / (module + '.patch'))
 
     # Pass 10 is intentionally split from the long baseline VitaGL patch. It is
-    # applied second so the diff stays small/reviewable while final source
-    # hashes below still pin the exact combined result.
+    # applied second so the diff stays small/reviewable while exact final source
+    # hashes are still required below.
     apply_patch('vitagl', ROOT / 'patches' / 'vitagl_pass10.patch')
 
-    bad = [name for name, sha in lock['files'].items()
+    expected_files = dict(lock['files'])
+    expected_files.update(PASS10_FINAL_FILES)
+    bad = [name for name, sha in expected_files.items()
            if not (ROOT / name).is_file() or digest(ROOT / name, True) != sha]
     if bad:
         raise RuntimeError('Dependency sources differ from the baseline: ' + ', '.join(bad[:12]))
-    print('Functional SDK, SoftFP ABI, pinned submodules and exact patched sources verified')
+    print('Functional SDK, SoftFP ABI, pinned submodules and exact Pass10 sources verified')
 
 
 if __name__ == '__main__':
