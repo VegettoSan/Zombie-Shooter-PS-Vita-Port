@@ -1,20 +1,38 @@
 # Estado del port de Zombie Shooter para PS Vita
 
+## Pase9: acelerar Gamma/preparePalette (2026-09-26)
+
+El Release Pass8 `1aebd541` ya fue probado en Vita real. Runtime confirma
+`software_width=864`, superficie interna 864x489 y salida 960x544. El desglose
+nuevo cambia el diagnóstico: en gameplay pesado `preparePalette` consume
+~4,8–9,4 ms/frame, mientras `draw_impl` queda ~1,5–3,5 ms/frame; TexSub sigue
+~5,6–7,1 ms/frame. Ejemplos físicos: ~12,5FPS con software35,95/prep6,22/
+draw_impl3,43/TexSub6,04 ms por frame; ~15,2FPS con software23,41/prep4,76/
+draw_impl1,51/TexSub6,88; ~12,4FPS con software30,26/prep8,70/draw_impl1,94/
+TexSub7,15. Los tiempos GRAPH/MAP/software son inclusivos y no se suman.
+
+Análisis de la SO canónica localiza el coste: `VID::SetGammaToPalette`
+(so+0x506378) transforma 256 colores y llama 256 veces a
+`Color::Color(Gamma,Color,int)`. La fórmula ARM exacta AARRGGBB fue reconstruida.
+Pass9 reemplaza sólo esa función por una implementación bit-exacta NEON: 8 colores
+por bloque/32 bloques por paleta, con Gamma default, saturación RGB y alpha signed
+conservados. Hook guardado por símbolo+offset+Thumb+prólogo8bytes; SO inmutable.
+Regresión independiente: casos límite +250.000 combinaciones color/Gamma.
+Nueva telemetría `gamma_palette` permitirá medir beneficio real. **FPS NUEVOS AÚN
+PENDIENTES VITA**: no afirmar 20–30 sostenidos. Si preparePalette cae como se
+espera, TexSub (~6–7ms/frame) es el siguiente objetivo respaldado por el log.
+Detalles: `docs/PERFORMANCE_PASS_9_2026-09-26.md`.
+
 ## Pase8: descomposición interna de VID_SOFTWARE (2026-09-26)
 
-El último perfil físico sigue dejando `GRAPH::softwareTact` en ~47,74–59,92
-ms/frame frente a ~17,66–18,05 ms/frame de TexSub; los tiempos MAP/GRAPH/software
-son inclusivos y no se suman. Pase8 no añade otro speedhack: analiza la SO
-canónica y confirma `Draw/DrawToVid -> preparePalette -> draw_impl`. El hallazgo
-principal es `VID_SOFTWARE::draw_impl` en so+0x513610, 5180 bytes, con la mayor
-parte del rasterizado restante inline; sus llamadas externas relevantes incluyen
-las rutas alpha32 ya cubiertas en pase7. Se añaden sondas muestreadas de bajo
-coste para Draw(1/32), DrawToVid(1/32), preparePalette(1/64) y draw_impl(1/32),
-con símbolo+offset+prólogo8bytes+arena validados y reporte inclusivo estimado.
-SHA del SO intacta. Host regressions + equivalencia ARM palette/alpha + Debug +
-Release + VPK + flags PASS en Actions run36282800949, artifact Pass8 generado.
-**PENDING REAL VITA**: no afirmar mejora de FPS; una sola prueba debe decidir si
-pase9 entra en loops inline de draw_impl o en setup/otra ruta. Detalles:
+El perfil previo dejaba `GRAPH::softwareTact` en ~47,74–59,92 ms/frame frente a
+~17,66–18,05 ms/frame de TexSub; los tiempos MAP/GRAPH/software son inclusivos y
+no se suman. Pase8 no añadió otro speedhack: analizó la SO canónica y confirmó
+`Draw/DrawToVid -> preparePalette -> draw_impl`. Se añadieron sondas muestreadas
+de bajo coste para Draw(1/32), DrawToVid(1/32), preparePalette(1/64) y
+draw_impl(1/32), con símbolo+offset+prólogo8bytes+arena validados. La prueba física
+del Release `1aebd541` demostró que `draw_impl` NO era el hotspot dominante y
+dirigió Pass9 hacia `preparePalette`. SHA de SO intacta. Detalles:
 `docs/PERFORMANCE_PASS_8_2026-09-26.md`.
 
 ## Pase7 y resultado físico pase6 (2026-09-26)
@@ -103,8 +121,8 @@ Informe: `docs/PERFORMANCE_PASS_2_2026-09-25.md`.
 Nueva build: pendiente Vita real; no afirmar 20–30 FPS ni carga menor todavía.
 
 
-Actualizado: 2026-09-25. Baseline físico actual: `8282fe9`; pase 2 local compilado,
-pendiente de prueba en hardware. Historial del baseline anterior `bd2dc1a` abajo. Receta SoftFP: `docs/REPRODUCIBLE_BUILD.md`.
+Actualizado: 2026-09-26. Baseline físico actual: Pass8 `1aebd541`; Pass9 compilación/validación en curso.
+Receta SoftFP: `docs/REPRODUCIBLE_BUILD.md`.
 
 ## Historial: hechos del baseline bd2dc1a
 
@@ -145,8 +163,6 @@ Sólo Debug/Release, SDK `/usr/local/vitasdk`, GCC 10.3.0 SoftFP;
 Ambos parches se verificaron desde revisiones limpias; JNI/GL/logger pasan en O0/O3.
 Respaldo de este baseline: `backup/before-fps-pass-1-20260925`.
 `backup/before-local-restore-20260925` se conserva en origin.
-El usuario autorizó explícitamente commit, push y workflow manual sólo para el pase 1.
-El pase 2 permanece local, según AGENTS.md.
 Los resultados finales de build y workflow se registran en el informe del pase.
 
 ## Pase Android Fidelity — 2026-09-26
