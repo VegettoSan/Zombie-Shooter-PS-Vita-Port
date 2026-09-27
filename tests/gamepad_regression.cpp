@@ -19,7 +19,7 @@ extern "C" {
 int setting_vita_shooter;
 int sceKernelCreateLwMutex(SceKernelLwMutexWork*,const char*,int,int,void*) { return 0; }
 int sceKernelLockLwMutex(SceKernelLwMutexWork*,int,void*) { return 0; }
-int sceKernelUnlockLwMutex(SceKernelLwMutexWork*,int,void*) { return 0; }
+int sceKernelUnlockLwMutex(SceKernelLwMutexWork*,int) { return 0; }
 int sceKernelCreateThread(const char*,int(*)(SceSize,void*),int,int,int,int,void*) { return 1; }
 int sceKernelStartThread(int,int,void*) { return 0; }
 int sceKernelDelayThread(int) { return 0; }
