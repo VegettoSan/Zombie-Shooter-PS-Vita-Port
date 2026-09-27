@@ -22,23 +22,25 @@ jobs:
           export PATH="$VITASDK/bin:$PATH"
           OUT=pass12-analysis.txt
           : > "$OUT"
-          echo '=== MAP/AI-related dynamic symbols ===' >> "$OUT"
-          arm-vita-eabi-nm -D -n -C demo/libzombie_shooter.so | grep -Ei 'MAP::|UNIT|ZOMB|MONSTER|ENEMY|BULLET|MISSILE|EXPLOS|PARTICLE|EFFECT|OBJECT|ACTOR|CREATURE|SPRITE_COLLECTOR' >> "$OUT" || true
+          echo '=== selected symbols ===' >> "$OUT"
+          arm-vita-eabi-nm -D -n -C demo/libzombie_shooter.so | grep -E 'MAP::(tact|update|StartTact|compressionTact)|SPRITE::Tact|UNIT::Tact|BaseUnitAbility::tact|GRAPH::Tact|GRAPH::softwareTact|MapLoader::tact|sound::Base.*::tact' >> "$OUT" || true
           echo >> "$OUT"
-          echo '=== MAP::tact symbol ===' >> "$OUT"
-          arm-vita-eabi-readelf -Ws demo/libzombie_shooter.so | grep '_ZN3MAP4tactEv' >> "$OUT" || true
+          echo '=== MAP::tact disassembly 0x4372c4..0x4379e4 ===' >> "$OUT"
+          arm-vita-eabi-objdump -C -d --start-address=0x4372c4 --stop-address=0x4379e4 demo/libzombie_shooter.so >> "$OUT"
           echo >> "$OUT"
-          echo '=== MAP::tact full disassembly ===' >> "$OUT"
-          arm-vita-eabi-objdump -C -d --disassemble='_ZN3MAP4tactEv' demo/libzombie_shooter.so >> "$OUT" 2>&1 || true
+          echo '=== MAP::tact branches/calls ===' >> "$OUT"
+          arm-vita-eabi-objdump -C -d --start-address=0x4372c4 --stop-address=0x4379e4 demo/libzombie_shooter.so | grep -E '\b(bl|blx)\b' >> "$OUT" || true
           echo >> "$OUT"
-          echo '=== MAP::tact direct calls only ===' >> "$OUT"
-          arm-vita-eabi-objdump -C -d --disassemble='_ZN3MAP4tactEv' demo/libzombie_shooter.so | grep -E '\b(bl|blx)\b' >> "$OUT" || true
+          echo '=== MAP::update disassembly ===' >> "$OUT"
+          arm-vita-eabi-objdump -C -d --start-address=0x436c6c --stop-address=0x436cc8 demo/libzombie_shooter.so >> "$OUT"
           echo >> "$OUT"
-          echo '=== GRAPH::Tact direct calls ===' >> "$OUT"
-          arm-vita-eabi-objdump -C -d --disassemble='_ZN5GRAPH4TactEi' demo/libzombie_shooter.so | grep -E '\b(bl|blx)\b' >> "$OUT" || true
+          echo '=== UNIT::Tact symbol + calls ===' >> "$OUT"
+          arm-vita-eabi-readelf -Ws demo/libzombie_shooter.so | grep '_ZN4UNIT4TactEv' >> "$OUT" || true
+          arm-vita-eabi-objdump -C -d --start-address=0x4fc110 --stop-address=0x4fd000 demo/libzombie_shooter.so | grep -E '\b(bl|blx)\b' >> "$OUT" || true
           echo >> "$OUT"
-          echo '=== likely tact/update symbols ===' >> "$OUT"
-          arm-vita-eabi-nm -D -n -C demo/libzombie_shooter.so | grep -Ei '::(tact|Tact|update|Update|process|Process|think|Think|draw|Draw)\(' >> "$OUT" || true
+          echo '=== SPRITE::Tact symbol + calls ===' >> "$OUT"
+          arm-vita-eabi-readelf -Ws demo/libzombie_shooter.so | grep '_ZN6SPRITE4TactEv' >> "$OUT" || true
+          arm-vita-eabi-objdump -C -d --start-address=0x4dbe40 --stop-address=0x4dce40 demo/libzombie_shooter.so | grep -E '\b(bl|blx)\b' >> "$OUT" || true
       - uses: actions/upload-artifact@v4
         with:
           name: pass12-map-analysis
