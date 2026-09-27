@@ -14,30 +14,32 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
-      - name: Verify canonical SO
+      - name: Analyze canonical SO
         run: |
-          echo "SHA256"
-          sha256sum demo/libzombie_shooter.so
-          file demo/libzombie_shooter.so
-      - name: Relevant dynamic symbols
-        run: |
-          echo '=== SYMBOLS ==='
-          arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | \
-            grep -E 'GRAPH::softwareTact|VID_SOFTWARE|VID_SURFACE|SOFT_DRAW|SPRITE_COLLECTOR|DrawLayer|draw_impl|DrawWithAlpha|palette|pallete' || true
-      - name: Relevant nm symbols sorted
-        run: |
-          echo '=== NM ==='
-          arm-linux-gnueabihf-nm -D -n -C demo/libzombie_shooter.so | \
-            grep -E 'GRAPH::softwareTact|VID_SOFTWARE|VID_SURFACE|SOFT_DRAW|SPRITE_COLLECTOR|DrawLayer|draw_impl|DrawWithAlpha|palette|pallete' || true
-      - name: Disassemble softwareTact
-        run: |
-          echo '=== softwareTact ==='
-          arm-linux-gnueabihf-objdump -d -C --disassemble='_ZN5GRAPH12softwareTactEi' demo/libzombie_shooter.so || true
-      - name: Disassemble collector
-        run: |
-          echo '=== DrawLayer ==='
-          arm-linux-gnueabihf-objdump -d -C --disassemble='_ZNK16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb' demo/libzombie_shooter.so || true
-      - name: Dump VID_SOFTWARE region around known callers
-        run: |
-          echo '=== 0x513000..0x515000 ==='
-          arm-linux-gnueabihf-objdump -d -C --start-address=0x513000 --stop-address=0x515000 demo/libzombie_shooter.so
+          set -euo pipefail
+          out=/tmp/pass8-analysis.txt
+          {
+            echo '=== SHA256 ==='
+            sha256sum demo/libzombie_shooter.so
+            file demo/libzombie_shooter.so
+            echo '=== SYMBOLS ==='
+            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | \
+              grep -E 'GRAPH::softwareTact|VID_SOFTWARE|VID_SURFACE|SOFT_DRAW|SPRITE_COLLECTOR|DrawLayer|draw_impl|DrawWithAlpha|palette|pallete' || true
+            echo '=== NM ==='
+            arm-linux-gnueabihf-nm -D -n -C demo/libzombie_shooter.so | \
+              grep -E 'GRAPH::softwareTact|VID_SOFTWARE|VID_SURFACE|SOFT_DRAW|SPRITE_COLLECTOR|DrawLayer|draw_impl|DrawWithAlpha|palette|pallete' || true
+            echo '=== softwareTact ==='
+            arm-linux-gnueabihf-objdump -d -C --disassemble='_ZN5GRAPH12softwareTactEi' demo/libzombie_shooter.so || true
+            echo '=== DrawLayer ==='
+            arm-linux-gnueabihf-objdump -d -C --disassemble='_ZN16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb' demo/libzombie_shooter.so || true
+            echo '=== VID region 0x50f000..0x516000 ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x50f000 --stop-address=0x516000 demo/libzombie_shooter.so
+          } > "$out" 2>&1
+          cp "$out" pass8-analysis.txt
+          wc -l pass8-analysis.txt
+      - name: Upload analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: pass8-so-analysis
+          path: pass8-analysis.txt
+          if-no-files-found: error
