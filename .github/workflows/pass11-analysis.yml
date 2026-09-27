@@ -1,4 +1,4 @@
-name: Pass11 softwareTact analysis
+name: Pass11 source analysis
 on:
   push:
     branches:
@@ -10,24 +10,25 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Disassemble GRAPH hot path
+        with:
+          submodules: recursive
+      - name: Verify corrected VitaGL result
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
-          arm-linux-gnueabihf-objdump -d -C -M force-thumb demo/libzombie_shooter.so > /tmp/all-disasm.txt
-          {
-            echo '=== SYMBOLS ==='
-            arm-linux-gnueabihf-nm -D -C demo/libzombie_shooter.so | grep -E 'GRAPH::(Tact|softwareTact)|OpenGLES::(UnLock|PostTact)' || true
-            echo '=== softwareTact callers ==='
-            grep -n -B12 -A16 -E '<GRAPH::softwareTact\(int\)|410458' /tmp/all-disasm.txt || true
-            echo '=== PostTact callers ==='
-            grep -n -B12 -A16 -E '<OpenGLES::PostTact\(int\)|46af1c' /tmp/all-disasm.txt || true
-            echo '=== Tact epilogue / returns ==='
-            arm-linux-gnueabihf-objdump -d -C -M force-thumb --start-address=0x411200 --stop-address=0x411900 demo/libzombie_shooter.so
-          } > pass11-analysis.txt
+          git -C lib/vitagl apply --ignore-space-change --check "$GITHUB_WORKSPACE/patches/vitagl.patch"
+          git -C lib/vitagl apply --ignore-space-change "$GITHUB_WORKSPACE/patches/vitagl.patch"
+          git -C lib/vitagl apply --ignore-space-change --check "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
+          git -C lib/vitagl apply --ignore-space-change "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
+          python3 - <<'PY' > pass11-analysis.txt
+          import hashlib
+          from pathlib import Path
+          for name in ['lib/vitagl/source/textures.c','lib/vitagl/source/utils/zombie_texture_update.h']:
+              data=Path(name).read_bytes().replace(b'\r\n',b'\n')
+              print(hashlib.sha256(data).hexdigest(), name)
+          PY
+          grep -n -A18 -B4 'zombie_texture_rgba8888_pixel_to_rgb565' lib/vitagl/source/utils/zombie_texture_update.h >> pass11-analysis.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: pass11-softwareTact-analysis
+          name: pass11-source-analysis
           path: pass11-analysis.txt
           retention-days: 3
