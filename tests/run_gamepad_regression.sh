@@ -18,7 +18,7 @@ for optimization in 0 3; do
   mode=-DZOMBIE_RELEASE_BUILD=1
   if [[ "$optimization" == 0 ]]; then mode=-DZOMBIE_DEBUG_BUILD=1; fi
   gcc -std=gnu11 -O"$optimization" -ffunction-sections -fdata-sections -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast \
-    -I"$root/tests/input_host" -I"$source_root/lib" -I"$source_root/source" \
+    -I"$root/tests/input_host" -I"$source_root/lib" -I"$source_root/lib/falso_ndk" -I"$source_root/source" \
     -c "$source_root/source/utils/gamepad.c" -o "$testdir/profile.o"
   g++ -std=gnu++20 "$mode" -O"$optimization" -ffunction-sections -fdata-sections \
     -I"$root/tests/input_host" -I"$source_root/lib/falso_ndk" -I"$source_root/source" \
