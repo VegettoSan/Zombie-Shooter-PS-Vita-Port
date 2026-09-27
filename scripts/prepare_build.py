@@ -11,13 +11,14 @@ ROOT = Path(__file__).resolve().parent.parent
 SDK = Path('/usr/local/vitasdk')
 
 # The baseline lock records the source state after the long-lived VitaGL patch.
-# Pass 10 is intentionally kept as a small second patch, so pin its two changed
-# final files here rather than silently weakening dependency verification.
-PASS10_FINAL_FILES = {
+# The final-frame optional RGB565 experiment remains a small second patch.  It
+# is disabled in the release defaults after the Pass10 real-Vita regression,
+# but its corrected diagnostic implementation is still pinned exactly here.
+PASS11_FINAL_FILES = {
     'lib/vitagl/source/textures.c':
         '4655017c147ed010640481685a86668fbaa72361c97ed0a54410def6b71f9be2',
     'lib/vitagl/source/utils/zombie_texture_update.h':
-        'f304fe25a0d5855b120aa21550bc45cc832a6a3201097c43bb9e1b1866aad7be',
+        '9435ede2c24596128a4136dbacd8cfdf05fe3cec419fa9c64cd3582c37933382',
 }
 
 
@@ -36,16 +37,18 @@ def git(module, *args, check=True):
 def apply_patch(module, patch):
     if not patch.exists():
         return
-    args = ['apply', '--ignore-space-change']
+    # --recount only recomputes textual hunk lengths.  Exact post-apply SHA256
+    # verification below remains authoritative, so source drift is not allowed.
+    args = ['apply', '--recount', '--ignore-space-change']
     if git(module, *args, '--reverse', '--check', str(patch), check=False).returncode == 0:
         return
     git(module, *args, '--check', str(patch))
     git(module, *args, str(patch))
 
 
-def pass10_vitagl_is_prepared():
+def pass11_vitagl_is_prepared():
     return all((ROOT / name).is_file() and digest(ROOT / name, True) == sha
-               for name, sha in PASS10_FINAL_FILES.items())
+               for name, sha in PASS11_FINAL_FILES.items())
 
 
 def main():
@@ -67,28 +70,26 @@ def main():
         if git(module, 'rev-parse', 'HEAD').stdout.strip() != revision:
             raise RuntimeError(f'{module}: wrong revision; use git submodule update --init --recursive')
 
-    vitagl_ready = pass10_vitagl_is_prepared()
+    vitagl_ready = pass11_vitagl_is_prepared()
     for module in lock['revisions']:
         # CMake calls this preparer again after install_baseline_sdk.sh. Once the
         # exact combined VitaGL result is present, do not try to reverse-check
-        # the older baseline patch against files that intentionally have Pass10
-        # edits layered on top.
+        # the older baseline patch against files that intentionally have the
+        # final-frame diagnostic edits layered on top.
         if module == 'vitagl' and vitagl_ready:
             continue
         apply_patch(module, ROOT / 'patches' / (module + '.patch'))
 
     if not vitagl_ready:
-        # Pass 10 is intentionally split from the long baseline VitaGL patch.
-        # Apply it only after the baseline and require the exact final hashes.
         apply_patch('vitagl', ROOT / 'patches' / 'vitagl_pass10.patch')
 
     expected_files = dict(lock['files'])
-    expected_files.update(PASS10_FINAL_FILES)
+    expected_files.update(PASS11_FINAL_FILES)
     bad = [name for name, sha in expected_files.items()
            if not (ROOT / name).is_file() or digest(ROOT / name, True) != sha]
     if bad:
         raise RuntimeError('Dependency sources differ from the baseline: ' + ', '.join(bad[:12]))
-    print('Functional SDK, SoftFP ABI, pinned submodules and exact Pass10 sources verified')
+    print('Functional SDK, SoftFP ABI, pinned submodules and exact Pass11 sources verified')
 
 
 if __name__ == '__main__':
