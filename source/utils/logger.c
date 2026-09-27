@@ -1,5 +1,6 @@
 /* Port logger: serialized formatting, buffered Release output and bounded sync. */
 #include "utils/logger.h"
+#include "utils/settings.h"
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/kernel/processmgr.h>
@@ -27,6 +28,37 @@ static LoggerStats stats;
 static struct { char text[2048]; unsigned count; } repeats[16];
 static unsigned replacement;
 #endif
+
+/*
+ * log_mode is deliberately checked before formatting, locking or touching the
+ * memory card. Test 19 showed verbose Debug logging can consume seconds in each
+ * five-second gameplay window, so Release profiling must be explicitly opted in.
+ *
+ *   0: no persistent log (fatal still reaches the debug console)
+ *   1: errors + fatal
+ *   2: errors + fatal + PERF
+ *   3: all messages that exist in this build (verbose Debug diagnostics)
+ */
+static int persist_type(int t) {
+    int mode = setting_log_mode;
+    if (mode <= 0) return 0;
+    if (t == LT_FATAL || t == LT_ERROR) return mode >= 1;
+    if (t == LT_PERF) return mode >= 2;
+#ifdef DEBUG_SOLOADER
+    return mode >= 3;
+#else
+    return 0;
+#endif
+}
+
+static void console_fatal_only(int t, const char *fmt, va_list args) {
+    if (t != LT_FATAL) return;
+    char message[2048], line[2200];
+    sceClibVsnprintf(message, sizeof(message), fmt, args);
+    sceClibSnprintf(line, sizeof(line), "[fatal] %s\n", message);
+    sceClibPrintf("%s", line);
+}
+
 static int lock_log(void) {
     unsigned expected = 0;
     if (__atomic_compare_exchange_n(&init_state, &expected, 1, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
@@ -68,6 +100,7 @@ void logger_get_sync_stats(unsigned *count, unsigned *us) {
     if (us) *us = s.sync_us;
 }
 void logger_force_sync(void) {
+    if (setting_log_mode <= 0) return;
     if (!lock_log()) return;
     sync_locked();
     sceKernelUnlockLwMutex(&mutex, 1);
@@ -92,10 +125,18 @@ static void open_locked(void) {
     }
 }
 void _log_print(int t, const char *fmt, ...) {
-#ifdef ZOMBIE_RELEASE_BUILD
-    if (t != LT_ERROR && t != LT_FATAL && t != LT_PERF) return;
-#endif
     if (t < 0 || t > LT_PERF) return;
+
+    if (!persist_type(t)) {
+        if (t == LT_FATAL) {
+            va_list args;
+            va_start(args, fmt);
+            console_fatal_only(t, fmt, args);
+            va_end(args);
+        }
+        return;
+    }
+
     uint64_t start = sceKernelGetProcessTimeWide();
     if (!lock_log()) return;
     open_locked();
@@ -107,7 +148,7 @@ void _log_print(int t, const char *fmt, ...) {
     char repeat_suffix[48] = "";
 #ifdef ZOMBIE_RELEASE_BUILD
     /* Do not rate-limit truncated messages: their differing tail is unknown. */
-    if (t == LT_ERROR && length >= 0 && length < sizeof(message)) {
+    if (t == LT_ERROR && length >= 0 && length < (int)sizeof(message)) {
         unsigned slot;
         for (slot = 0; slot < 16; ++slot)
             if (repeats[slot].count && strcmp(message, repeats[slot].text) == 0) break;
@@ -131,7 +172,7 @@ void _log_print(int t, const char *fmt, ...) {
         if (t == LT_FATAL) sceClibPrintf("%s", line);
 #endif
         if (fd >= 0 && n > 0) {
-            unsigned size = n >= sizeof(line) ? sizeof(line)-1 : (unsigned)n;
+            unsigned size = n >= (int)sizeof(line) ? sizeof(line)-1 : (unsigned)n;
             if (buffered + size > sizeof(file_buffer)) flush_locked();
             if (buffered + size <= sizeof(file_buffer)) {
                 memcpy(file_buffer + buffered, line, size); buffered += size;
@@ -142,7 +183,7 @@ void _log_print(int t, const char *fmt, ...) {
     uint64_t now = sceKernelGetProcessTimeWide();
 #ifdef DEBUG_SOLOADER
     if (t == LT_WARN || t == LT_ERROR || t == LT_FATAL || unsynced >= 32) sync_locked();
-    else flush_locked(); /* Debug preserves every diagnostic before a crash. */
+    else flush_locked(); /* Debug preserves every selected diagnostic before a crash. */
 #else
     if (t == LT_FATAL || unsynced >= 64 || (unsynced && now-last_sync >= 1000000)) sync_locked();
 #endif
