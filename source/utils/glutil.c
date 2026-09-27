@@ -103,6 +103,11 @@ static struct {
     unsigned reinit_calls, reinit_us, reinit_max_us;
 } framebuffer565;
 
+/* Pass 11 render-reuse state is produced by the exact GRAPH::softwareTact hook
+ * in patch.c and consumed only by the exact full-frame upload gate below. */
+extern volatile int zombie_render_reuse_active_this_tick;
+static unsigned render_reuse_uploads_skipped;
+
 static inline uintptr_t guest_return(unsigned offset) {
     return (uintptr_t)so_mod.text_base + offset;
 }
@@ -184,8 +189,6 @@ static void report_texture_costs(void) {
 }
 static volatile unsigned present_count;
 static volatile unsigned last_present_ms;
-extern volatile int zombie_render_reuse_active_this_tick;
-static unsigned render_reuse_uploads_skipped;
 
 unsigned egl_present_count(void) {
     return __atomic_load_n(&present_count, __ATOMIC_RELAXED);
@@ -352,6 +355,7 @@ void vglZombieProgramObserved(uint64_t vertex,uint64_t fragment) {
     if(i==unique_programs && i<256){program_inventory[i].vertex=vertex;program_inventory[i].fragment=fragment;++unique_programs;}
     if(i<256)program_inventory[i].uses++;else inventory_overflow++;
     __atomic_clear(&shader_inventory_lock,__ATOMIC_RELEASE);
+    l_perf("shader_cache hits=%u misses=%u invalid=%u bytes_loaded=%u compile_us=%u load_us=%u writes_failed=%u actual_compile_calls=%u writes=%u counters=lifetime",0,0,0,0,0,0,0,0,0);
 }
 extern void vglZombieShaderCacheStatsGet(uint32_t *out);
 static void shader_cache_report(void) {
