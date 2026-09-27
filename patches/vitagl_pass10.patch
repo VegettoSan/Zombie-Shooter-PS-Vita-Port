@@ -1,0 +1,112 @@
+diff --git a/source/textures.c b/source/textures.c
+--- a/source/textures.c
++++ b/source/textures.c
+@@ -1023,10 +1023,13 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
+         GLboolean native_rgba = format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
+             tex_format == SCE_GXM_TEXTURE_FORMAT_U8U8U8U8_ABGR;
+         GLboolean native_rgb565 = format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5 &&
+             tex_format == SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB;
++        GLboolean rgba_to_rgb565 = format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
++            tex_format == SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB;
+         if (target == GL_TEXTURE_2D && level == 0 && tex->mip_count == 1 &&
+-            (native_rgba || native_rgb565) && pixels &&
++            (native_rgba || native_rgb565 || rgba_to_rgb565) && pixels &&
+             (unpack_row_len == 0 || unpack_row_len == width) &&
+             xoffset >= 0 && yoffset >= 0 && width > 0 && height > 0 &&
+             (uint32_t)xoffset <= orig_w && (uint32_t)yoffset <= orig_h &&
+@@ -1036,7 +1039,7 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
+             size_t kept = zombie_texture_preserve_native(texture_data, tex->data,
+                 VGL_ALIGN(orig_w, 8)*bpp, orig_h, xoffset, yoffset, width, height, bpp);
+             zombie_texture_stats.optimized_calls++;
+-            if (native_rgb565) zombie_texture_stats.rgb565_calls++;
++            if (native_rgb565 || rgba_to_rgb565) zombie_texture_stats.rgb565_calls++;
+             zombie_texture_stats.preserved_bytes += kept;
+             if (!kept) zombie_texture_stats.full_replacements++;
+         } else {
+@@ -1251,7 +1254,22 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
+ 			mip_stride = VGL_ALIGN(orig_w, 8) * bpp;
+ 		}
+ 		ptr += xoffset * bpp + yoffset * mip_stride;
+-		if (fast_store) { // Internal format and input format are the same, we can take advantage of this
++		if (tex_format == SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB &&
++			format == GL_RGBA && type == GL_UNSIGNED_BYTE && pixels) {
++			uint32_t src_stride = (unpack_row_len ? unpack_row_len : width) * 4;
++			uint64_t begin = sceKernelGetProcessTimeWide();
++			zombie_texture_rgba8888_to_rgb565(ptr, pixels, width, height,
++				mip_stride, src_stride);
++			unsigned us = (unsigned)(sceKernelGetProcessTimeWide() - begin);
++			zombie_texture_stats.rgba565_calls++;
++			zombie_texture_stats.rgba565_pixels += (uint64_t)width * height;
++			zombie_texture_stats.rgba565_input_bytes += (uint64_t)width * height * 4;
++			zombie_texture_stats.rgba565_output_bytes += (uint64_t)width * height * 2;
++			zombie_texture_stats.rgba565_us += us;
++			if (us > zombie_texture_stats.rgba565_max_us)
++				zombie_texture_stats.rgba565_max_us = us;
++		} else if (fast_store) { // Internal format and input format are the same, we can take advantage of this
+ 			uint8_t *data = (uint8_t *)pixels;
+ 			uint32_t line_size = width * bpp;
+ 			uint32_t src_stride = (unpack_row_len ? unpack_row_len : width) * bpp;
+diff --git a/source/utils/zombie_texture_update.h b/source/utils/zombie_texture_update.h
+--- a/source/utils/zombie_texture_update.h
++++ b/source/utils/zombie_texture_update.h
+@@ -4,6 +4,9 @@
+ #include <stddef.h>
+ #include <stdint.h>
+ #include <string.h>
++#if defined(__ARM_NEON)
++#include <arm_neon.h>
++#endif
+ #ifndef ZOMBIE_TEXTURE_COPY
+ #define ZOMBIE_TEXTURE_COPY memcpy
+ #endif
+@@ -34,12 +37,55 @@ static inline size_t zombie_texture_preserve_rgba(void *dst, const void *src,
+     return zombie_texture_preserve_native(dst,src,stride,rows,x,y,w,h,4);
+ }
++
++static inline uint16_t zombie_texture_rgba8888_pixel_to_rgb565(const uint8_t *src) {
++    return (uint16_t)(((uint16_t)(src[0] & 0xF8u) << 8) |
++                      ((uint16_t)(src[1] & 0xFCu) << 3) |
++                      ((uint16_t)src[2] >> 3));
++}
++
++/* Convert the software renderer's GL_RGBA/U8 framebuffer directly into the
++ * RGB565 allocation sampled by GXM. Destination/source strides are bytes.
++ * Alpha is intentionally discarded: this texture is the final opaque software
++ * framebuffer composited by OpenGLES::UnLock. */
++static inline void zombie_texture_rgba8888_to_rgb565(void *dst, const void *src,
++        unsigned width, unsigned height, size_t dst_stride, size_t src_stride) {
++    uint8_t *drow = (uint8_t *)dst;
++    const uint8_t *srow = (const uint8_t *)src;
++    for (unsigned y = 0; y < height; ++y) {
++        uint16_t *d = (uint16_t *)drow;
++        const uint8_t *s = srow;
++        unsigned x = 0;
++#if defined(__ARM_NEON)
++        for (; x + 8 <= width; x += 8) {
++            uint8x8x4_t rgba = vld4_u8(s + (size_t)x * 4);
++            uint16x8_t r = vmovl_u8(rgba.val[0]);
++            uint16x8_t g = vmovl_u8(rgba.val[1]);
++            uint16x8_t b = vmovl_u8(rgba.val[2]);
++            r = vshlq_n_u16(vshrq_n_u16(r, 3), 11);
++            g = vshlq_n_u16(vshrq_n_u16(g, 2), 5);
++            b = vshrq_n_u16(b, 3);
++            vst1q_u16(d + x, vorrq_u16(r, vorrq_u16(g, b)));
++        }
++#endif
++        for (; x < width; ++x)
++            d[x] = zombie_texture_rgba8888_pixel_to_rgb565(s + (size_t)x * 4);
++        drow += dst_stride;
++        srow += src_stride;
++    }
++}
++
+ typedef struct {
+     unsigned cow_calls, optimized_calls, full_replacements, alloc_failures, rgb565_calls;
+     unsigned alloc_us, preserve_us;
+     uint64_t old_bytes, preserved_bytes;
+     unsigned max_texture_w, max_texture_h;
++    unsigned rgba565_calls, rgba565_us, rgba565_max_us;
++    uint64_t rgba565_pixels, rgba565_input_bytes, rgba565_output_bytes;
+ } VglZombieTextureStats;
+ #ifdef __cplusplus
+ extern "C" {
