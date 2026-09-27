@@ -21,6 +21,7 @@
 #include <psp2/io/stat.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/cpu.h>
 #include <stdint.h>
 #include <so_util/so_util.h>
 #include "utils/perf.h"
@@ -200,6 +201,14 @@ unsigned egl_present_age_ms(void) {
 /* Measure the game's present cadence and VitaGL time without a per-frame log.
  * The lifecycle thread reads the counters even if rendering stops. */
 EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
+    static int render_affinity_done;
+    if (!render_affinity_done) {
+        SceUID tid=sceKernelGetThreadId();
+        int result=sceKernelChangeThreadCpuAffinityMask(tid,SCE_KERNEL_CPU_MASK_USER_0);
+        l_perf("render_affinity thread=0x%08X target_core=0 result=0x%08X priority=%d",
+            (unsigned)tid,(unsigned)result,sceKernelGetThreadCurrentPriority());
+        render_affinity_done=1;
+    }
     static uint64_t window_start_us;
     static uint64_t last_end_us;
     static uint64_t swap_total_us;

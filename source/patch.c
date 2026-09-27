@@ -427,6 +427,75 @@ static uintptr_t probe_map(void *self) {
     return ret;
 }
 
+static uintptr_t pass12_shadow_original;
+static uintptr_t pass12_sprite_tact_original;
+static unsigned pass12_shadow_calls,pass12_shadow_skipped;
+static unsigned pass12_sprite_calls,pass12_sprite_samples,pass12_sprite_sampled_us,pass12_sprite_max_us,pass12_sprite_seq;
+#define PASS12_SPRITE_SAMPLE_PERIOD 32u
+
+static int probe_show_shadows(void *self) {
+    pass12_shadow_calls++;
+    if (!setting_dynamic_shadows) { pass12_shadow_skipped++; return 0; }
+    return ((int (*)(void *))pass12_shadow_original)(self);
+}
+
+static void probe_sprite_tact_hot(void *self) {
+    pass12_sprite_calls++;
+    uint64_t start=((pass12_sprite_seq++ & (PASS12_SPRITE_SAMPLE_PERIOD-1u))==0)
+        ? sceKernelGetProcessTimeWide():0;
+    ((void (*)(void *))pass12_sprite_tact_original)(self);
+    if (start) {
+        unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
+        pass12_sprite_samples++;pass12_sprite_sampled_us+=us;
+        if (us>pass12_sprite_max_us) pass12_sprite_max_us=us;
+    }
+}
+
+static int install_pass12_exact(const char *symbol,unsigned offset,const uint32_t prologue[2],
+        uintptr_t replacement,uintptr_t *original) {
+    uintptr_t address=(uintptr_t)so_symbol(&so_mod,symbol);
+    uintptr_t entry=address&~(uintptr_t)1;
+    uintptr_t arena=(so_mod.patch_head+3)&~(uintptr_t)3;
+    if (!(address&1) || entry!=so_mod.load_addr+offset ||
+        arena<so_mod.patch_base || arena>so_mod.patch_base+so_mod.patch_size ||
+        so_mod.patch_base+so_mod.patch_size-arena<16) {
+        l_warn("[PATCH] Pass12 hook disabled: %s address/arena mismatch",symbol);return 0;
+    }
+    uint32_t code[4];
+    if (!engine_probe_trampoline(code,(void *)entry,prologue,(uint32_t)(entry+8))) {
+        l_warn("[PATCH] Pass12 hook disabled: %s prologue mismatch",symbol);return 0;
+    }
+    sceClibMemcpy((void *)arena,code,sizeof(code));
+    *original=arena|1;so_mod.patch_head=arena+sizeof(code);
+    hook_addr(address,replacement);
+    kuKernelFlushCaches((void *)arena,sizeof(code));
+    kuKernelFlushCaches((void *)entry,8);
+    l_info("[PATCH] Pass12 hook installed: %s so+0x%X",symbol,offset);
+    return 1;
+}
+
+static void install_pass12_extra_hooks(void) {
+    static const uint32_t shadow_prologue[2]={0xaf03b5f0,0xbd04f84d};
+    static const uint32_t sprite_prologue[2]={0xaf03b5f0,0x0f00e92d};
+    install_pass12_exact("_ZNK3MAP13isShowShadowsEv",0x435644,shadow_prologue,
+        (uintptr_t)probe_show_shadows,&pass12_shadow_original);
+    install_pass12_exact("_ZN6SPRITE4TactEv",0x4dbe40,sprite_prologue,
+        (uintptr_t)probe_sprite_tact_hot,&pass12_sprite_tact_original);
+}
+
+static void pass12_hot_report(void) {
+    static unsigned old_shadow_calls,old_shadow_skipped,old_sprite_calls,old_sprite_samples,old_sprite_us;
+    unsigned sc=pass12_shadow_calls,ss=pass12_shadow_skipped;
+    unsigned pc=pass12_sprite_calls,ps=pass12_sprite_samples,pu=pass12_sprite_sampled_us;
+    l_perf("pass12_shadows config=%d calls=%u skipped=%u strategy=map_isShowShadows_false",
+        setting_dynamic_shadows,sc-old_shadow_calls,ss-old_shadow_skipped);
+    l_perf("map_hot name=sprite_tact_base calls=%u sampled_calls=%u sampled_us=%u estimated_inclusive_us=%llu max_sample_us_lifetime=%u sample_period=%u",
+        pc-old_sprite_calls,ps-old_sprite_samples,pu-old_sprite_us,
+        (unsigned long long)(pu-old_sprite_us)*PASS12_SPRITE_SAMPLE_PERIOD,
+        pass12_sprite_max_us,PASS12_SPRITE_SAMPLE_PERIOD);
+    old_shadow_calls=sc;old_shadow_skipped=ss;old_sprite_calls=pc;old_sprite_samples=ps;old_sprite_us=pu;
+}
+
 void render_reuse_report(void) {
     static unsigned old_rendered,old_reused,old_graph_rendered,old_graph_reused;
     static unsigned old_cycles[RENDER_REUSE_MAX_SKIPS + 1];
@@ -444,6 +513,7 @@ void render_reuse_report(void) {
         render_reuse_map_render_us,render_reuse_map_reuse_us,c0,c1,c2,c3);
     old_rendered=rendered;old_reused=reused;old_graph_rendered=gr;old_graph_reused=gu;
     for (unsigned i=0;i<=RENDER_REUSE_MAX_SKIPS;++i) old_cycles[i]=render_reuse_cycles[i];
+    pass12_hot_report();
 }
 ENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)
 ENGINE_INT_PROBE(post,PERF_ENGINE_POST)
@@ -490,6 +560,7 @@ static void install_engine_probes(void) {
         kuKernelFlushCaches((void *)entry,8);
         l_info("[PATCH] engine probe installed: %s so+0x%X",probes[i].symbol,probes[i].offset);
     }
+    install_pass12_extra_hooks();
 }
 #endif
 

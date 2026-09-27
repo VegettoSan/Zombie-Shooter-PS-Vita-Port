@@ -21,6 +21,7 @@ int setting_music_mode;
 int setting_vita_shooter;
 int setting_framebuffer_565;
 int setting_software_frameskip;
+int setting_dynamic_shadows;
 int  setting_sampleSetting;
 bool setting_sampleSetting2;
 
@@ -45,6 +46,9 @@ void settings_reset() {
     setting_vita_shooter = 0; // Legacy fallback only; controls.txt wins on Vita.
     setting_framebuffer_565 = 0;
     setting_software_frameskip = 1;
+    /* Pass 12: shadows scale with the number of visible units and are purely
+     * cosmetic. Disable them by default to protect the 30-FPS floor. */
+    setting_dynamic_shadows = 0;
     setting_sampleSetting  = 1;
     setting_sampleSetting2 = true;
 }
@@ -68,13 +72,17 @@ void settings_save() {
         fprintf(config, "#   1 = legacy Pass10 value; automatically treated as 0 for safety\n");
         fprintf(config, "# software_frameskip modes:\n");
         fprintf(config, "#   0 = software-render every engine tick\n");
-        fprintf(config, "#   1 = render every other tick and reuse the previous completed frame (recommended test)\n");
+        fprintf(config, "#   1 = adaptive 30-FPS render reuse (0-3 reuse ticks based on measured load)\n");
+        fprintf(config, "# dynamic_shadows modes:\n");
+        fprintf(config, "#   0 = disable dynamic sprite shadows (recommended for stable FPS)\n");
+        fprintf(config, "#   1 = original dynamic shadows\n");
         fprintf(config, "# Restart the game after changing these values.\n");
         fprintf(config, "software_width %d\n", setting_software_width);
         fprintf(config, "music_mode %d\n", setting_music_mode);
         fprintf(config, "vita_shooter %d\n", setting_vita_shooter);
         fprintf(config, "framebuffer_565 %d\n", setting_framebuffer_565);
         fprintf(config, "software_frameskip %d\n", setting_software_frameskip);
+        fprintf(config, "dynamic_shadows %d\n", setting_dynamic_shadows);
         fprintf(config, "%s %d\n", "setting_sampleSetting", (int)(setting_sampleSetting));
         fprintf(config, "%s %d\n", "setting_sampleSetting2", (int)(setting_sampleSetting2));
         fclose(config);
@@ -122,6 +130,10 @@ void settings_load() {
         }
         if (strcmp("software_frameskip", buffer) == 0) {
             setting_software_frameskip = value != 0;
+            continue;
+        }
+        if (strcmp("dynamic_shadows", buffer) == 0) {
+            setting_dynamic_shadows = value == 1;
             continue;
         }
         if      (strcmp("setting_sampleSetting", buffer) == 0)  setting_sampleSetting  = (int)value;

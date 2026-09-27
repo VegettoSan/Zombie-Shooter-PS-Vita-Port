@@ -23,7 +23,8 @@ extern int setting_software_width; // 0: Android policy; 960: native; 864: reduc
 extern int setting_music_mode;     // 0: stable/silent; 1: legacy PCM WAV; 2: compressed OGG Vita mixer
 extern int setting_vita_shooter;   // Legacy fallback only; controls.txt wins on handheld Vita
 extern int setting_framebuffer_565; // 0: original RGBA; 2: corrected RGB565 diagnostic (legacy value 1 is disabled)
-extern int setting_software_frameskip; // 0: render every tick; 1: reuse previous software frame every other tick
+extern int setting_software_frameskip; // 0: render every tick; 1: adaptive 30-FPS render reuse
+extern int setting_dynamic_shadows; // 0: disable dynamic sprite shadows for performance; 1: original shadows
 extern int  setting_sampleSetting;
 extern bool setting_sampleSetting2;
 

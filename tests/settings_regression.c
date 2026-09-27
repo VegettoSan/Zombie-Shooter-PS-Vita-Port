@@ -4,7 +4,7 @@
 int main(void) {
     settings_load();
     assert(setting_software_width==864 && setting_music_mode==0);
-    assert(setting_framebuffer_565==0 && setting_software_frameskip==1);
+    assert(setting_framebuffer_565==0 && setting_software_frameskip==1 && setting_dynamic_shadows==0);
 
     FILE *f=fopen(DATA_PATH "config.txt","w");assert(f);
     fputs("vita_shooter 1\nsetting_sampleSetting 7\n",f);fclose(f);
@@ -29,6 +29,11 @@ int main(void) {
     assert(setting_framebuffer_565==2 && setting_software_frameskip==1);
 
     f=fopen(DATA_PATH "config.txt","w");assert(f);
+    fputs("software_width 864\nmusic_mode 0\ndynamic_shadows 1\nsoftware_frameskip 1\n",f);fclose(f);
+    settings_load();
+    assert(setting_dynamic_shadows==1 && setting_software_frameskip==1);
+
+    f=fopen(DATA_PATH "config.txt","w");assert(f);
     fputs("software_width 123\nmusic_mode 9\nvita_shooter 1\nframebuffer_565 99\n",f);fclose(f);
     settings_load();
     assert(setting_software_width==864 && setting_music_mode==0 && setting_vita_shooter==1);
@@ -39,5 +44,5 @@ int main(void) {
     assert(setting_software_width==0 && setting_music_mode==2);
     assert(setting_framebuffer_565==0 && setting_software_frameskip==1);
 
-    puts("Settings regression PASS: 864 default, Pass10 framebuffer_565=1 migration to RGBA, explicit diagnostic=2, render reuse default/on/off, music and input preservation");
+    puts("Settings regression PASS: 864 default, stable RGBA, adaptive reuse, performance shadows default-off/opt-in, music and input preservation");
 }

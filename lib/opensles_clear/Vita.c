@@ -105,9 +105,13 @@ static int audioThread(unsigned int args, void *arg) {
 	/* Keep audio decode/mix away from the main software-render thread.  This is
 	 * the same user-core separation used by MetalSyntax ports; failure is not
 	 * fatal and only leaves scheduling to the kernel. */
-	int affinity_res=sceKernelChangeThreadCpuAffinityMask(
-		sceKernelGetThreadId(),SCE_KERNEL_CPU_MASK_USER_1);
-	_log_print(1,"[AUDIO] mixer affinity user_core=1 result=0x%08X",(unsigned)affinity_res);
+	SceUID audio_tid=sceKernelGetThreadId();
+	int old_priority=sceKernelGetThreadCurrentPriority();
+	int affinity_res=sceKernelChangeThreadCpuAffinityMask(audio_tid,SCE_KERNEL_CPU_MASK_USER_1);
+	int priority_res=sceKernelChangeThreadPriority(audio_tid,85);
+	int new_priority=sceKernelGetThreadCurrentPriority();
+	_log_print(1,"[AUDIO] mixer scheduling core=1 affinity_result=0x%08X priority_before=%d priority_target=85 priority_result=0x%08X priority_after=%d",
+		(unsigned)affinity_res,old_priority,(unsigned)priority_res,new_priority);
 
 	const int output_hz=opensles_output_freq();
 	const unsigned expected_period_us=(unsigned)(((uint64_t)VITA_AUDIO_OUT_FRAMES*1000000u)/(unsigned)output_hz);
