@@ -7,7 +7,6 @@
 #include <cstdarg>
 #include "shim/fndk_controls.h"
 #include "android/keycodes.h"
-#include "utils/settings.h"
 #include "utils/gamepad.h"
 extern void pollPad();
 extern void pollTouch();
@@ -16,7 +15,6 @@ static SceTouchData touches[2];
 static SceCtrlPortInfo ports = {{SCE_CTRL_TYPE_PHY}, {}};
 static int read_ok=1, last_port=-1, axis_traces=0, button_traces=0;
 extern "C" {
-int setting_vita_shooter;
 int sceKernelCreateLwMutex(SceKernelLwMutexWork*,const char*,int,int,void*) { return 0; }
 int sceKernelLockLwMutex(SceKernelLwMutexWork*,int,void*) { return 0; }
 int sceKernelUnlockLwMutex(SceKernelLwMutexWork*,int) { return 0; }
