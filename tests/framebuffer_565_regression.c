@@ -13,10 +13,11 @@ static uint32_t rng32(void) {
 }
 
 static uint16_t reference_rgb565(uint8_t r, uint8_t g, uint8_t b) {
-    /* VitaGL read_rgb565(): R bits 0..4, G 5..10, B 11..15. */
-    return (uint16_t)(((uint16_t)r >> 3) |
-                      ((uint16_t)(g >> 2) << 5) |
-                      ((uint16_t)(b >> 3) << 11));
+    /* Real Vita Pass10 proved the sampled texture expects conventional RGB565:
+     * R in bits 11..15, G in 5..10, B in 0..4. */
+    return (uint16_t)(((uint16_t)(r & 0xF8u) << 8) |
+                      ((uint16_t)(g & 0xFCu) << 3) |
+                      ((uint16_t)b >> 3));
 }
 
 static void known_colors(void) {
@@ -29,9 +30,11 @@ static void known_colors(void) {
     };
     uint16_t dst[5] = {0};
     zombie_texture_rgba8888_to_rgb565(dst, src, 5, 1, sizeof(dst), sizeof(src));
-    assert(dst[0] == 0x001Fu);
-    assert(dst[1] == 0x07E0u);
-    assert(dst[2] == 0xF800u);
+    /* These two explicit assertions exist specifically to catch the Pass10
+     * hardware regression where red and blue were interchanged. */
+    assert(dst[0] == 0xF800u); /* pure red */
+    assert(dst[1] == 0x07E0u); /* pure green */
+    assert(dst[2] == 0x001Fu); /* pure blue */
     assert(dst[3] == 0xFFFFu);
     assert(dst[4] == 0x0000u);
 }
@@ -88,9 +91,6 @@ static void randomized_stride_case(unsigned width, unsigned height,
 int main(void) {
     known_colors();
 
-    /* Widths straddle the 8-pixel NEON block boundary; host builds exercise
-     * the scalar reference implementation while Vita/ARM compilation checks
-     * the same header's vector path. */
     const unsigned widths[] = {1, 2, 7, 8, 9, 15, 16, 17, 63, 64, 65, 863, 864};
     const unsigned heights[] = {1, 2, 7, 31, 489};
     for (unsigned wi = 0; wi < sizeof(widths)/sizeof(widths[0]); ++wi) {
@@ -100,7 +100,6 @@ int main(void) {
         }
     }
 
-    /* 250k independent color tuples catch channel-order/quantization mistakes. */
     for (unsigned i = 0; i < 250000; ++i) {
         uint8_t pixel[4] = {(uint8_t)rng32(), (uint8_t)rng32(),
                             (uint8_t)rng32(), (uint8_t)rng32()};
@@ -109,6 +108,6 @@ int main(void) {
         assert(got == reference_rgb565(pixel[0], pixel[1], pixel[2]));
     }
 
-    puts("Framebuffer565 regression passed: VitaGL R-low RGB565 layout, 250k colors, alpha independence, strides, guards and 864x489 surface");
+    puts("Framebuffer565 regression passed: real-Vita R-high/B-low RGB565 layout, 250k colors, alpha independence, strides, guards and 864x489 surface");
     return 0;
 }
