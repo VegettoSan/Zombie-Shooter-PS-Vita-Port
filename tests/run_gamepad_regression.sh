@@ -18,12 +18,13 @@ for optimization in 0 3; do
   mode=-DZOMBIE_RELEASE_BUILD=1
   if [[ "$optimization" == 0 ]]; then mode=-DZOMBIE_DEBUG_BUILD=1; fi
   gcc -std=gnu11 -O"$optimization" -ffunction-sections -fdata-sections -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast \
-    -I"$root/tests/input_host" -I"$source_root/source" -c "$source_root/source/utils/gamepad.c" -o "$testdir/profile.o"
+    -I"$root/tests/input_host" -I"$source_root/lib" -I"$source_root/source" \
+    -c "$source_root/source/utils/gamepad.c" -o "$testdir/profile.o"
   g++ -std=gnu++20 "$mode" -O"$optimization" -ffunction-sections -fdata-sections \
     -I"$root/tests/input_host" -I"$source_root/lib/falso_ndk" -I"$source_root/source" \
     "$root/tests/gamepad_regression.cpp" "$source_root/lib/falso_ndk/shim/fndk_controls.cpp" \
     "$source_root/lib/falso_ndk/android/AInput.cpp" "$testdir/profile.o" -Wl,--gc-sections -o "$testdir/pad"
-  "$testdir/pad"
+  (cd "$testdir" && ./pad)
   gcc -std=gnu11 -O"$optimization" -ffunction-sections -fdata-sections -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast \
     "$mode" -I"$testdir" -I"$source_root/lib" "$root/tests/input_device_regression.c" "$source_root/source/java.c" \
     "$testdir/falso_jni/FalsoJNI.c" "$testdir/falso_jni/FalsoJNI_ImplBridge.c" "$testdir/falso_jni/converter.c" \
