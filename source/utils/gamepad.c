@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <psp2/ctrl.h>
+#include <falso_ndk/shim/fndk_controls.h>
+#include <falso_ndk/android/keycodes.h>
 
 #ifndef DATA_PATH
 #define DATA_PATH ""
@@ -15,12 +17,54 @@
 
 #define CONTROLS_FILE_PATH DATA_PATH "controls.txt"
 
+typedef enum {
+    VITA_INPUT_STRICT = 0,
+    VITA_INPUT_HYBRID = 1,
+} VitaInputMode;
+
 typedef struct {
     const char *physical_name;
     uint32_t physical_mask;
     bool from_rear;
     uint32_t xbox_mask;
 } VitaXboxBinding;
+
+/*
+ * Strong override of FalsoNDK's weak table.
+ *
+ * Entries 0..9 are the strict Xbox key path: face buttons, shoulders,
+ * Start/Back and stick clicks are Android KeyEvents. D-pad and LT/RT are kept
+ * out of the strict prefix because Xbox-style Android controllers expose those
+ * through HAT_X/HAT_Y and trigger axes. The final six entries restore the old
+ * hybrid aliases when requested, and are always enabled for DS3/DS4 so external
+ * controllers keep their previous behaviour.
+ */
+enum {
+    FNDK_STRICT_KEY_COUNT = 10,
+    FNDK_HYBRID_KEY_COUNT = 16,
+};
+
+ButtonMapping fndk_button_mapping[] = {
+    { SCE_CTRL_CROSS,     AKEYCODE_BUTTON_A },
+    { SCE_CTRL_CIRCLE,    AKEYCODE_BUTTON_B },
+    { SCE_CTRL_SQUARE,    AKEYCODE_BUTTON_X },
+    { SCE_CTRL_TRIANGLE,  AKEYCODE_BUTTON_Y },
+    { SCE_CTRL_L1,        AKEYCODE_BUTTON_L1 },
+    { SCE_CTRL_R1,        AKEYCODE_BUTTON_R1 },
+    { SCE_CTRL_START,     AKEYCODE_BUTTON_START },
+    { SCE_CTRL_SELECT,    AKEYCODE_BUTTON_SELECT },
+    { SCE_CTRL_L3,        AKEYCODE_BUTTON_THUMBL },
+    { SCE_CTRL_R3,        AKEYCODE_BUTTON_THUMBR },
+
+    /* Legacy/hybrid aliases; not emitted by handheld strict mode. */
+    { SCE_CTRL_UP,        AKEYCODE_DPAD_UP },
+    { SCE_CTRL_DOWN,      AKEYCODE_DPAD_DOWN },
+    { SCE_CTRL_LEFT,      AKEYCODE_DPAD_LEFT },
+    { SCE_CTRL_RIGHT,     AKEYCODE_DPAD_RIGHT },
+    { SCE_CTRL_L2,        AKEYCODE_BUTTON_L2 },
+    { SCE_CTRL_R2,        AKEYCODE_BUTTON_R2 },
+};
+int fndk_button_mapping_count = FNDK_STRICT_KEY_COUNT;
 
 /* Internal masks deliberately reuse SceCtrl bits only as a transport between
  * the port and FalsoNDK. The public configuration contract is Xbox names. */
@@ -44,6 +88,7 @@ static VitaXboxBinding bindings[] = {
 };
 
 static bool controls_loaded;
+static VitaInputMode input_mode = VITA_INPUT_STRICT;
 
 static void reset_xbox_defaults(void) {
     bindings[0].xbox_mask  = SCE_CTRL_CROSS;    /* A */
@@ -62,6 +107,8 @@ static void reset_xbox_defaults(void) {
     bindings[13].xbox_mask = SCE_CTRL_RIGHT;
     bindings[14].xbox_mask = SCE_CTRL_L3;       /* LS */
     bindings[15].xbox_mask = SCE_CTRL_R3;       /* RS */
+    input_mode = VITA_INPUT_STRICT;
+    fndk_button_mapping_count = FNDK_STRICT_KEY_COUNT;
 }
 
 static void ascii_lower(char *s) {
@@ -123,13 +170,39 @@ static const char *xbox_name(uint32_t mask) {
     return "NONE";
 }
 
+static const char *input_mode_name(void) {
+    return input_mode == VITA_INPUT_HYBRID ? "hybrid" : "strict";
+}
+
+static bool set_input_mode(const char *name) {
+    if (strcmp(name, "STRICT") == 0 || strcmp(name, "XBOX_STRICT") == 0) {
+        input_mode = VITA_INPUT_STRICT;
+        fndk_button_mapping_count = FNDK_STRICT_KEY_COUNT;
+        return true;
+    }
+    if (strcmp(name, "HYBRID") == 0 || strcmp(name, "ANDROID_HYBRID") == 0 ||
+        strcmp(name, "LEGACY") == 0) {
+        input_mode = VITA_INPUT_HYBRID;
+        fndk_button_mapping_count = FNDK_HYBRID_KEY_COUNT;
+        return true;
+    }
+    return false;
+}
+
 static bool write_default_controls(void) {
     FILE *f = fopen(CONTROLS_FILE_PATH, "w");
     if (!f) return false;
     fputs("# Zombie Shooter Vita control mapping\n"
+          "# Edit this file, save it, then fully restart the game.\n"
+          "#\n"
+          "# input_mode strict (recommended): Xbox/Android style.\n"
+          "#   A/B/X/Y, LB/RB, START/BACK, LS/RS -> KeyEvent\n"
+          "#   DPAD -> HAT_X/HAT_Y only; LT/RT -> trigger axes only\n"
+          "# input_mode hybrid: legacy compatibility; also emits DPAD/L2/R2 KeyEvents.\n"
+          "input_mode strict\n\n"
           "# Physical PS Vita input -> Xbox logical control\n"
-          "# Values: A B X Y LB RB LT RT LS RS START BACK DPAD_UP DPAD_DOWN DPAD_LEFT DPAD_RIGHT NONE\n"
-          "# Restart the game after editing this file.\n\n"
+          "# Values: A B X Y LB RB LT RT LS RS START BACK\n"
+          "#         DPAD_UP DPAD_DOWN DPAD_LEFT DPAD_RIGHT NONE\n"
           "cross A\n"
           "circle B\n"
           "square X\n"
@@ -152,8 +225,9 @@ static bool write_default_controls(void) {
 }
 
 static void log_effective_mapping(const char *source) {
-    l_perf("[INPUT] xbox_map source=%s emulation=xbox cross=%s circle=%s square=%s triangle=%s l=%s r=%s rear_left=%s rear_right=%s start=%s select=%s dpad_up=%s dpad_down=%s dpad_left=%s dpad_right=%s l3=%s r3=%s legacy_vita_shooter=%d_ignored",
-           source,
+    l_perf("[INPUT] xbox_map source=%s emulation=xbox input_mode=%s strict_key_count=%d active_key_count=%d external_mode=hybrid cross=%s circle=%s square=%s triangle=%s l=%s r=%s rear_left=%s rear_right=%s start=%s select=%s dpad_up=%s dpad_down=%s dpad_left=%s dpad_right=%s l3=%s r3=%s legacy_vita_shooter=%d_ignored",
+           source, input_mode_name(), FNDK_STRICT_KEY_COUNT,
+           input_mode == VITA_INPUT_HYBRID ? FNDK_HYBRID_KEY_COUNT : FNDK_STRICT_KEY_COUNT,
            xbox_name(bindings[0].xbox_mask), xbox_name(bindings[1].xbox_mask),
            xbox_name(bindings[2].xbox_mask), xbox_name(bindings[3].xbox_mask),
            xbox_name(bindings[4].xbox_mask), xbox_name(bindings[5].xbox_mask),
@@ -184,6 +258,12 @@ void gamepad_config_load(void) {
         ascii_lower(physical);
         ascii_upper(action);
 
+        if (strcmp(physical, "input_mode") == 0 || strcmp(physical, "event_mode") == 0) {
+            if (!set_input_mode(action))
+                l_perf("[INPUT] controls warning=unknown_input_mode value=%s default=strict", action);
+            continue;
+        }
+
         int index = binding_index(physical);
         if (index < 0) {
             l_perf("[INPUT] controls warning=unknown_physical value=%s", physical);
@@ -206,11 +286,17 @@ void gamepad_config_load(void) {
 }
 
 uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handheld) {
-    if (!handheld) return buttons; /* DS3/DS4 keep native FalsoNDK mappings. */
+    /* External controllers keep the complete legacy FalsoNDK representation. */
+    if (!handheld) {
+        fndk_button_mapping_count = FNDK_HYBRID_KEY_COUNT;
+        return buttons;
+    }
 
-    /* Host regressions and emergency fallback retain the old profile until the
-     * startup path explicitly loads controls.txt. Real Vita startup does load it. */
+    /* Emergency fallback before startup loaded controls.txt: preserve the old
+     * behaviour rather than silently changing a path that should be unreachable
+     * on the real Vita. */
     if (!controls_loaded) {
+        fndk_button_mapping_count = FNDK_HYBRID_KEY_COUNT;
         if (!setting_vita_shooter) return buttons | rear;
         uint32_t logical = buttons & ~(SCE_CTRL_L1 | SCE_CTRL_R1);
         if (buttons & SCE_CTRL_L1) logical |= SCE_CTRL_L2;
@@ -219,6 +305,9 @@ uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handhe
         if (rear & SCE_CTRL_R2) logical |= SCE_CTRL_R1;
         return logical;
     }
+
+    fndk_button_mapping_count = input_mode == VITA_INPUT_HYBRID
+        ? FNDK_HYBRID_KEY_COUNT : FNDK_STRICT_KEY_COUNT;
 
     uint32_t logical = 0;
     for (unsigned i = 0; i < sizeof(bindings) / sizeof(bindings[0]); ++i) {
@@ -231,12 +320,16 @@ uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handhe
     static uint32_t previous_buttons = UINT32_MAX;
     static uint32_t previous_rear = UINT32_MAX;
     static uint32_t previous_logical = UINT32_MAX;
-    if (buttons != previous_buttons || rear != previous_rear || logical != previous_logical) {
-        l_debug("[INPUT] vita_physical buttons=0x%08X rear=0x%08X xbox_mask=0x%08X",
-                (unsigned)buttons, (unsigned)rear, (unsigned)logical);
+    static int previous_key_count = -1;
+    if (buttons != previous_buttons || rear != previous_rear || logical != previous_logical ||
+        fndk_button_mapping_count != previous_key_count) {
+        l_debug("[INPUT] vita_physical mode=%s buttons=0x%08X rear=0x%08X xbox_mask=0x%08X key_count=%d",
+                input_mode_name(), (unsigned)buttons, (unsigned)rear, (unsigned)logical,
+                fndk_button_mapping_count);
         previous_buttons = buttons;
         previous_rear = rear;
         previous_logical = logical;
+        previous_key_count = fndk_button_mapping_count;
     }
 #endif
 
