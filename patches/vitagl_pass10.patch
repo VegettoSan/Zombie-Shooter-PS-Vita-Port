@@ -1,7 +1,7 @@
 diff --git a/source/textures.c b/source/textures.c
 --- a/source/textures.c
 +++ b/source/textures.c
-@@ -1023,10 +1023,13 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
+@@ -1023,9 +1023,11 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
          GLboolean native_rgba = format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
              tex_format == SCE_GXM_TEXTURE_FORMAT_U8U8U8U8_ABGR;
          GLboolean native_rgb565 = format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5 &&
@@ -14,7 +14,7 @@ diff --git a/source/textures.c b/source/textures.c
              (unpack_row_len == 0 || unpack_row_len == width) &&
              xoffset >= 0 && yoffset >= 0 && width > 0 && height > 0 &&
              (uint32_t)xoffset <= orig_w && (uint32_t)yoffset <= orig_h &&
-@@ -1036,7 +1039,7 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
+@@ -1036,7 +1038,7 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
              size_t kept = zombie_texture_preserve_native(texture_data, tex->data,
                  VGL_ALIGN(orig_w, 8)*bpp, orig_h, xoffset, yoffset, width, height, bpp);
              zombie_texture_stats.optimized_calls++;
@@ -23,7 +23,7 @@ diff --git a/source/textures.c b/source/textures.c
              zombie_texture_stats.preserved_bytes += kept;
              if (!kept) zombie_texture_stats.full_replacements++;
          } else {
-@@ -1251,7 +1254,22 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
+@@ -1251,7 +1253,21 @@ static inline __attribute__((always_inline)) void _glTexSubImage2D(texture *tex,
  			mip_stride = VGL_ALIGN(orig_w, 8) * bpp;
  		}
  		ptr += xoffset * bpp + yoffset * mip_stride;
@@ -59,7 +59,7 @@ diff --git a/source/utils/zombie_texture_update.h b/source/utils/zombie_texture_
  #ifndef ZOMBIE_TEXTURE_COPY
  #define ZOMBIE_TEXTURE_COPY memcpy
  #endif
-@@ -34,12 +37,55 @@ static inline size_t zombie_texture_preserve_rgba(void *dst, const void *src,
+@@ -34,10 +37,51 @@ static inline size_t zombie_texture_preserve_rgba(void *dst, const void *src,
      return zombie_texture_preserve_native(dst,src,stride,rows,x,y,w,h,4);
  }
 +
