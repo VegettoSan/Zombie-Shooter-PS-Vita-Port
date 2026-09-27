@@ -26,6 +26,8 @@ jobs:
             arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so
             echo '=== DYNSYM ==='
             arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt
+            echo '=== Color gamma constructors ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x415f80 --stop-address=0x4161d0 demo/libzombie_shooter.so
             echo '=== VID SetGammaToPalette ==='
             arm-linux-gnueabihf-objdump -d -C --start-address=0x506350 --stop-address=0x506410 demo/libzombie_shooter.so
             echo '=== Gamma methods ==='
