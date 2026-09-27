@@ -20,7 +20,11 @@ int setting_asset_cache_mib;
 int setting_audio_frames;
 int setting_software_width;
 int setting_music_mode;
-int setting_vita_shooter;
+#ifdef ZOMBIE_RELEASE_BUILD
+int setting_log_mode = 1;
+#else
+int setting_log_mode = 3;
+#endif
 int setting_framebuffer_565;
 int setting_software_frameskip;
 int  setting_sampleSetting;
@@ -41,12 +45,20 @@ void settings_reset() {
      *
      * Pass 11 enables conservative 2:1 software-frame reuse: game logic keeps
      * ticking, while the expensive software raster stage is reused every other
-     * tick.  It is runtime-toggleable for A/B testing. */
+     * tick.  It is runtime-toggleable for A/B testing.
+     *
+     * Release logging defaults to errors/fatal only. Test 19 proved verbose
+     * Debug logging is far too expensive to use as a performance baseline; PERF
+     * telemetry is therefore opt-in with log_mode 2. */
     setting_asset_cache_mib = 8;
     setting_audio_frames = 1024;
     setting_software_width = 864;
     setting_music_mode = 2;
-    setting_vita_shooter = 0; // Legacy fallback only; controls.txt wins on Vita.
+#ifdef ZOMBIE_RELEASE_BUILD
+    setting_log_mode = 1;
+#else
+    setting_log_mode = 3;
+#endif
     setting_framebuffer_565 = 0;
     setting_software_frameskip = 1;
     setting_sampleSetting  = 1;
@@ -66,6 +78,11 @@ void settings_save() {
         fprintf(config, "#   0 = no replacement music backend; stable/silent fallback\n");
         fprintf(config, "#   1 = LEGACY PCM16 WAV hook; confirmed OpenSL crash, diagnostic only\n");
         fprintf(config, "#   2 = original M4A/AAC worker + existing Vita mixer; no conversion package\n");
+        fprintf(config, "# log_mode modes:\n");
+        fprintf(config, "#   0 = no persistent runtime log (maximum performance; fatal still prints to console)\n");
+        fprintf(config, "#   1 = errors + fatal only (recommended Release default)\n");
+        fprintf(config, "#   2 = errors + fatal + PERF telemetry (A/B profiling)\n");
+        fprintf(config, "#   3 = verbose diagnostics where compiled (Debug default; very slow on Vita)\n");
         fprintf(config, "# framebuffer_565 modes:\n");
         fprintf(config, "#   0 = native RGBA8888 final upload (recommended; faster on real Vita)\n");
         fprintf(config, "#   2 = corrected RGBA8888->RGB565 diagnostic path; slower on Pass10 hardware test\n");
@@ -80,7 +97,7 @@ void settings_save() {
         fprintf(config, "audio_frames %d\n", setting_audio_frames);
         fprintf(config, "software_width %d\n", setting_software_width);
         fprintf(config, "music_mode %d\n", setting_music_mode);
-        fprintf(config, "vita_shooter %d\n", setting_vita_shooter);
+        fprintf(config, "log_mode %d\n", setting_log_mode);
         fprintf(config, "framebuffer_565 %d\n", setting_framebuffer_565);
         fprintf(config, "software_frameskip %d\n", setting_software_frameskip);
         fprintf(config, "%s %d\n", "setting_sampleSetting", (int)(setting_sampleSetting));
@@ -122,10 +139,14 @@ void settings_load() {
             setting_music_mode = value>=0 && value<=2 ? value : 0;
             continue;
         }
-        if (strcmp("vita_shooter", buffer) == 0) {
-            setting_vita_shooter = value == 1;
+        if (strcmp("log_mode", buffer) == 0) {
+            setting_log_mode = value>=0 && value<=3 ? value : setting_log_mode;
             continue;
         }
+        /* vita_shooter was a pre-controls.txt experiment. Intentionally ignore
+         * the stale line in existing configs instead of keeping two sources of
+         * truth for handheld controls. */
+        if (strcmp("vita_shooter", buffer) == 0) continue;
         if (strcmp("framebuffer_565", buffer) == 0) {
             /* Pass10 wrote value 1 into existing configs.  Real Vita testing
              * proved that path slower and also exposed an R/B layout bug, so
