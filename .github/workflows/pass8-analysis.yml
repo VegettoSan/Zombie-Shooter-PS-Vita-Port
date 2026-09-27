@@ -44,7 +44,7 @@ jobs:
             '_ZN12VID_SOFTWARE14preparePaletteEPhPK6SPRITERK5Gamma':0x513488,
             '_ZN12VID_SOFTWARE9draw_implEiiiiP5ColorPtiiPv':0x513610,
           }
-          prologue=bytes.fromhex('f0b503af000f2de9')
+          prologue=bytes.fromhex('f0b503af2de9000f')
           with open('demo/libzombie_shooter.so','rb') as f:
             elf=ELFFile(f); dyn=elf.get_section_by_name('.dynsym')
             syms={s.name:s for s in dyn.iter_symbols()}
