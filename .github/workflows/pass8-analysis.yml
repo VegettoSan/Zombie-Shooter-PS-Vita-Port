@@ -1,4 +1,4 @@
-name: Pass8 SO analysis
+name: Pass8 validation
 on:
   push:
     branches:
@@ -6,39 +6,96 @@ on:
 permissions:
   contents: read
 jobs:
-  analyze-software-renderer:
+  validate-pass8:
     runs-on: ubuntu-22.04
+    env:
+      VITASDK: /usr/local/vitasdk
     steps:
       - uses: actions/checkout@v4
-      - name: Install ARM binutils
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
-      - name: Analyze canonical SO
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Verify canonical SO
         run: |
           set -euo pipefail
-          out=pass8-analysis.txt
-          {
-            echo '=== SHA256 ==='
-            sha256sum demo/libzombie_shooter.so
-            file demo/libzombie_shooter.so
-            echo '=== RELEVANT SYMBOLS ==='
-            arm-linux-gnueabihf-nm -D -n -C demo/libzombie_shooter.so | \
-              grep -E 'GRAPH::softwareTact|VID_SOFTWARE|VID_SURFACE|SOFT_DRAW|SPRITE_COLLECTOR|DrawLayer|draw_impl|DrawWithAlpha|palette|pallete' || true
-            echo '=== softwareTact 0x410458..0x4108d4 ==='
-            arm-linux-gnueabihf-objdump -d -C --start-address=0x410458 --stop-address=0x4108d4 demo/libzombie_shooter.so
-            echo '=== DrawLayer 0x4f4b20..0x4f4dbc ==='
-            arm-linux-gnueabihf-objdump -d -C --start-address=0x4f4b20 --stop-address=0x4f4dbc demo/libzombie_shooter.so
-            echo '=== VID core 0x513488..0x514d3c ==='
-            arm-linux-gnueabihf-objdump -d -C --start-address=0x513488 --stop-address=0x514d3c demo/libzombie_shooter.so
-            echo '=== RELOCATIONS / PLT ==='
-            arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so
-            arm-linux-gnueabihf-objdump -d -C -j .plt demo/libzombie_shooter.so
-          } > "$out" 2>&1
-          wc -l "$out"
-      - name: Upload analysis
+          echo '5e5e2e1bbe86e126c3e2dce5ad97c2e9dc6282305ea7d3e24b49ee4769c5b5b7  demo/libzombie_shooter.so' | sha256sum -c -
+      - name: Install exact SoftFP SDK
+        run: bash scripts/install_baseline_sdk.sh
+      - name: Host regressions
+        run: |
+          set -euo pipefail
+          tests/run_jni_field_regression.sh
+          bash tests/run_gamepad_regression.sh
+          python3 tests/run_render_scale_regression.py
+          tests/run_gl_buffer_regression.sh
+          tests/run_logger_regression.sh
+          bash tests/run_texture_update_regression.sh
+          bash tests/run_asset_index_regression.sh
+          bash tests/run_engine_probe_regression.sh
+      - name: Verify Pass8 canonical symbols and prologues
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --target /tmp/zombie-arm-test-deps unicorn==2.1.4 pyelftools==0.32
+          PYTHONPATH=/tmp/zombie-arm-test-deps python3 - <<'PY'
+          from elftools.elf.elffile import ELFFile
+          expected={
+            '_ZN12VID_SOFTWARE4DrawEPK6SPRITE':0x514bfc,
+            '_ZN12VID_SOFTWARE9DrawToVidEPK10SpriteInfoPK11VID_TEXCOORP7TEXTURES7_':0x514a4c,
+            '_ZN12VID_SOFTWARE14preparePaletteEPhPK6SPRITERK5Gamma':0x513488,
+            '_ZN12VID_SOFTWARE9draw_implEiiiiP5ColorPtiiPv':0x513610,
+          }
+          prologue=bytes.fromhex('f0b503af000f2de9')
+          with open('demo/libzombie_shooter.so','rb') as f:
+            elf=ELFFile(f); dyn=elf.get_section_by_name('.dynsym')
+            syms={s.name:s for s in dyn.iter_symbols()}
+            text=elf.get_section_by_name('.text'); data=text.data(); base=text['sh_addr']
+            for name,addr in expected.items():
+              s=syms.get(name)
+              assert s is not None, name
+              assert (s['st_value'] & ~1)==addr,(name,hex(s['st_value']))
+              off=addr-base
+              assert data[off:off+8]==prologue,(name,data[off:off+8].hex())
+              print('PASS',name,hex(addr),prologue.hex())
+          PY
+      - name: ARM equivalence regressions
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/tmp/zombie-arm-test-deps bash tests/run_raster_palette_regression.sh
+          PYTHONPATH=/tmp/zombie-arm-test-deps bash tests/run_raster_alpha_regression.sh
+      - name: Build Debug
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          cmake -S . -B build-pass8-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass8-debug -j"$(nproc)" 2>&1 | tee build-pass8-debug.log
+          test -s build-pass8-debug/zombie_shooter.vpk
+          test -s build-pass8-debug/so_loader
+          unzip -t build-pass8-debug/zombie_shooter.vpk
+      - name: Build Release
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          cmake -S . -B build-pass8-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass8-release -j"$(nproc)" 2>&1 | tee build-pass8-release.log
+          test -s build-pass8-release/zombie_shooter.vpk
+          test -s build-pass8-release/so_loader
+          unzip -t build-pass8-release/zombie_shooter.vpk
+          python3 scripts/check_release_flags.py build-pass8-release
+          git diff --check
+      - name: Package test build
+        run: |
+          mkdir -p pass8-dist
+          cp build-pass8-release/zombie_shooter.vpk pass8-dist/Zombie-Shooter-Pass8-Release.vpk
+          cp build-pass8-release/so_loader pass8-dist/Zombie-Shooter-Pass8-Release.elf
+          cp build-pass8-debug/zombie_shooter.vpk pass8-dist/Zombie-Shooter-Pass8-Debug.vpk
+          cp build-pass8-debug/so_loader pass8-dist/Zombie-Shooter-Pass8-Debug.elf
+          cp build-pass8-release.log build-pass8-debug.log pass8-dist/
+          sha256sum pass8-dist/*.vpk pass8-dist/*.elf > pass8-dist/SHA256SUMS.txt
+          sha256sum demo/libzombie_shooter.so > pass8-dist/so-reference.sha256.txt
+      - name: Upload Pass8 build
         uses: actions/upload-artifact@v4
         with:
-          name: pass8-so-analysis-refined
-          path: pass8-analysis.txt
+          name: Zombie-Shooter-Pass8-${{ github.sha }}
+          path: pass8-dist
           if-no-files-found: error
+          retention-days: 14
