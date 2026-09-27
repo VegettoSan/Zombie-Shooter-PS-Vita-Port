@@ -10,32 +10,26 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install ARM binutils
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
-      - name: Inspect framebuffer texture lifetime
+        with:
+          submodules: recursive
+      - name: Verify combined VitaGL patches
         run: |
           set -euo pipefail
-          FULL=/tmp/full-disasm.txt
-          arm-linux-gnueabihf-objdump -d -C demo/libzombie_shooter.so > "$FULL"
+          git -C lib/vitagl apply --ignore-space-change --check "$GITHUB_WORKSPACE/patches/vitagl.patch"
+          git -C lib/vitagl apply --ignore-space-change "$GITHUB_WORKSPACE/patches/vitagl.patch"
+          git -C lib/vitagl apply --ignore-space-change --check "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
+          git -C lib/vitagl apply --ignore-space-change "$GITHUB_WORKSPACE/patches/vitagl_pass10.patch"
           {
-            echo '=== SHA ==='
-            sha256sum demo/libzombie_shooter.so
-            echo '=== OPENGLES SYMBOLS ==='
-            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | grep -E 'OpenGLES::' || true
-            echo '=== DYNAMIC GL SYMBOLS ==='
-            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures|glDeleteTextures' || true
-            echo '=== RELOCATIONS GL ==='
-            arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures|glDeleteTextures' || true
-            echo '=== PLT IMPORT THUNKS ==='
-            arm-linux-gnueabihf-objdump -d -C --start-address=0x8ccb00 --stop-address=0x8cd100 demo/libzombie_shooter.so
-            echo '=== UNLOCK ==='
-            arm-linux-gnueabihf-objdump -d -C --start-address=0x46bea4 --stop-address=0x46c090 demo/libzombie_shooter.so
-            echo '=== RGBA/UBYTE CONSTANT SITES ==='
-            grep -n -B18 -A30 -E 'movw.*#6408|movw.*#5121' "$FULL" | head -n 1600 || true
-            echo '=== TEXTURE CALL TARGET SITES ==='
-            grep -n -B16 -A28 -E 'blx[[:space:]]+8ccc80|blx[[:space:]]+8cce90' "$FULL" | head -n 1200 || true
+            echo '=== FINAL NORMALIZED HASHES ==='
+            python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          for name in ['lib/vitagl/source/textures.c','lib/vitagl/source/utils/zombie_texture_update.h']:
+              data=Path(name).read_bytes().replace(b'\r\n',b'\n')
+              print(hashlib.sha256(data).hexdigest(), name)
+          PY
+            echo '=== PASS10 CONVERTER SITES ==='
+            grep -n -A25 -B10 'rgba_to_rgb565\|rgba8888_to_rgb565' lib/vitagl/source/textures.c lib/vitagl/source/utils/zombie_texture_update.h
           } > pass10-analysis.txt
       - uses: actions/upload-artifact@v4
         with:
