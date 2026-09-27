@@ -1,0 +1,36 @@
+name: Pass10 framebuffer analysis
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ARM binutils
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
+      - name: Inspect framebuffer upload caller
+        run: |
+          set -euo pipefail
+          {
+            echo '=== SHA ==='
+            sha256sum demo/libzombie_shooter.so
+            echo '=== DYNAMIC GL SYMBOLS ==='
+            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures' || true
+            echo '=== RELOCATIONS GL ==='
+            arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures' || true
+            echo '=== CALLER 0x46bd00..0x46c200 ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x46bd00 --stop-address=0x46c200 demo/libzombie_shooter.so
+            echo '=== NEARBY SYMBOLS ==='
+            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | awk '$2 ~ /^000000000?46/ {print}' | c++filt || true
+          } > pass10-analysis.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pass10-framebuffer-analysis
+          path: pass10-analysis.txt
+          retention-days: 7
