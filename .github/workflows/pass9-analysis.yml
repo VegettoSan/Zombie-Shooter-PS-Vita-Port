@@ -1,0 +1,44 @@
+name: Pass9 preparePalette analysis
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ARM binutils
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
+      - name: Analyze preparePalette calls
+        run: |
+          set -euo pipefail
+          {
+            echo '=== SHA ==='
+            sha256sum demo/libzombie_shooter.so
+            echo '=== SECTIONS ==='
+            arm-linux-gnueabihf-readelf -SW demo/libzombie_shooter.so
+            echo '=== DYNAMIC RELOCATIONS ==='
+            arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so
+            echo '=== DYNSYM ==='
+            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt
+            echo '=== PREPARE PALETTE ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x513488 --stop-address=0x513610 demo/libzombie_shooter.so
+            echo '=== TARGET 8b8800..8b8c00 ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x8b8800 --stop-address=0x8b8c00 demo/libzombie_shooter.so
+            echo '=== TARGET 8c7800..8c8400 ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x8c7800 --stop-address=0x8c8400 demo/libzombie_shooter.so
+            echo '=== TARGET 8cf000..8cf300 ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x8cf000 --stop-address=0x8cf300 demo/libzombie_shooter.so
+            echo '=== TARGET 8c3800..8c3a00 ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x8c3800 --stop-address=0x8c3a00 demo/libzombie_shooter.so
+          } > pass9-analysis.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pass9-prepare-palette-analysis
+          path: pass9-analysis.txt
+          retention-days: 7
