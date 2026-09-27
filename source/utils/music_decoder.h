@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 typedef struct MusicDecoder MusicDecoder;
+void music_decoder_report_capabilities(void);
 MusicDecoder *music_decoder_open(const char *path);
 int music_decoder_read(MusicDecoder *d,int16_t *stereo,unsigned frames,int loop);
 void music_decoder_destroy(MusicDecoder *d);

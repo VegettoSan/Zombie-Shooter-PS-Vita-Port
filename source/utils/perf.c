@@ -23,6 +23,7 @@ static void max_relaxed(unsigned *p, unsigned v) {
     unsigned old = LOAD(p);
     while (v > old && !__atomic_compare_exchange_n(p, &old, v, 1, __ATOMIC_RELAXED, __ATOMIC_RELAXED)) {}
 }
+void audio_perf_clear_immediate(void) { ADD(&audio.clear_immediate_calls,1); }
 void audio_perf_call(unsigned kind) { ADD(kind ? &audio.destroy.calls : &audio.clear.calls, 1); }
 void audio_perf_wait(unsigned kind, unsigned us, int timeout) {
     AudioWaitStats *s = kind ? &audio.destroy : &audio.clear;
@@ -63,7 +64,7 @@ void audio_perf_snapshot(AudioPerfStats *out) {
 #define COPY(member) out->member = LOAD(&audio.member)
     COPY(clear.calls); COPY(clear.wait_calls); COPY(clear.wait_us); COPY(clear.max_us); COPY(clear.timeouts);
     COPY(destroy.calls); COPY(destroy.wait_calls); COPY(destroy.wait_us); COPY(destroy.max_us); COPY(destroy.timeouts);
-    COPY(output_calls); COPY(output_errors);
+    COPY(output_calls); COPY(output_errors); COPY(clear_immediate_calls);
 #undef COPY
 }
 /* Each registered thread owns its counters. Relaxed load/store publication
@@ -201,10 +202,14 @@ ssize_t read_perf(int fd,void *buf,size_t count) {
 }
 void raster_palette_report(void);
 void raster_alpha_report(void);
+void raster_light_report(void);
+void light_pipeline_report(void);
 void render_reuse_report(void);
 void perf_report(void) {
     raster_palette_report();
     raster_alpha_report();
+    raster_light_report();
+    light_pipeline_report();
     render_reuse_report();
     audio_timing_report();
     extern void map_profile_report(void);
@@ -215,8 +220,8 @@ void perf_report(void) {
     static LoggerStats old_log;
     AudioPerfStats now; audio_perf_snapshot(&now);
 #define D(m) (now.m-previous.m)
-    l_perf("audio clear_calls=%u clear_wait_calls=%u clear_wait_us=%u clear_max_us_lifetime=%u clear_timeouts=%u destroy_calls=%u destroy_wait_calls=%u destroy_wait_us=%u destroy_max_us_lifetime=%u destroy_timeouts=%u output_calls=%u output_errors=%u",
-        D(clear.calls),D(clear.wait_calls),D(clear.wait_us),now.clear.max_us,D(clear.timeouts),
+    l_perf("audio clear_calls=%u clear_immediate_calls=%u clear_wait_calls=%u clear_wait_us=%u clear_max_us_lifetime=%u clear_timeouts=%u destroy_calls=%u destroy_wait_calls=%u destroy_wait_us=%u destroy_max_us_lifetime=%u destroy_timeouts=%u output_calls=%u output_errors=%u",
+        D(clear.calls),D(clear_immediate_calls),D(clear.wait_calls),D(clear.wait_us),now.clear.max_us,D(clear.timeouts),
         D(destroy.calls),D(destroy.wait_calls),D(destroy.wait_us),now.destroy.max_us,D(destroy.timeouts),D(output_calls),D(output_errors));
 #undef D
     previous=now;

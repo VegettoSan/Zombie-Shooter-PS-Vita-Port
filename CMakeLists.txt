@@ -20,6 +20,12 @@ if(NOT ZOMBIE_PREPARE_RESULT EQUAL 0)
   message(FATAL_ERROR "Functional baseline verification/patch preparation failed")
 endif()
 
+execute_process(COMMAND ${ZOMBIE_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/build_music_ffmpeg.py
+                RESULT_VARIABLE ZOMBIE_MUSIC_BUILD_RESULT)
+if(NOT ZOMBIE_MUSIC_BUILD_RESULT EQUAL 0)
+  message(FATAL_ERROR "Original M4A MOV/AAC dependency build failed")
+endif()
+set(ZOMBIE_MUSIC_LIBDIR "${CMAKE_SOURCE_DIR}/build-music-ffmpeg/install/lib")
 project(so_loader C CXX)
 
 include("${VITASDK}/share/vita.cmake" REQUIRED)
@@ -159,6 +165,8 @@ set(SOURCES
     source/utils/music_decoder.c
     source/utils/audio_stream.c
     source/utils/raster_palette.c
+    source/utils/light_pipeline.c
+    source/utils/raster_light.c
     source/utils/raster_alpha.c
     source/utils/settings.c
     source/utils/gamepad.c
@@ -179,6 +187,12 @@ list(APPEND SOURCES
 endif()
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+# Exact light arithmetic experiment stays opt-in until physical A/B evidence.
+option(ZOMBIE_LIGHT_DIVISION "Enable guarded exact reciprocal light divisions" OFF)
+if(ZOMBIE_LIGHT_DIVISION)
+  target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE ZOMBIE_LIGHT_DIVISION_EXPERIMENT=1)
+endif()
+
 
 add_subdirectory(lib/libc_bridge)
 add_dependencies(${CMAKE_PROJECT_NAME} SceLibcBridge)
@@ -218,6 +232,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM
                            PUBLIC ${CMAKE_SOURCE_DIR}/lib
                            )
 
+target_include_directories(${CMAKE_PROJECT_NAME} BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/build-music-ffmpeg/install/include)
+
 target_include_directories(${CMAKE_PROJECT_NAME}
                            PUBLIC ${CMAKE_SOURCE_DIR}/source
                            )
@@ -234,7 +250,7 @@ set(OPEN_SLES_CLEAR_DIR ${CMAKE_SOURCE_DIR}/lib/opensles_clear)
 set(OPEN_SLES_PATCHED_LIB ${CMAKE_BINARY_DIR}/libOpenSLES_zombie.a)
 file(GLOB OPEN_SLES_CLEAR_HEADERS ${OPEN_SLES_CLEAR_DIR}/*.h)
 set(OPEN_SLES_OVERRIDE_OBJECTS)
-foreach(OPEN_SLES_MEMBER IBufferQueue CAudioPlayer Vita)
+foreach(OPEN_SLES_MEMBER IBufferQueue CAudioPlayer Vita MixerGate)
   set(OPEN_SLES_OBJ ${CMAKE_BINARY_DIR}/${OPEN_SLES_MEMBER}.o)
   add_custom_command(
     OUTPUT ${OPEN_SLES_OBJ}
@@ -263,10 +279,10 @@ add_dependencies(${CMAKE_PROJECT_NAME} opensles_clear_archive)
 target_link_libraries(${CMAKE_PROJECT_NAME}
                       -Wl,--whole-archive pthread -Wl,--no-whole-archive
                       ${OPEN_SLES_PATCHED_LIB}
-                      avformat
-                      avcodec
-                      swresample
-                      avutil
+                      ${ZOMBIE_MUSIC_LIBDIR}/libavformat.a
+                      ${ZOMBIE_MUSIC_LIBDIR}/libavcodec.a
+                      ${ZOMBIE_MUSIC_LIBDIR}/libswresample.a
+                      ${ZOMBIE_MUSIC_LIBDIR}/libavutil.a
                       sndfile
                       mp3lame
                       mpg123

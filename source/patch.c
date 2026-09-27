@@ -342,20 +342,21 @@ ENGINE_INT_PROBE(graph,PERF_ENGINE_GRAPH)
 
 /* Pass 11: MetalSyntax-style render reuse.  GRAPH::Tact/MAP/input/audio keep
  * running every engine tick; only the expensive software raster pass is
- * reused every other tick.  The opaque original return is preserved so no
+ * reused every other tick only after sustained costly renders. Cheap startup
+ * frames render normally. The opaque original return is preserved so no
  * caller contract changes.  glTexSubImage2D_soloader sees the per-tick flag
  * and skips only OpenGLES::UnLock's full software-framebuffer upload. */
+#include "utils/render_reuse_policy.h"
 volatile int zombie_render_reuse_active_this_tick = 0;
 static uintptr_t render_reuse_last_software_result;
-static unsigned render_reuse_phase;
+static RenderReusePolicy render_policy;
 static unsigned map_ticks;
 static unsigned render_reuse_rendered;
 static unsigned render_reuse_reused;
 static int render_reuse_has_frame;
 
 static uintptr_t probe_software(void *self,int argument) {
-    int reuse = setting_software_frameskip && render_reuse_has_frame &&
-                ((render_reuse_phase++ & 1u) != 0);
+    int reuse = render_reuse_choose(&render_policy,setting_software_frameskip,(uintptr_t)self,argument);
     if (reuse) {
         zombie_render_reuse_active_this_tick = 1;
         render_reuse_reused++;
@@ -364,6 +365,7 @@ static uintptr_t probe_software(void *self,int argument) {
     zombie_render_reuse_active_this_tick = 0;
     uint64_t start=sceKernelGetProcessTimeWide();
     uintptr_t ret=((uintptr_t (*)(void *,int))engine_original[PERF_ENGINE_SOFTWARE])(self,argument);
+    render_reuse_complete(&render_policy,(unsigned)(sceKernelGetProcessTimeWide()-start));
     perf_engine_phase(PERF_ENGINE_SOFTWARE,start);
     render_reuse_last_software_result=ret;
     render_reuse_has_frame=1;
@@ -383,9 +385,9 @@ void perf_rates_report(uint64_t elapsed_us,unsigned presents) {
 void render_reuse_report(void) {
     static unsigned old_rendered,old_reused;
     unsigned rendered=render_reuse_rendered, reused=render_reuse_reused;
-    l_perf("render_reuse config=%d rendered_ticks=%u reused_ticks=%u has_frame=%d current_reuse=%d strategy=softwareTact_2to1",
+    l_perf("render_reuse config=%d rendered_ticks=%u reused_ticks=%u has_frame=%d current_reuse=%d strategy=adaptive_software_cost expensive=%d enter_us=8000 exit_us=4000 consecutive=4",
         setting_software_frameskip,rendered-old_rendered,reused-old_reused,
-        render_reuse_has_frame,zombie_render_reuse_active_this_tick);
+        render_reuse_has_frame,zombie_render_reuse_active_this_tick,render_policy.expensive);
     old_rendered=rendered;old_reused=reused;
 }
 
@@ -398,15 +400,19 @@ ENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)
 ENGINE_INT_PROBE(post,PERF_ENGINE_POST)
 /* DrawLayer has two by-reference VECTOR2s (pointer arguments), two bools on
  * incoming stack; no float ABI. Timed once per layer, not once per pixel. */
+void raster_light_layer_record(int layer,unsigned us);
 static uintptr_t probe_collector(void *self,int layer,const void *a,const void *b,bool c,bool d) {
     uint64_t start=sceKernelGetProcessTimeWide();
     uintptr_t ret=((uintptr_t (*)(void *,int,const void *,const void *,bool,bool))engine_original[PERF_ENGINE_COLLECTOR])(self,layer,a,b,c,d);
+    raster_light_layer_record(layer,(unsigned)(sceKernelGetProcessTimeWide()-start));
     perf_engine_phase(PERF_ENGINE_COLLECTOR,start);return ret;
 }
 void raster_palette_install(void);
 void audio_stream_install(void);
 void render_scale_install(void);
 void raster_alpha_install(void);
+void raster_light_install(void);
+void light_pipeline_install(void);
 static void install_engine_probes(void) {
     extern void map_profile_install(void);
     map_profile_install();
@@ -524,6 +530,8 @@ void so_patch(void) {
     audio_stream_install();
     render_scale_install();
 	raster_alpha_install();
+	raster_light_install();
+	light_pipeline_install();
 #endif
 	// Sample hook with symbol name
 	// hook_addr((uintptr_t)so_symbol(&so_mod, "_ZN6glitch2os7Printer5printEPKcz"), (uintptr_t)&hookedFunction);

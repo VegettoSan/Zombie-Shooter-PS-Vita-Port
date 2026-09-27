@@ -6,8 +6,9 @@
 extern "C" {
 #endif
 typedef struct { unsigned calls, wait_calls, wait_us, max_us, timeouts; } AudioWaitStats;
-typedef struct { AudioWaitStats clear, destroy; unsigned output_calls, output_errors; } AudioPerfStats;
+typedef struct { AudioWaitStats clear, destroy; unsigned output_calls, output_errors, clear_immediate_calls; } AudioPerfStats;
 void audio_perf_call(unsigned kind);
+void audio_perf_clear_immediate(void);
 void audio_perf_wait(unsigned kind, unsigned us, int timeout);
 void audio_perf_output(int result);
 void audio_perf_output_timing(int result,uint64_t begin,uint64_t submit,unsigned frames,unsigned rate,const void *pcm);

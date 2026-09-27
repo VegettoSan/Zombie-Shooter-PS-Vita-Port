@@ -257,3 +257,66 @@ los5M4A/AAC originales por worker y mixerOpenSL único, sin sidecarsWAV/OGG.
 APK/SO y3642Datafiles hashes intactos. No commit/push/publicación.
 FPS25/30, eficacia cache/audio1024, música audible, loops y RAM en Vita PENDIENTES.
 Informe, hashes y prueba A/B: docs/PERFORMANCE_AUDIO_STABILITY_PASS_2026-09-27.md.
+
+
+## Seguimiento log_0001: música, audio y logo — 2026-09-27
+
+Prueba real local-4771a9c-cc95d44a36: logo parpadea, música muda, SFX cortados;
+262musicopenerrors/0decodedframes. SDKAAC presente pero MOVdemux ausente:
+FFmpeg8.0.1 mínimo MOV+AAC localSoftFP, sin cambiar SDK ni originales.
+Mixer solicita prioridad96 y publica estado; Clear/Destroy ownership intacto.
+Reuse adaptativo evita saltar frames baratos (candidato logo), legacyforzado2 A/B.
+SCRIPT mainLoop~13–19ms/tick; se añaden probes startup/callFunction guardados.
+Build local-d8b8c5e-f41edd8b67 Release/Debug/VPK/ELF y regresionesPASS.
+Música audible, logo sinparpadeo, SFX sincortes y FPS estables PENDIENTES Vita.
+Informe/instrucciones: docs/AUDIO_LOGO_FOLLOWUP_2026-09-27.md. No publicación.
+
+
+## Prueba física log_0002 y pase luces — 2026-09-27
+
+Usuario confirma en Vita Release local-d8b8c5e-f41edd8b67: Sigma Team sin
+parpadeo, música M4A original audible sin cortes, SFX sin tartamudeo. Overclock
+máximo500/222/222/166; FPS mejora subjetiva pero bajones con hordas/explosiones/
+linterna/luces. Log95ventanas:0musicopen/decode/underruns,0outputerrors,
+0Clear/Destroytimeouts,0deadline_misses;29late_wakeups menores. No30FPS estables.
+Software~17–22ms/render ySCRIPT~11–19ms/tick en varias escenas, timings inclusivos.
+Nuevo kernel exacto NEON profundidad de luces + medidas por capa y VID_LIGHT,
+guards2hooks nuevos y reutilización del collector ya existente. Kernel288casos
+ARM+63entrada parcheada por O0/O3 PASS; estabilidad/audio/cache/reuse PASS.
+Build local-d8b8c5e-a4990ab788 Release/Debug/VPK/ELF SoftFP BUILD VERIFIED.
+Uso real del kernel y FPS/luces de la nueva build PENDIENTES Vita. Audio/Logo se
+conservan sobre la base ya probada; no retocar música ni convertirla aWAV.
+APK/SO/Data/SDK intactos. No commit/push/publicación.
+Informe/hashes/prueba: docs/LIGHTS_LOG0002_FOLLOWUP_2026-09-27.md.
+
+
+## Seguimiento log_0003: luces reales — 2026-09-27
+
+Usuario no percibe mejora del pase local-d8b8c5e-a4990ab788 tras alternar linterna.
+Log82ventanas confirma light_rows0: kernelNEON anterior nunca usado en recorrido.
+VID_LIGHT33735calls, capa11~15–18ms/tick en tramos; capa0software ySCRIPT siguen
+costosos. No atribuir diferencias de escenas sólo a linterna ni declarar30FPS.
+Nueva medición source/AS2/stencil,3hooks guarded; experimento exacto de2divisiones
+signed en DrawLightSource, sin tocar helper global, con cache64entradas inmutable
+512bytes/fallback. DefaultOFF hasta A/B físico. Source local-d8b8c5e-4b6548a578,
+Release/Debug-divon y Release-control-divoff BUILD/VPK VERIFIED. 1520casos ARM,
+800kintentos concurrentes O0/O3, sitios reales IT/BL/veneer, ABI3wrappers,23hooks
+canonical y estabilidad/audio/cache/reuse PASS. Originales/SDK intactos.
+FPS y visual del experimento PENDIENTES Vita; si cache0/ramaAS2, cambio no participa.
+Informe/prueba2logs: docs/LIGHTS_LOG0003_FOLLOWUP_2026-09-27.md. Sin publicación.
+
+
+## Seguimiento log_0004 Release ON / log_0005 control OFF — 2026-09-27
+
+Encabezados coinciden con A/B; ON pobló5entradas, source18208/23987calls,
+AS2/stencil y light_rows cero. No hay mejora FPS atribuible: distinta carga.
+Divisiones siguen defaultOFF. Capa0~17ms/render, luz~6,6ms/tick y SCRIPT12–13ms/tick
+en ventanas activas. Clear espera~2,4–2,9ms normalizados/tick y hasta1s/5s por
+ventana. Nueva exclusión de FillBuffer permite Clear inmediato sólo sin lector;
+conserva ack/timeout/propiedad cuando hay lector. Música M4A original, bloque1024
+y Destroy sin cambios. Cola/gate O0/O3 y 200handoffs concurrentes PASS; sanitizer
+y layout de mixerSDK PASS; estabilidad/música/cache/reuse/guards/ABI PASS.
+Build local-d8b8c5e-ee2bcbe20f-clearfast Release/Debug; hashes/verificación en paquete.
+Uso real, FPS y audio de Clear nuevo PENDIENTES Vita. Pedir1log de juego con
+disparos/explosiones/linterna y regreso al menú. Originales intactos, local-only.
+Informe: docs/LIGHTS_LOG0004_0005_FOLLOWUP_2026-09-27.md.

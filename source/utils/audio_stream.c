@@ -289,6 +289,7 @@ static void install_original_music(void) {
         }
     }
     for(unsigned i=0;i<6;i++) { hook_addr(addresses[i],hooks[i].replacement);kuKernelFlushCaches((void *)(addresses[i]&~1u),8); }
+    music_decoder_report_capabilities();
     music_backend_installed=1;
     l_perf("audio_stream installed=1 music_mode=2 backend=original_m4a_aac_single_mixer guarded_methods=6 voices=4 ring_frames_per_voice=8192 compressed_budget_mib=8");
 }

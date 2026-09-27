@@ -10,8 +10,11 @@ with tempfile.TemporaryDirectory(prefix='zombie-stability-') as td:
         queue_source=queue_source.replace('#include "'+header+'"','').replace('#include <'+header+'>','')
     (p/'queue-under-test.c').write_text(queue_source)
     for opt in [0,3]:
-        queue=p/'queue'
-        subprocess.run(['cc','-std=gnu11',f'-O{opt}','-pthread','-Itests','-I'+td,'tests/opensles_queue_regression.c','-o',str(queue)],cwd=r,check=True)
+        reuse=p/'reuse'
+        subprocess.run(['cc','-std=gnu11',f'-O{opt}','tests/render_reuse_policy_regression.c','-o',str(reuse)],cwd=r,check=True)
+        subprocess.run([str(reuse)],check=True)
+        queue=p/'queue' 
+        subprocess.run(['cc','-std=gnu11',f'-O{opt}','-pthread','-Itests','-Ilib/opensles_clear','-I'+td,'tests/opensles_queue_regression.c','lib/opensles_clear/MixerGate.c','-o',str(queue)],cwd=r,check=True)
         subprocess.run([str(queue)],check=True)
         obj=p/'cache.o';exe=p/'cache'
         subprocess.run(['cc','-std=gnu11',f'-O{opt}','-Wall','-Wextra','-Werror','-pthread','-Isource','-c','source/utils/asset_cache.c','-o',str(obj)],cwd=r,check=True)

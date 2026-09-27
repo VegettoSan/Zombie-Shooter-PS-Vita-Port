@@ -72,7 +72,8 @@ void settings_save() {
         fprintf(config, "#   1 = legacy Pass10 value; automatically treated as 0 for safety\n");
         fprintf(config, "# software_frameskip modes:\n");
         fprintf(config, "#   0 = software-render every engine tick\n");
-        fprintf(config, "#   1 = render every other tick and reuse the previous completed frame (recommended test)\n");
+        fprintf(config, "#   1 = adaptive: render cheap frames; reuse every other tick after costly renders\n");
+        fprintf(config, "#   2 = legacy forced 2:1 reuse for A/B diagnostics\n");
         fprintf(config, "# Restart the game after changing these values.\n");
         fprintf(config, "# asset_cache_mib: 0 (A/B off), 8, 16; audio_frames: 128 (baseline), 1024, 2048\n");
         fprintf(config, "asset_cache_mib %d\n", setting_asset_cache_mib);
@@ -134,7 +135,7 @@ void settings_load() {
             continue;
         }
         if (strcmp("software_frameskip", buffer) == 0) {
-            setting_software_frameskip = value != 0;
+            setting_software_frameskip = value==2?2:value!=0;
             continue;
         }
         if      (strcmp("setting_sampleSetting", buffer) == 0)  setting_sampleSetting  = (int)value;

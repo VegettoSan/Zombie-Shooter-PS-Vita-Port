@@ -17,6 +17,7 @@
 /* BufferQueue implementation */
 
 #include "sles_allinclusive.h"
+#include "MixerGate.h"
 #include <time.h>
 
 /* Port logger; bounded messages keep runtime logs useful. */
@@ -209,6 +210,30 @@ SLresult IBufferQueue_Clear(SLBufferQueueItf self)
 #endif
 
 #ifdef USE_OUTPUTMIXEXT
+    /* Caller owns the player mutex. Try the mixer gate without blocking:
+     * acquiring it proves no FillBuffer reader or callback is using a header.
+     * While the audio thread is in sceAudioOutOutput, this is normally free.
+     * Reset the same fields as the SDK mixer's Clear acknowledgement. */
+    if (this->mArray != NULL && SL_OBJECTID_AUDIOPLAYER == InterfaceToObjectID(this) &&
+        zombie_opensles_clear_try_begin()) {
+        CAudioPlayer *player = (CAudioPlayer *)this->mThis;
+        Track *track = player->mTrack;
+        if (track == NULL || track->mAudioPlayer == player) {
+            if (track != NULL) {
+                track->mReader = NULL;
+                track->mAvail = 0;
+            }
+            IBufferQueue_ReleaseArrayBuffers(this);
+            this->mFront = this->mRear = &this->mArray[0];
+            this->mState.count = this->mState.playIndex = 0;
+            this->mClearRequested = SL_BOOLEAN_FALSE;
+            audio_perf_clear_immediate();
+            pthread_cond_broadcast(&InterfaceToIObject(this)->mCond);
+            zombie_opensles_clear_end();
+            goto clear_done;
+        }
+        zombie_opensles_clear_end();
+    }
     // mixer might be reading from the front buffer, so tread carefully here
     // NTH asynchronous cancel instead of blocking until mixer acknowledges
     this->mClearRequested = SL_BOOLEAN_TRUE;
@@ -255,6 +280,7 @@ SLresult IBufferQueue_Clear(SLBufferQueueItf self)
     }
 #endif
 
+clear_done:
     interface_unlock_exclusive(this);
 
     SL_LEAVE_INTERFACE

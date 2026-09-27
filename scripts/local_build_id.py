@@ -4,7 +4,7 @@ from pathlib import Path
 root=Path(__file__).resolve().parent.parent
 sha=subprocess.check_output(['git','rev-parse','--short','HEAD'],cwd=root,text=True).strip()
 h=hashlib.sha256()
-paths=[root/'CMakeLists.txt']
+paths=[root/'CMakeLists.txt',root/'scripts/build_music_ffmpeg.py']
 for directory in ('source','lib/opensles_clear','patches'):
     paths+=sorted((root/directory).rglob('*'))
 for p in paths:

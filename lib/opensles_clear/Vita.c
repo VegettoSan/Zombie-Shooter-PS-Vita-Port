@@ -17,6 +17,7 @@
 /** \file SDL.c SDL platform implementation */
 
 #include "sles_allinclusive.h"
+#include "MixerGate.h"
 #include <vitasdk.h>
 #include <psp2/kernel/cpu.h>
 
@@ -85,7 +86,9 @@ static void fill_output_buffer(uint8_t *stream, SLuint32 size) {
 		COutputMix *outputMix = slEngine->mOutputMix;
 		if (NULL != outputMix) {
 			SLOutputMixExtItf OutputMixExt = &outputMix->mOutputMixExt.mItf;
+			zombie_opensles_mix_begin();
 			IOutputMixExt_FillBuffer(OutputMixExt, stream, size);
+			zombie_opensles_mix_end();
 		}
 	}
 
@@ -107,9 +110,13 @@ static int audioThread(unsigned int args, void *arg) {
 	/* Keep audio decode/mix away from the main software-render thread.  This is
 	 * the same user-core separation used by MetalSyntax ports; failure is not
 	 * fatal and only leaves scheduling to the kernel. */
+	int priority_res=sceKernelChangeThreadPriority(sceKernelGetThreadId(),96);
 	int affinity_res=sceKernelChangeThreadCpuAffinityMask(
 		sceKernelGetThreadId(),SCE_KERNEL_CPU_MASK_USER_1);
-	_log_print(1,"[AUDIO] mixer affinity user_core=1 result=0x%08X",(unsigned)affinity_res);
+	SceKernelThreadInfo info={0};info.size=sizeof(info);
+    int info_res=sceKernelGetThreadInfo(sceKernelGetThreadId(),&info);
+    l_perf("audio_scheduler thread=0x%X priority_requested=96 priority_result=0x%X affinity_result=0x%X info_result=0x%X priority_actual=%d affinity_actual=0x%X",
+        (unsigned)sceKernelGetThreadId(),(unsigned)priority_res,(unsigned)affinity_res,(unsigned)info_res,info.currentPriority,(unsigned)info.currentCpuAffinityMask);
 
 	int ch = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, setting_audio_frames,
 															 opensles_output_freq(),

@@ -31,7 +31,9 @@ static void BufferHeader_reset(BufferHeader *b){memset(b,0,sizeof(*b));}
 static void BufferHeader_release(BufferHeader *b){if(b->mOwnedBuffer){released++;free(b->mOwnedBuffer);}BufferHeader_reset(b);}
 typedef struct {pthread_mutex_t mMutex;pthread_cond_t mCond;} IObject;
 typedef struct {unsigned count,playIndex;} SLBufferQueueState;
-typedef struct {IObject obj;struct {unsigned mState;int mHeadAtEnd,mHeadStalled;} mPlay;} CAudioPlayer;
+typedef struct CAudioPlayer CAudioPlayer;
+typedef struct {CAudioPlayer *mAudioPlayer;const void *mReader;unsigned mAvail,mFramesMixed;} Track;
+struct CAudioPlayer {IObject obj;struct {unsigned mState;int mHeadAtEnd,mHeadStalled;} mPlay;Track *mTrack;};
 typedef struct {IObject obj;struct {unsigned mState;} mRecord;} CAudioRecorder;
 struct SLBufferQueueItf_;
 typedef void *SLBufferQueueItf;typedef void (*slBufferQueueCallback)(SLBufferQueueItf,void *);
@@ -47,6 +49,8 @@ struct SLBufferQueueItf_ {SLresult (*enqueue)(SLBufferQueueItf,const void *,SLui
 static int _opensles_user_freq=44100;
 #define audio_perf_enqueue(...) ((void)0)
 #define audio_perf_call(...) ((void)0)
+static unsigned immediate_calls;
+#define audio_perf_clear_immediate() (++immediate_calls)
 #define audio_perf_wait(...) ((void)0)
 #define _log_print(...) ((void)0)
 static uint64_t sceKernelGetProcessTimeWide(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000+t.tv_nsec/1000;}

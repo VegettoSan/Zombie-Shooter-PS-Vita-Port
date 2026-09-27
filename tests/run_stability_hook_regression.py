@@ -12,10 +12,10 @@ with so.open('rb') as f:
         seg=next(s for s in elf.iter_segments() if s['p_type']=='PT_LOAD' and s['p_vaddr']<=offset<s['p_vaddr']+s['p_filesz'])
         f.seek(seg['p_offset']+offset-seg['p_vaddr']);actual=f.read(4*len(words));assert actual==struct.pack('<'+'I'*len(words),*words),name
     n=0
-    for path in ['source/utils/map_profile.c','source/utils/audio_stream.c']:
+    for path in ['source/utils/map_profile.c','source/utils/audio_stream.c','source/utils/raster_light.c','source/utils/light_pipeline.c']:
         text=(r/path).read_text()
-        for name,offset,a,b in re.findall(r'"(_ZN[^"\n]+)",\s*(0x[0-9a-f]+),\s*\{(0x[0-9a-f]+),(0x[0-9a-f]+)\}',text):
+        for name,offset,a,b in re.findall(r'"(_Z[^"\n]+)",\s*(0x[0-9a-f]+),\s*\{(0x[0-9a-f]+),(0x[0-9a-f]+)\}',text):
             check(name,int(offset,16),[int(a,16),int(b,16)]);n+=1
     check('_ZNK6STRING5c_strEv',0x3dc788,[0x47706800]);check('_ZN5sound10BaseStream4stopEv',0x4d4da8,[0xaf02b5b0,0x4604b0a4])
-    assert n==16,n
-print('Canonical SO hooks PASS: SHA256, 16 exact symbols/offsets/Thumb/prologues + 2 native helpers; trampoline mismatch fallback covered by existing regression')
+    assert n==23,n
+print('Canonical SO hooks PASS: SHA256, 23 exact symbols/offsets/Thumb/prologues + 2 native helpers; trampoline mismatch fallback covered by existing regression')

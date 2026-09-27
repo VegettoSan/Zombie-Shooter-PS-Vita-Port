@@ -6,6 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <errno.h>
+#if defined(ZOMBIE_RELEASE_BUILD) || defined(ZOMBIE_DEBUG_BUILD)
+#include "utils/logger.h"
+#else
+#define l_perf(...) ((void)0)
+#endif
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
@@ -42,8 +48,18 @@ void music_decoder_destroy(MusicDecoder *d) {
     if(d->io) { av_freep(&d->io->buffer);avio_context_free(&d->io); }
     free(d->bytes);free(d);
 }
+static void open_failure(const char *path,const char *stage,int error) {
+    static unsigned reports;
+    (void)path;(void)stage;(void)error;
+    if(reports++<16) l_perf("music_open_failed path=%s stage=%s error=%d bounded_reports=16",path,stage,error);
+}
+void music_decoder_report_capabilities(void) {
+    l_perf("music_capabilities mov_demuxer=%d aac_decoder=%d format_version=%u codec_version=%u",
+        av_find_input_format("mov")!=NULL,avcodec_find_decoder(AV_CODEC_ID_AAC)!=NULL,avformat_version(),avcodec_version());
+}
 MusicDecoder *music_decoder_open(const char *path) {
-    FILE *f=fopen(path,"rb");if(!f) return NULL;
+    const char *stage="allocation";int error=0;
+    FILE *f=fopen(path,"rb");if(!f) { open_failure(path,"fopen",errno);return NULL; }
     if(fseek(f,0,SEEK_END)) { fclose(f);return NULL; }
     long n=ftell(f);if(n<=0 || n>(long)MUSIC_FILE_MAX || fseek(f,0,SEEK_SET)) { fclose(f);return NULL; }
     MusicDecoder *d=calloc(1,sizeof(*d));if(!d) { fclose(f);return NULL; }
@@ -55,21 +71,28 @@ MusicDecoder *music_decoder_open(const char *path) {
     if(!d->io) { av_free(io_buffer);goto fail; }
     d->format=avformat_alloc_context();if(!d->format) goto fail;
     d->format->pb=d->io;d->format->flags|=AVFMT_FLAG_CUSTOM_IO;
-    if(avformat_open_input(&d->format,NULL,NULL,NULL)<0 || avformat_find_stream_info(d->format,NULL)<0) goto fail;
+    stage="mov_demuxer";
+    const AVInputFormat *mov=av_find_input_format("mov");if(!mov) goto fail;
+    stage="open_input";error=avformat_open_input(&d->format,NULL,mov,NULL);if(error<0) goto fail;
+    stage="stream_info";error=avformat_find_stream_info(d->format,NULL);if(error<0) goto fail;
+    stage="audio_stream";
     d->stream=av_find_best_stream(d->format,AVMEDIA_TYPE_AUDIO,-1,-1,NULL,0);if(d->stream<0) goto fail;
+    stage="format_rate_channels";
     AVCodecParameters *params=d->format->streams[d->stream]->codecpar;
     if(params->codec_id!=AV_CODEC_ID_AAC || params->sample_rate!=44100 || params->ch_layout.nb_channels<1 || params->ch_layout.nb_channels>2) goto fail;
+    stage="aac_decoder";
     const AVCodec *codec=avcodec_find_decoder(AV_CODEC_ID_AAC);if(!codec) goto fail;
     d->codec=avcodec_alloc_context3(codec);if(!d->codec) goto fail;
     if(avcodec_parameters_to_context(d->codec,params)<0) goto fail;
     d->codec->thread_count=1;
-    if(avcodec_open2(d->codec,codec,NULL)<0) goto fail;
+    stage="codec_open";error=avcodec_open2(d->codec,codec,NULL);if(error<0) goto fail;
+    stage="pcm_conversion";
     AVChannelLayout stereo=AV_CHANNEL_LAYOUT_STEREO;
     if(swr_alloc_set_opts2(&d->swr,&stereo,AV_SAMPLE_FMT_S16,44100,&d->codec->ch_layout,d->codec->sample_fmt,d->codec->sample_rate,0,NULL)<0 || swr_init(d->swr)<0) goto fail;
     d->frame=av_frame_alloc();d->packet=av_packet_alloc();if(!d->frame || !d->packet) goto fail;
     return d;
 fail:
-    music_decoder_destroy(d);return NULL;
+    open_failure(path,stage,error);music_decoder_destroy(d);return NULL;
 }
 static int next_stage(MusicDecoder *d,int loop) {
     unsigned guard=0,loops=0;
