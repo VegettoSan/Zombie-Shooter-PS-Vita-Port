@@ -52,7 +52,10 @@ static int audio_thread_valid;
 static SceUID audio_thread_handle = -1;
 #endif
 
-uint8_t audio_buffers[SndFile_NUMBUFS][SndFile_BUFSIZE];
+#define VITA_AUDIO_OUT_FRAMES 1024u
+#define VITA_AUDIO_OUT_BYTES (VITA_AUDIO_OUT_FRAMES * 2u * sizeof(int16_t))
+#define VITA_AUDIO_OUT_BUFFERS 4u
+static uint8_t audio_buffers[VITA_AUDIO_OUT_BUFFERS][VITA_AUDIO_OUT_BYTES] __attribute__((aligned(64)));
 
 static void reset_audio_backend_state(void) {
 	audio_shutdown_requested = 1;
@@ -106,12 +109,15 @@ static int audioThread(unsigned int args, void *arg) {
 		sceKernelGetThreadId(),SCE_KERNEL_CPU_MASK_USER_1);
 	_log_print(1,"[AUDIO] mixer affinity user_core=1 result=0x%08X",(unsigned)affinity_res);
 
-	int ch = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, SndFile_BUFSIZE / 4,
+	const int output_hz=opensles_output_freq();
+	const unsigned expected_period_us=(unsigned)(((uint64_t)VITA_AUDIO_OUT_FRAMES*1000000u)/(unsigned)output_hz);
+	const unsigned late_period_us=expected_period_us+(expected_period_us>>1);
+	int ch = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, VITA_AUDIO_OUT_FRAMES,
 															 opensles_output_freq(),
 															 SCE_AUDIO_OUT_MODE_STEREO);
 	if (ch < 0) {
 		_log_print(3, "[AUDIO] sceAudioOutOpenPort(BGM, frames=%u, hz=%d) failed: 0x%08X",
-			(unsigned)(SndFile_BUFSIZE / 4), opensles_output_freq(), (unsigned)ch);
+			(unsigned)(VITA_AUDIO_OUT_FRAMES), opensles_output_freq(), (unsigned)ch);
 		SL_LOGE("Unable to open Vita audio port: 0x%x", ch);
 #ifdef HAVE_PTHREAD
 		return NULL;
@@ -120,8 +126,11 @@ static int audioThread(unsigned int args, void *arg) {
 #endif
 	} else {
 		_log_print(1, "[AUDIO] sceAudioOutOpenPort OK port=%d frames=%u hz=%d",
-			ch, (unsigned)(SndFile_BUFSIZE / 4), opensles_output_freq());
+			ch, (unsigned)(VITA_AUDIO_OUT_FRAMES), opensles_output_freq());
 		SL_LOGI("Opened Vita audio port %d", ch);
+		_log_print(1, "[AUDIO] output buffering bytes=%u buffers=%u period_us=%u late_us=%u",
+			(unsigned)VITA_AUDIO_OUT_BYTES,(unsigned)VITA_AUDIO_OUT_BUFFERS,
+			expected_period_us,late_period_us);
 	}
 
 	audio_port = ch;
@@ -139,15 +148,19 @@ static int audioThread(unsigned int args, void *arg) {
 		goto exit_thread;
 	}
 
-	int buf_idx = 0;
+	unsigned buf_idx = 0;
+	uint64_t last_output_start_us=0;
 
 	while (!audio_shutdown_requested) {
 		uint8_t *stream = audio_buffers[buf_idx];
-		buf_idx = (buf_idx + 1) % SndFile_NUMBUFS;
+		buf_idx = (buf_idx + 1u) % VITA_AUDIO_OUT_BUFFERS;
 
-		fill_output_buffer(stream, (SLuint32)SndFile_BUFSIZE);
+		fill_output_buffer(stream, (SLuint32)VITA_AUDIO_OUT_BYTES);
+		uint64_t output_start_us=sceKernelGetProcessTimeWide();
+		unsigned gap_us=last_output_start_us?(unsigned)(output_start_us-last_output_start_us):0;
+		last_output_start_us=output_start_us;
 		res = sceAudioOutOutput(ch, stream);
-		audio_perf_output(res);
+		audio_perf_output(res,VITA_AUDIO_OUT_FRAMES,gap_us,gap_us>late_period_us);
 		if (res < 0) {
 			_log_print(3, "[AUDIO] sceAudioOutOutput failed: port=%d result=0x%08X",
 				ch, (unsigned)res);

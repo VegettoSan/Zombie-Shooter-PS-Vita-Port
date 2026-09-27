@@ -338,19 +338,21 @@ static uintptr_t probe_##tag(void *self) { \
     uintptr_t ret=((uintptr_t (*)(void *))engine_original[phase])(self); \
     perf_engine_phase(phase,start);return ret; \
 }
-ENGINE_INT_PROBE(graph,PERF_ENGINE_GRAPH)
-
-/* Pass 11: MetalSyntax-style render reuse.  GRAPH::Tact/MAP/input/audio keep
- * running every engine tick; only the expensive software raster pass is
- * reused every other tick.  The opaque original return is preserved so no
- * caller contract changes.  glTexSubImage2D_soloader sees the per-tick flag
- * and skips only OpenGLES::UnLock's full software-framebuffer upload. */
+/* Pass 12: canonical MAP::tact calls softwareTact at SO+0x437580 and
+ * GRAPH::Tact immediately after at SO+0x43758C. Static call-graph analysis
+ * shows GRAPH::Tact is render-only (DrawLayer/batch/state calls), so reuse it
+ * on the exact same alternate ticks. MAP logic, input, scripts, multiplayer
+ * and SPRITE_COLLECTOR::squeeze still execute every engine tick. */
 volatile int zombie_render_reuse_active_this_tick = 0;
 static uintptr_t render_reuse_last_software_result;
+static uintptr_t render_reuse_last_graph_result;
 static unsigned render_reuse_phase;
 static unsigned render_reuse_rendered;
 static unsigned render_reuse_reused;
+static unsigned graph_rendered;
+static unsigned graph_reused;
 static int render_reuse_has_frame;
+static int render_reuse_has_graph;
 
 static uintptr_t probe_software(void *self,int argument) {
     int reuse = setting_software_frameskip && render_reuse_has_frame &&
@@ -370,13 +372,30 @@ static uintptr_t probe_software(void *self,int argument) {
     return ret;
 }
 
+static uintptr_t probe_graph(void *self,int argument) {
+    if (setting_software_frameskip && zombie_render_reuse_active_this_tick &&
+        render_reuse_has_graph) {
+        graph_reused++;
+        return render_reuse_last_graph_result;
+    }
+    uint64_t start=sceKernelGetProcessTimeWide();
+    uintptr_t ret=((uintptr_t (*)(void *,int))engine_original[PERF_ENGINE_GRAPH])(self,argument);
+    perf_engine_phase(PERF_ENGINE_GRAPH,start);
+    render_reuse_last_graph_result=ret;
+    render_reuse_has_graph=1;
+    graph_rendered++;
+    return ret;
+}
+
 void render_reuse_report(void) {
-    static unsigned old_rendered,old_reused;
+    static unsigned old_rendered,old_reused,old_graph_rendered,old_graph_reused;
     unsigned rendered=render_reuse_rendered, reused=render_reuse_reused;
-    l_perf("render_reuse config=%d rendered_ticks=%u reused_ticks=%u has_frame=%d current_reuse=%d strategy=softwareTact_2to1",
+    unsigned gr=graph_rendered, gu=graph_reused;
+    l_perf("render_reuse config=%d rendered_ticks=%u reused_ticks=%u graph_rendered_ticks=%u graph_reused_ticks=%u has_frame=%d has_graph=%d current_reuse=%d strategy=software_graph_2to1",
         setting_software_frameskip,rendered-old_rendered,reused-old_reused,
-        render_reuse_has_frame,zombie_render_reuse_active_this_tick);
-    old_rendered=rendered;old_reused=reused;
+        gr-old_graph_rendered,gu-old_graph_reused,render_reuse_has_frame,
+        render_reuse_has_graph,zombie_render_reuse_active_this_tick);
+    old_rendered=rendered;old_reused=reused;old_graph_rendered=gr;old_graph_reused=gu;
 }
 
 ENGINE_THIS_PROBE(map,PERF_ENGINE_MAP)

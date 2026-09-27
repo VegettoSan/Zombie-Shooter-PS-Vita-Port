@@ -28,12 +28,19 @@ void audio_perf_wait(unsigned kind, unsigned us, int timeout) {
     ADD(&s->wait_calls, 1); ADD(&s->wait_us, us); max_relaxed(&s->max_us, us);
     if (timeout) ADD(&s->timeouts, 1);
 }
-void audio_perf_output(int result) { ADD(&audio.output_calls, 1); if (result < 0) ADD(&audio.output_errors, 1); }
+void audio_perf_output(int result, unsigned frames, unsigned gap_us, int late) {
+    ADD(&audio.output_calls, 1);
+    ADD(&audio.output_frames, frames);
+    if (result < 0) ADD(&audio.output_errors, 1);
+    if (late) ADD(&audio.output_late_intervals, 1);
+    max_relaxed(&audio.output_max_gap_us, gap_us);
+}
 void audio_perf_snapshot(AudioPerfStats *out) {
 #define COPY(member) out->member = LOAD(&audio.member)
     COPY(clear.calls); COPY(clear.wait_calls); COPY(clear.wait_us); COPY(clear.max_us); COPY(clear.timeouts);
     COPY(destroy.calls); COPY(destroy.wait_calls); COPY(destroy.wait_us); COPY(destroy.max_us); COPY(destroy.timeouts);
-    COPY(output_calls); COPY(output_errors);
+    COPY(output_calls); COPY(output_errors); COPY(output_frames);
+    COPY(output_late_intervals); COPY(output_max_gap_us);
 #undef COPY
 }
 /* Each registered thread owns its counters. Relaxed load/store publication
@@ -176,9 +183,10 @@ void perf_report(void) {
     static LoggerStats old_log;
     AudioPerfStats now; audio_perf_snapshot(&now);
 #define D(m) (now.m-previous.m)
-    l_perf("audio clear_calls=%u clear_wait_calls=%u clear_wait_us=%u clear_max_us_lifetime=%u clear_timeouts=%u destroy_calls=%u destroy_wait_calls=%u destroy_wait_us=%u destroy_max_us_lifetime=%u destroy_timeouts=%u output_calls=%u output_errors=%u",
+    l_perf("audio clear_calls=%u clear_wait_calls=%u clear_wait_us=%u clear_max_us_lifetime=%u clear_timeouts=%u destroy_calls=%u destroy_wait_calls=%u destroy_wait_us=%u destroy_max_us_lifetime=%u destroy_timeouts=%u output_calls=%u output_frames=%u output_errors=%u output_late_intervals=%u output_max_gap_us_lifetime=%u",
         D(clear.calls),D(clear.wait_calls),D(clear.wait_us),now.clear.max_us,D(clear.timeouts),
-        D(destroy.calls),D(destroy.wait_calls),D(destroy.wait_us),now.destroy.max_us,D(destroy.timeouts),D(output_calls),D(output_errors));
+        D(destroy.calls),D(destroy.wait_calls),D(destroy.wait_us),now.destroy.max_us,D(destroy.timeouts),
+        D(output_calls),D(output_frames),D(output_errors),D(output_late_intervals),now.output_max_gap_us);
 #undef D
     previous=now;
     IOStats io[8]={{0}}; WaitStats waits[2]={{0}};
