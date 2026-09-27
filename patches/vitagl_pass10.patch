@@ -64,9 +64,11 @@ diff --git a/source/utils/zombie_texture_update.h b/source/utils/zombie_texture_
  }
 +
 +static inline uint16_t zombie_texture_rgba8888_pixel_to_rgb565(const uint8_t *src) {
-+    return (uint16_t)(((uint16_t)(src[0] & 0xF8u) << 8) |
++    /* VitaGL's SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB layout is Rrrrr in bits
++     * 0..4, G in 5..10 and B in 11..15 (see read_rgb565()). */
++    return (uint16_t)(((uint16_t)src[0] >> 3) |
 +                      ((uint16_t)(src[1] & 0xFCu) << 3) |
-+                      ((uint16_t)src[2] >> 3));
++                      ((uint16_t)(src[2] & 0xF8u) << 8));
 +}
 +
 +/* Convert the software renderer's GL_RGBA/U8 framebuffer directly into the
@@ -87,9 +89,9 @@ diff --git a/source/utils/zombie_texture_update.h b/source/utils/zombie_texture_
 +            uint16x8_t r = vmovl_u8(rgba.val[0]);
 +            uint16x8_t g = vmovl_u8(rgba.val[1]);
 +            uint16x8_t b = vmovl_u8(rgba.val[2]);
-+            r = vshlq_n_u16(vshrq_n_u16(r, 3), 11);
++            r = vshrq_n_u16(r, 3);
 +            g = vshlq_n_u16(vshrq_n_u16(g, 2), 5);
-+            b = vshrq_n_u16(b, 3);
++            b = vshlq_n_u16(vshrq_n_u16(b, 3), 11);
 +            vst1q_u16(d + x, vorrq_u16(r, vorrq_u16(g, b)));
 +        }
 +#endif
