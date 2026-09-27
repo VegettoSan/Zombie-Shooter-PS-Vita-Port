@@ -12,6 +12,7 @@
 #include "utils/utils.h"
 #include "utils/dialog.h"
 #include "utils/logger.h"
+#include "utils/settings.h"
 
 #include <stdio.h>
 #include <malloc.h>
@@ -21,8 +22,11 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
 #include <stdint.h>
+#include <so_util/so_util.h>
 #include "utils/perf.h"
 #include <vitagl/source/utils/zombie_texture_update.h>
+
+extern so_module so_mod;
 
 static void shader_cache_report(void);
 static int gl_initialized = 0;
@@ -84,6 +88,57 @@ static uint64_t draw_sample_begin(void) {
     return (draw_sample_sequence++ & 15u)==0?sceKernelGetProcessTimeWide():0;
 }
 static void draw_sample_end(uint64_t start) { if(start) gl_time(&gl_perf.draw_sample,start); }
+
+/* Pass 10: immutable SO analysis proves the final software framebuffer upload
+ * returns to OpenGLES::UnLock(bool)+0x94 at so+0x46BF59. Immediately before it,
+ * the game binds texture [OpenGLES+0x500] and submits the entire RGBA/U8 work
+ * surface at x=y=0. Reinitializing that bound texture as RGB565 once lets the
+ * patched VitaGL converter write the guest RGBA pixels directly into the new
+ * GPU allocation, cutting destination bandwidth in half with no staging copy. */
+#define SOFTWARE_UNLOCK_TEXSUB_RETURN 0x0046BF59u
+#define SOFTWARE_INIT_TEXIMAGE_RETURN_A 0x00468179u
+#define SOFTWARE_INIT_TEXIMAGE_RETURN_B 0x0046862Fu
+static struct {
+    int active, width, height;
+    unsigned reinit_calls, reinit_us, reinit_max_us;
+} framebuffer565;
+
+static inline uintptr_t guest_return(unsigned offset) {
+    return (uintptr_t)so_mod.text_base + offset;
+}
+
+static inline int is_software_framebuffer_upload(uintptr_t caller,
+        GLenum target, GLint level, GLint xoffset, GLint yoffset,
+        GLsizei width, GLsizei height, GLenum format, GLenum type,
+        const GLvoid *data) {
+    if (!setting_framebuffer_565 || !data) return 0;
+    if (caller != guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN)) return 0;
+    if (target != GL_TEXTURE_2D || level != 0 || xoffset != 0 || yoffset != 0) return 0;
+    if (format != GL_RGBA || type != GL_UNSIGNED_BYTE || width <= 0 || height <= 0) return 0;
+    /* All supported scale modes are in this range; the exact caller prevents
+     * unrelated large game textures from entering this path. */
+    return width >= 720 && width <= 1100 && height >= 400 && height <= 650;
+}
+
+static inline void framebuffer565_reinit_if_needed(GLenum target, GLsizei width, GLsizei height) {
+    if (framebuffer565.active && framebuffer565.width == width && framebuffer565.height == height)
+        return;
+    uint64_t start = sceKernelGetProcessTimeWide();
+    glTexImage2D(target, 0, GL_RGB, width, height, 0,
+                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, NULL);
+    unsigned us = (unsigned)(sceKernelGetProcessTimeWide() - start);
+    framebuffer565.active = 1;
+    framebuffer565.width = width;
+    framebuffer565.height = height;
+    framebuffer565.reinit_calls++;
+    framebuffer565.reinit_us += us;
+    if (us > framebuffer565.reinit_max_us) framebuffer565.reinit_max_us = us;
+    l_perf("framebuffer_565 activated=1 width=%d height=%d rgba_bytes=%llu rgb565_bytes=%llu reinit_us=%u caller=0x%08X",
+           width, height, (unsigned long long)width*height*4,
+           (unsigned long long)width*height*2, us,
+           (unsigned)guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN));
+}
+
 /* The SDK reports runClocks in native kernel units. Log the raw delta rather
  * than assuming a unit or summing another thread's blocked time into render. */
 static void report_render_thread(void) {
@@ -106,6 +161,11 @@ static void report_texture_costs(void) {
     l_perf("tex_cow calls=%u optimized=%u rgb565=%u full_replacements=%u alloc_failures=%u alloc_us=%u preserve_us=%u old_bytes=%llu preserved_bytes=%llu max_w=%u max_h=%u",
         cow.cow_calls,cow.optimized_calls,cow.rgb565_calls,cow.full_replacements,cow.alloc_failures,cow.alloc_us,cow.preserve_us,
         (unsigned long long)cow.old_bytes,(unsigned long long)cow.preserved_bytes,cow.max_texture_w,cow.max_texture_h);
+    l_perf("framebuffer_565 config=%d active=%d surface=%dx%d reinit_calls=%u reinit_us=%u reinit_max_us=%u convert_calls=%u convert_pixels=%llu convert_us=%u convert_max_us=%u input_bytes=%llu output_bytes=%llu",
+        setting_framebuffer_565, framebuffer565.active, framebuffer565.width, framebuffer565.height,
+        framebuffer565.reinit_calls, framebuffer565.reinit_us, framebuffer565.reinit_max_us,
+        cow.rgba565_calls, (unsigned long long)cow.rgba565_pixels, cow.rgba565_us, cow.rgba565_max_us,
+        (unsigned long long)cow.rgba565_input_bytes, (unsigned long long)cow.rgba565_output_bytes);
     for (unsigned i=0;i<8;++i) if (upload_groups[i].calls) {
         l_perf("tex_upload caller=0x%08X calls=%u total_us=%u max_us=%u max_shape=%dx%d format=0x%X type=0x%X",
             (unsigned)upload_groups[i].caller,upload_groups[i].calls,upload_groups[i].us,upload_groups[i].max_us,
@@ -217,23 +277,31 @@ void glBufferSubData_soloader(GLenum target, GLintptr offset, GLsizeiptr size, c
     glBufferSubData(target, offset, size, data); gl_time(&gl_perf.buffer_sub, start);
 }
 void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data) {
+    uintptr_t caller=(uintptr_t)__builtin_return_address(0);
+    if (framebuffer565.active &&
+        (caller==guest_return(SOFTWARE_INIT_TEXIMAGE_RETURN_A) || caller==guest_return(SOFTWARE_INIT_TEXIMAGE_RETURN_B))) {
+        framebuffer565.active=0;
+    }
     uint64_t start = sceKernelGetProcessTimeWide();
     glTexImage2D(target, level, internalFormat, width, height, border, format, type, data); gl_time(&gl_perf.tex_image, start);
 }
 void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data) {
+    uintptr_t caller=(uintptr_t)__builtin_return_address(0);
     if(format==GL_RGBA && type==GL_UNSIGNED_BYTE && width>=720 && height>=400) {
         static int last_width,last_height;
         if(width!=last_width || height!=last_height) {
-            l_perf("software_surface width=%d height=%d stride_bytes=%u bytes=%llu caller=0x%08X",width,height,(unsigned)width*4,(unsigned long long)width*height*4,(unsigned)(uintptr_t)__builtin_return_address(0));
+            l_perf("software_surface width=%d height=%d stride_bytes=%u bytes=%llu caller=0x%08X",width,height,(unsigned)width*4,(unsigned long long)width*height*4,(unsigned)caller);
             last_width=width;last_height=height;
         }
     }
+    if (is_software_framebuffer_upload(caller,target,level,xoffset,yoffset,width,height,format,type,data))
+        framebuffer565_reinit_if_needed(target,width,height);
+
     uint64_t start = sceKernelGetProcessTimeWide();
     glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, data);
     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
     gl_perf.tex_sub.calls++; gl_perf.tex_sub.total_us+=us;
     if (us>gl_perf.tex_sub.max_us) gl_perf.tex_sub.max_us=us;
-    uintptr_t caller=(uintptr_t)__builtin_return_address(0);
     unsigned i;
     for(i=0;i<7;++i) if(!upload_groups[i].calls || upload_groups[i].caller==caller) break;
     /* The eighth group catches overflow rather than hiding unrecognized callers. */
