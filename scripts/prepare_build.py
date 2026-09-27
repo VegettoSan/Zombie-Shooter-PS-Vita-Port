@@ -43,6 +43,11 @@ def apply_patch(module, patch):
     git(module, *args, str(patch))
 
 
+def pass10_vitagl_is_prepared():
+    return all((ROOT / name).is_file() and digest(ROOT / name, True) == sha
+               for name, sha in PASS10_FINAL_FILES.items())
+
+
 def main():
     if os.environ.get('VITASDK') != str(SDK):
         raise RuntimeError('Use VITASDK=/usr/local/vitasdk; HardFP is not supported')
@@ -56,16 +61,26 @@ def main():
     if not any('-mfloat-abi=' in line and line.split()[-1] == 'softfp'
                for line in abi.splitlines()):
         raise RuntimeError('Compiler default must be SoftFP')
+
     lock = json.loads((ROOT / 'patches/submodules.lock.json').read_text())
     for module, revision in lock['revisions'].items():
         if git(module, 'rev-parse', 'HEAD').stdout.strip() != revision:
             raise RuntimeError(f'{module}: wrong revision; use git submodule update --init --recursive')
+
+    vitagl_ready = pass10_vitagl_is_prepared()
+    for module in lock['revisions']:
+        # CMake calls this preparer again after install_baseline_sdk.sh. Once the
+        # exact combined VitaGL result is present, do not try to reverse-check
+        # the older baseline patch against files that intentionally have Pass10
+        # edits layered on top.
+        if module == 'vitagl' and vitagl_ready:
+            continue
         apply_patch(module, ROOT / 'patches' / (module + '.patch'))
 
-    # Pass 10 is intentionally split from the long baseline VitaGL patch. It is
-    # applied second so the diff stays small/reviewable while exact final source
-    # hashes are still required below.
-    apply_patch('vitagl', ROOT / 'patches' / 'vitagl_pass10.patch')
+    if not vitagl_ready:
+        # Pass 10 is intentionally split from the long baseline VitaGL patch.
+        # Apply it only after the baseline and require the exact final hashes.
+        apply_patch('vitagl', ROOT / 'patches' / 'vitagl_pass10.patch')
 
     expected_files = dict(lock['files'])
     expected_files.update(PASS10_FINAL_FILES)
