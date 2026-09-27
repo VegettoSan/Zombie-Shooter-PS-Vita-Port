@@ -19,6 +19,7 @@ void gamepad_config_load(void) __attribute__((weak));
 int setting_software_width;
 int setting_music_mode;
 int setting_vita_shooter;
+int setting_framebuffer_565;
 int  setting_sampleSetting;
 bool setting_sampleSetting2;
 
@@ -29,10 +30,11 @@ static void settings_load_dependent_configs(void) {
 void settings_reset() {
     /* 864x489 is now physically validated on real Vita and is the preferred
      * baseline. Keep replacement music opt-in until each backend is physically
-     * validated. */
+     * validated. Pass 10 enables the lower-bandwidth software framebuffer. */
     setting_software_width = 864;
     setting_music_mode = 0;
     setting_vita_shooter = 0; // Legacy fallback only; controls.txt wins on Vita.
+    setting_framebuffer_565 = 1;
     setting_sampleSetting  = 1;
     setting_sampleSetting2 = true;
 }
@@ -50,10 +52,14 @@ void settings_save() {
         fprintf(config, "#   0 = no replacement music backend; stable/silent fallback\n");
         fprintf(config, "#   1 = LEGACY PCM16 WAV hook; confirmed OpenSL crash, diagnostic only\n");
         fprintf(config, "#   2 = compressed OGG/Vorbis Vita mixer; no giant PCM WAV files\n");
+        fprintf(config, "# framebuffer_565 modes:\n");
+        fprintf(config, "#   1 = convert final software framebuffer RGBA8888 -> RGB565 directly in VitaGL (recommended)\n");
+        fprintf(config, "#   0 = original RGBA8888 upload path for A/B comparison\n");
         fprintf(config, "# Restart the game after changing these values.\n");
         fprintf(config, "software_width %d\n", setting_software_width);
         fprintf(config, "music_mode %d\n", setting_music_mode);
         fprintf(config, "vita_shooter %d\n", setting_vita_shooter);
+        fprintf(config, "framebuffer_565 %d\n", setting_framebuffer_565);
         fprintf(config, "%s %d\n", "setting_sampleSetting", (int)(setting_sampleSetting));
         fprintf(config, "%s %d\n", "setting_sampleSetting2", (int)(setting_sampleSetting2));
         fclose(config);
@@ -89,6 +95,10 @@ void settings_load() {
         }
         if (strcmp("vita_shooter", buffer) == 0) {
             setting_vita_shooter = value == 1;
+            continue;
+        }
+        if (strcmp("framebuffer_565", buffer) == 0) {
+            setting_framebuffer_565 = value != 0;
             continue;
         }
         if      (strcmp("setting_sampleSetting", buffer) == 0)  setting_sampleSetting  = (int)value;
