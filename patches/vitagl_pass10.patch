@@ -59,7 +59,7 @@ diff --git a/source/utils/zombie_texture_update.h b/source/utils/zombie_texture_
  #ifndef ZOMBIE_TEXTURE_COPY
  #define ZOMBIE_TEXTURE_COPY memcpy
  #endif
-@@ -34,10 +37,52 @@ static inline size_t zombie_texture_preserve_rgba(void *dst, const void *src,
+@@ -34,10 +37,53 @@ static inline size_t zombie_texture_preserve_rgba(void *dst, const void *src,
      return zombie_texture_preserve_native(dst,src,stride,rows,x,y,w,h,4);
  }
 +
