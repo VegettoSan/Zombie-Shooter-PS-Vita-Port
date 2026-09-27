@@ -35,14 +35,35 @@ jobs:
           bash tests/run_engine_probe_regression.sh
           python3 tests/run_gamma_palette_regression.py
           grep -q 'software_frameskip' source/utils/settings.c
-          grep -q 'strategy=software_graph_2to1' source/patch.c
+          grep -q 'strategy=software_graph_adaptive30' source/patch.c
+          grep -q 'RENDER_REUSE_TARGET_US 33333u' source/patch.c
+          grep -q 'RENDER_REUSE_MAX_SKIPS 3u' source/patch.c
+          grep -q 'static uintptr_t probe_map' source/patch.c
+          grep -q 'render_reuse_choose_skips' source/patch.c
           grep -q 'graph_reused' source/patch.c
+          ! grep -q 'render_reuse_phase' source/patch.c
           grep -q 'SOFTWARE_UNLOCK_TEXSUB_RETURN' source/utils/glutil.c
           grep -q '#define VITA_AUDIO_OUT_FRAMES 1024u' lib/opensles_clear/Vita.c
           grep -q '#define VITA_AUDIO_OUT_BUFFERS 4u' lib/opensles_clear/Vita.c
           grep -q 'output_late_intervals' source/utils/perf.c
           grep -q 'output_frames' source/utils/perf.c
           ! grep -q 'SndFile_BUFSIZE / 4' lib/opensles_clear/Vita.c
+          python3 - <<'PY'
+          TARGET=33333
+          MAX=3
+          def choose(full,reuse):
+              if full <= TARGET: return 0
+              if not reuse or reuse >= TARGET: return 1
+              n=full-TARGET; d=TARGET-reuse
+              return max(1,min(MAX,(n+d-1)//d))
+          assert choose(30000,8000)==0
+          assert choose(40000,0)==1
+          assert choose(40000,35000)==1
+          assert choose(60000,10000)==2
+          assert choose(108000,8000)==3
+          assert choose(200000,5000)==3
+          print('PASS adaptive30 pacing arithmetic')
+          PY
       - name: Verify canonical render call graph and prologues
         run: |
           set -euo pipefail
