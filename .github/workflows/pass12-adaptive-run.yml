@@ -1,0 +1,30 @@
+name: Pass12 adaptive source apply
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/run16-disable-render-scale
+          fetch-depth: 0
+      - name: Apply adaptive source
+        run: |
+          set -euo pipefail
+          python3 scripts/apply_pass12_adaptive.py
+          git diff --check
+          grep -q 'strategy=software_graph_adaptive30' source/patch.c
+          grep -q 'RENDER_REUSE_TARGET_US 33333u' source/patch.c
+          grep -q 'RENDER_REUSE_MAX_SKIPS 3u' source/patch.c
+          grep -q 'static uintptr_t probe_map' source/patch.c
+          ! grep -q 'render_reuse_phase' source/patch.c
+          git config user.name 'VegettoSanDev'
+          git config user.email '72358120+VegettoSan@users.noreply.github.com'
+          git add source/patch.c
+          git commit -m 'perf: adapt render reuse toward 30 FPS'
+          git push origin HEAD:fix/run16-disable-render-scale
