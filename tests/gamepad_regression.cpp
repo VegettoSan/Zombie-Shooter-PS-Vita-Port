@@ -19,7 +19,7 @@ extern "C" {
 int setting_vita_shooter;
 int sceKernelCreateLwMutex(SceKernelLwMutexWork*,const char*,int,int,void*) { return 0; }
 int sceKernelLockLwMutex(SceKernelLwMutexWork*,int,void*) { return 0; }
-int sceKernelUnlockLwMutex(SceKernelLwMutexWork*,int) { return 0; }
+int sceKernelUnlockLwMutex(SceKernelLwMutexWork*,int,void*) { return 0; }
 int sceKernelCreateThread(const char*,int(*)(SceSize,void*),int,int,int,int,void*) { return 1; }
 int sceKernelStartThread(int,int,void*) { return 0; }
 int sceKernelDelayThread(int) { return 0; }
@@ -97,16 +97,18 @@ int main() {
  }
  neutral(); pad.buttons=SCE_CTRL_LEFT|SCE_CTRL_RIGHT|SCE_CTRL_UP|SCE_CTRL_DOWN; tick(); es=drain(); assert(es.empty()); // opposite HAT directions cancel at center
 
- // Strict default: LT/RT are trigger axes only, never duplicate L2/R2 KeyEvents.
- neutral(); pad.buttons=SCE_CTRL_L2; tick(); es=drain(); assert(es.size()==1); e=motion(es);
+ // Strict handheld: LT/RT come from Vita rear-touch zones and are trigger axes
+ // only. SCE_CTRL_L2/R2 in pad.buttons are for external controllers, not the
+ // handheld path, so model the real hardware input here.
+ neutral(); touches[1].reportNum=1; touches[1].report[0]={0,500,200}; tick(); es=drain(); assert(es.size()==1); e=motion(es);
  assert(axis(e,AMOTION_EVENT_AXIS_LTRIGGER)==1 && axis(e,AMOTION_EVENT_AXIS_BRAKE)==1);
- neutral(); pad.buttons=SCE_CTRL_R2; tick(); es=drain(); assert(es.size()==1); e=motion(es);
+ neutral(); touches[1].reportNum=1; touches[1].report[0]={0,1400,200}; tick(); es=drain(); assert(es.size()==1); e=motion(es);
  assert(axis(e,AMOTION_EVENT_AXIS_RTRIGGER)==1 && axis(e,AMOTION_EVENT_AXIS_GAS)==1);
 
  // controls.txt can restore the old Android-hybrid aliases without rebuilding.
  load_controls("input_mode hybrid\n");
  neutral(); assert(fndk_button_mapping_count==16);
- pad.buttons=SCE_CTRL_L2; tick(); es=drain(); assert(es.size()==2); key(es,AKEYCODE_BUTTON_L2,AKEY_EVENT_ACTION_DOWN); e=motion(es);
+ touches[1].reportNum=1; touches[1].report[0]={0,500,200}; tick(); es=drain(); assert(es.size()==2); key(es,AKEYCODE_BUTTON_L2,AKEY_EVENT_ACTION_DOWN); e=motion(es);
  assert(axis(e,AMOTION_EVENT_AXIS_LTRIGGER)==1);
  neutral(); pad.buttons=SCE_CTRL_UP; tick(); es=drain(); assert(es.size()==2); key(es,AKEYCODE_DPAD_UP,AKEY_EVENT_ACTION_DOWN); e=motion(es);
  assert(axis(e,AMOTION_EVENT_AXIS_HAT_Y)==-1);
