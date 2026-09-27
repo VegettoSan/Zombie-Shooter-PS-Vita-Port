@@ -1,4 +1,4 @@
-name: Pass8 validation
+name: Pass9 validation
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  validate-pass8:
+  validate-pass9:
     runs-on: ubuntu-22.04
     env:
       VITASDK: /usr/local/vitasdk
@@ -32,30 +32,35 @@ jobs:
           bash tests/run_texture_update_regression.sh
           bash tests/run_asset_index_regression.sh
           bash tests/run_engine_probe_regression.sh
-      - name: Verify Pass8 canonical symbols and prologues
+          python3 tests/run_gamma_palette_regression.py
+      - name: Verify canonical profiling and gamma symbols
         run: |
           set -euo pipefail
           python3 -m pip install --quiet --target /tmp/zombie-arm-test-deps unicorn==2.1.4 pyelftools==0.32
           PYTHONPATH=/tmp/zombie-arm-test-deps python3 - <<'PY'
           from elftools.elf.elffile import ELFFile
-          expected={
+          profiling={
             '_ZN12VID_SOFTWARE4DrawEPK6SPRITE':0x514bfc,
             '_ZN12VID_SOFTWARE9DrawToVidEPK10SpriteInfoPK11VID_TEXCOORP7TEXTURES7_':0x514a4c,
             '_ZN12VID_SOFTWARE14preparePaletteEPhPK6SPRITERK5Gamma':0x513488,
             '_ZN12VID_SOFTWARE9draw_implEiiiiP5ColorPtiiPv':0x513610,
           }
-          prologue=bytes.fromhex('f0b503af2de9000f')
+          gamma={'_ZN3VID17SetGammaToPaletteEPhRK5Gamma':0x506378}
+          profiling_prologue=bytes.fromhex('f0b503af2de9000f')
+          gamma_prologue=bytes.fromhex('f0b503af4df8048d')
           with open('demo/libzombie_shooter.so','rb') as f:
             elf=ELFFile(f); dyn=elf.get_section_by_name('.dynsym')
             syms={s.name:s for s in dyn.iter_symbols()}
             text=elf.get_section_by_name('.text'); data=text.data(); base=text['sh_addr']
-            for name,addr in expected.items():
-              s=syms.get(name)
-              assert s is not None, name
+            for name,addr in profiling.items():
+              s=syms.get(name); assert s is not None,name
               assert (s['st_value'] & ~1)==addr,(name,hex(s['st_value']))
-              off=addr-base
-              assert data[off:off+8]==prologue,(name,data[off:off+8].hex())
-              print('PASS',name,hex(addr),prologue.hex())
+              assert data[addr-base:addr-base+8]==profiling_prologue,(name,data[addr-base:addr-base+8].hex())
+            for name,addr in gamma.items():
+              s=syms.get(name); assert s is not None,name
+              assert (s['st_value'] & ~1)==addr,(name,hex(s['st_value']))
+              assert data[addr-base:addr-base+8]==gamma_prologue,(name,data[addr-base:addr-base+8].hex())
+              print('PASS gamma hook',name,hex(addr),gamma_prologue.hex())
           PY
       - name: ARM equivalence regressions
         run: |
@@ -66,36 +71,36 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-pass8-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
-          cmake --build build-pass8-debug -j"$(nproc)" 2>&1 | tee build-pass8-debug.log
-          test -s build-pass8-debug/zombie_shooter.vpk
-          test -s build-pass8-debug/so_loader
-          unzip -t build-pass8-debug/zombie_shooter.vpk
+          cmake -S . -B build-pass9-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass9-debug -j"$(nproc)" 2>&1 | tee build-pass9-debug.log
+          test -s build-pass9-debug/zombie_shooter.vpk
+          test -s build-pass9-debug/so_loader
+          unzip -t build-pass9-debug/zombie_shooter.vpk
       - name: Build Release
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-pass8-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
-          cmake --build build-pass8-release -j"$(nproc)" 2>&1 | tee build-pass8-release.log
-          test -s build-pass8-release/zombie_shooter.vpk
-          test -s build-pass8-release/so_loader
-          unzip -t build-pass8-release/zombie_shooter.vpk
-          python3 scripts/check_release_flags.py build-pass8-release
+          cmake -S . -B build-pass9-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass9-release -j"$(nproc)" 2>&1 | tee build-pass9-release.log
+          test -s build-pass9-release/zombie_shooter.vpk
+          test -s build-pass9-release/so_loader
+          unzip -t build-pass9-release/zombie_shooter.vpk
+          python3 scripts/check_release_flags.py build-pass9-release
           git diff --check
       - name: Package test build
         run: |
-          mkdir -p pass8-dist
-          cp build-pass8-release/zombie_shooter.vpk pass8-dist/Zombie-Shooter-Pass8-Release.vpk
-          cp build-pass8-release/so_loader pass8-dist/Zombie-Shooter-Pass8-Release.elf
-          cp build-pass8-debug/zombie_shooter.vpk pass8-dist/Zombie-Shooter-Pass8-Debug.vpk
-          cp build-pass8-debug/so_loader pass8-dist/Zombie-Shooter-Pass8-Debug.elf
-          cp build-pass8-release.log build-pass8-debug.log pass8-dist/
-          sha256sum pass8-dist/*.vpk pass8-dist/*.elf > pass8-dist/SHA256SUMS.txt
-          sha256sum demo/libzombie_shooter.so > pass8-dist/so-reference.sha256.txt
-      - name: Upload Pass8 build
+          mkdir -p pass9-dist
+          cp build-pass9-release/zombie_shooter.vpk pass9-dist/Zombie-Shooter-Pass9-Release.vpk
+          cp build-pass9-release/so_loader pass9-dist/Zombie-Shooter-Pass9-Release.elf
+          cp build-pass9-debug/zombie_shooter.vpk pass9-dist/Zombie-Shooter-Pass9-Debug.vpk
+          cp build-pass9-debug/so_loader pass9-dist/Zombie-Shooter-Pass9-Debug.elf
+          cp build-pass9-release.log build-pass9-debug.log pass9-dist/
+          sha256sum pass9-dist/*.vpk pass9-dist/*.elf > pass9-dist/SHA256SUMS.txt
+          sha256sum demo/libzombie_shooter.so > pass9-dist/so-reference.sha256.txt
+      - name: Upload Pass9 build
         uses: actions/upload-artifact@v4
         with:
-          name: Zombie-Shooter-Pass8-${{ github.sha }}
-          path: pass8-dist
+          name: Zombie-Shooter-Pass9-${{ github.sha }}
+          path: pass9-dist
           if-no-files-found: error
           retention-days: 14
