@@ -6,6 +6,9 @@
 #include <string.h>
 static char output[200000]; static unsigned output_size, mock_syncs, console_calls;
 static uint64_t now=100;
+/* logger.c normally gets this from settings.c; keep the host regression focused
+ * on the real logger implementation without linking the settings parser. */
+int setting_log_mode=2;
 int sceKernelCreateLwMutex(void *a,const char *b,int c,int d,void *e) { return 0; }
 int sceKernelLockLwMutex(void *a,int b,void *c) { return 0; }
 int sceKernelUnlockLwMutex(void *a,int b) { return 0; }
@@ -36,6 +39,28 @@ int main(void) {
     base=mock_syncs;
     for(int i=0;i<6;++i) l_fatal("fatal same");
     assert(mock_syncs==base+6 && console_calls==6);
+
+    /* mode 2 includes PERF. */
     l_perf("logger sample"); logger_force_sync(); assert(strstr(output,"[PERF] logger sample"));
-    puts("Logger regression passed: buffered errors, 64-line/1-second sync, repeats, unique messages, fatal, PERF identity");
+
+    /* mode 1 is the Release default: retain safety errors/fatal but skip PERF
+     * before formatting, locking and memory-card I/O. */
+    setting_log_mode=1;
+    unsigned before=output_size;
+    l_perf("must not persist");
+    assert(output_size==before);
+    l_error("mode1 error");
+    logger_force_sync();
+    assert(strstr(output,"mode1 error"));
+
+    /* mode 0 performs no persistent write at all. Fatal remains visible on the
+     * debug console so a completely disabled file logger cannot hide a crash. */
+    setting_log_mode=0;
+    before=output_size; base=mock_syncs; unsigned console_before=console_calls;
+    l_error("mode0 error"); l_perf("mode0 perf"); logger_force_sync();
+    assert(output_size==before && mock_syncs==base);
+    l_fatal("mode0 fatal");
+    assert(output_size==before && mock_syncs==base && console_calls==console_before+1);
+
+    puts("Logger regression passed: runtime modes, buffered errors, bounded sync, repeats, fatal console, PERF opt-in");
 }
