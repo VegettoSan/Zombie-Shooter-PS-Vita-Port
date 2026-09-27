@@ -33,6 +33,7 @@ jobs:
         run: |
           tests/run_jni_field_regression.sh
           bash tests/run_gamepad_regression.sh
+          bash tests/run_settings_regression.sh
           python3 tests/run_render_scale_regression.py
           tests/run_gl_buffer_regression.sh
           tests/run_logger_regression.sh
@@ -106,8 +107,10 @@ jobs:
           prerelease: true
           make_latest: false
           body: |
-            Run17 recovery: runtime resolution, Xbox input mapping and music backend A/B diagnostics.
-            Release defaults to software_width=0 and music_mode=0 for the safest startup baseline.
+            Physical-Vita test build from master.
+            New runtime logging selector: log_mode 0=off, 1=errors/fatal (Release default), 2=+PERF, 3=verbose Debug diagnostics.
+            Legacy vita_shooter is retired; controls.txt is the only handheld mapping source.
+            Existing config.txt and controls.txt files are preserved and are never overwritten.
             Commit: `${{ github.sha }}`
             Includes exactly Debug and Release loader VPKs plus matching ELF files for crash symbolization; game assets are not packaged.
             Physical Vita verification remains separate from build verification.
