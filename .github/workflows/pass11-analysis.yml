@@ -1,0 +1,30 @@
+name: Pass11 softwareTact analysis
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disassemble GRAPH hot path
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
+          {
+            echo '=== SYMBOLS ==='
+            arm-linux-gnueabihf-nm -D -C demo/libzombie_shooter.so | grep -E 'GRAPH::(Tact|softwareTact)|OpenGLES::(UnLock|PostTact)' || true
+            echo '=== GRAPH::Tact ==='
+            arm-linux-gnueabihf-objdump -d -C -M force-thumb --start-address=0x410a30 --stop-address=0x410d00 demo/libzombie_shooter.so
+            echo '=== GRAPH::softwareTact tail ==='
+            arm-linux-gnueabihf-objdump -d -C -M force-thumb --start-address=0x4107f0 --stop-address=0x410a30 demo/libzombie_shooter.so
+          } > pass11-analysis.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pass11-softwareTact-analysis
+          path: pass11-analysis.txt
+          retention-days: 3
