@@ -23,6 +23,16 @@ def git(module, *args, check=True):
                           check=check, capture_output=True, text=True)
 
 
+def apply_patch(module, patch):
+    if not patch.exists():
+        return
+    args = ['apply', '--ignore-space-change']
+    if git(module, *args, '--reverse', '--check', str(patch), check=False).returncode == 0:
+        return
+    git(module, *args, '--check', str(patch))
+    git(module, *args, str(patch))
+
+
 def main():
     if os.environ.get('VITASDK') != str(SDK):
         raise RuntimeError('Use VITASDK=/usr/local/vitasdk; HardFP is not supported')
@@ -40,15 +50,13 @@ def main():
     for module, revision in lock['revisions'].items():
         if git(module, 'rev-parse', 'HEAD').stdout.strip() != revision:
             raise RuntimeError(f'{module}: wrong revision; use git submodule update --init --recursive')
-        patch = ROOT / 'patches' / (module + '.patch')
-        if patch.exists():
-            # Original checkout contains mixed CRLF/LF. Ignore context whitespace
-            # only; the complete resulting source hashes are verified below.
-            args = ['apply', '--ignore-space-change']
-            if git(module, *args, '--reverse', '--check', str(patch), check=False).returncode == 0:
-                continue
-            git(module, *args, '--check', str(patch))
-            git(module, *args, str(patch))
+        apply_patch(module, ROOT / 'patches' / (module + '.patch'))
+
+    # Pass 10 is intentionally split from the long baseline VitaGL patch. It is
+    # applied second so the diff stays small/reviewable while final source
+    # hashes below still pin the exact combined result.
+    apply_patch('vitagl', ROOT / 'patches' / 'vitagl_pass10.patch')
+
     bad = [name for name, sha in lock['files'].items()
            if not (ROOT / name).is_file() or digest(ROOT / name, True) != sha]
     if bad:
