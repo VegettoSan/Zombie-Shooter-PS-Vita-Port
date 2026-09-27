@@ -1,0 +1,43 @@
+name: Pass8 SO analysis
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: read
+jobs:
+  analyze-software-renderer:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ARM binutils
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
+      - name: Verify canonical SO
+        run: |
+          echo "SHA256"
+          sha256sum demo/libzombie_shooter.so
+          file demo/libzombie_shooter.so
+      - name: Relevant dynamic symbols
+        run: |
+          echo '=== SYMBOLS ==='
+          arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | \
+            grep -E 'GRAPH::softwareTact|VID_SOFTWARE|VID_SURFACE|SOFT_DRAW|SPRITE_COLLECTOR|DrawLayer|draw_impl|DrawWithAlpha|palette|pallete' || true
+      - name: Relevant nm symbols sorted
+        run: |
+          echo '=== NM ==='
+          arm-linux-gnueabihf-nm -D -n -C demo/libzombie_shooter.so | \
+            grep -E 'GRAPH::softwareTact|VID_SOFTWARE|VID_SURFACE|SOFT_DRAW|SPRITE_COLLECTOR|DrawLayer|draw_impl|DrawWithAlpha|palette|pallete' || true
+      - name: Disassemble softwareTact
+        run: |
+          echo '=== softwareTact ==='
+          arm-linux-gnueabihf-objdump -d -C --disassemble='_ZN5GRAPH12softwareTactEi' demo/libzombie_shooter.so || true
+      - name: Disassemble collector
+        run: |
+          echo '=== DrawLayer ==='
+          arm-linux-gnueabihf-objdump -d -C --disassemble='_ZNK16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb' demo/libzombie_shooter.so || true
+      - name: Dump VID_SOFTWARE region around known callers
+        run: |
+          echo '=== 0x513000..0x515000 ==='
+          arm-linux-gnueabihf-objdump -d -C --start-address=0x513000 --stop-address=0x515000 demo/libzombie_shooter.so
