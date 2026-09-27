@@ -1,0 +1,103 @@
+name: Pass12 apply stability changes
+on:
+  push:
+    branches:
+      - fix/run16-disable-render-scale
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/run16-disable-render-scale
+          fetch-depth: 0
+      - name: Apply Pass12 source changes
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def rep(path, old, new):
+              p=Path(path); s=p.read_text()
+              if new in s:
+                  return False
+              if s.count(old)!=1:
+                  raise SystemExit(f'{path}: expected one occurrence, got {s.count(old)}')
+              p.write_text(s.replace(old,new,1))
+              return True
+
+          changed=False
+
+          changed |= rep('source/utils/settings.h',
+              'extern int setting_software_frameskip; // 0: render every tick; 1: reuse previous software frame every other tick\n',
+              'extern int setting_software_frameskip; // 0: render every tick; 1: adaptive 30-FPS render reuse\nextern int setting_dynamic_shadows; // 0: disable dynamic sprite shadows for performance; 1: original shadows\n')
+
+          changed |= rep('source/utils/settings.c',
+              'int setting_software_frameskip;\nint  setting_sampleSetting;',
+              'int setting_software_frameskip;\nint setting_dynamic_shadows;\nint  setting_sampleSetting;')
+          changed |= rep('source/utils/settings.c',
+              '    setting_software_frameskip = 1;\n    setting_sampleSetting  = 1;',
+              '    setting_software_frameskip = 1;\n    /* Pass 12: shadows scale with the number of visible units and are purely\n     * cosmetic. Disable them by default to protect the 30-FPS floor. */\n    setting_dynamic_shadows = 0;\n    setting_sampleSetting  = 1;')
+          changed |= rep('source/utils/settings.c',
+              '        fprintf(config, "#   1 = render every other tick and reuse the previous completed frame (recommended test)\\n");\n        fprintf(config, "# Restart the game after changing these values.\\n");',
+              '        fprintf(config, "#   1 = adaptive 30-FPS render reuse (0-3 reuse ticks based on measured load)\\n");\n        fprintf(config, "# dynamic_shadows modes:\\n");\n        fprintf(config, "#   0 = disable dynamic sprite shadows (recommended for stable FPS)\\n");\n        fprintf(config, "#   1 = original dynamic shadows\\n");\n        fprintf(config, "# Restart the game after changing these values.\\n");')
+          changed |= rep('source/utils/settings.c',
+              '        fprintf(config, "software_frameskip %d\\n", setting_software_frameskip);\n        fprintf(config, "%s %d\\n", "setting_sampleSetting", (int)(setting_sampleSetting));',
+              '        fprintf(config, "software_frameskip %d\\n", setting_software_frameskip);\n        fprintf(config, "dynamic_shadows %d\\n", setting_dynamic_shadows);\n        fprintf(config, "%s %d\\n", "setting_sampleSetting", (int)(setting_sampleSetting));')
+          changed |= rep('source/utils/settings.c',
+              '        if (strcmp("software_frameskip", buffer) == 0) {\n            setting_software_frameskip = value != 0;\n            continue;\n        }\n',
+              '        if (strcmp("software_frameskip", buffer) == 0) {\n            setting_software_frameskip = value != 0;\n            continue;\n        }\n        if (strcmp("dynamic_shadows", buffer) == 0) {\n            setting_dynamic_shadows = value == 1;\n            continue;\n        }\n')
+
+          # Exact shadow hook + sampled base sprite tact profiler. Both use
+          # already validated 8-byte Thumb trampolines; no instruction writes
+          # happen per frame.
+          hot='''static uintptr_t pass12_shadow_original;\nstatic uintptr_t pass12_sprite_tact_original;\nstatic unsigned pass12_shadow_calls,pass12_shadow_skipped;\nstatic unsigned pass12_sprite_calls,pass12_sprite_samples,pass12_sprite_sampled_us,pass12_sprite_max_us,pass12_sprite_seq;\n#define PASS12_SPRITE_SAMPLE_PERIOD 32u\n\nstatic int probe_show_shadows(void *self) {\n    pass12_shadow_calls++;\n    if (!setting_dynamic_shadows) { pass12_shadow_skipped++; return 0; }\n    return ((int (*)(void *))pass12_shadow_original)(self);\n}\n\nstatic void probe_sprite_tact_hot(void *self) {\n    pass12_sprite_calls++;\n    uint64_t start=((pass12_sprite_seq++ & (PASS12_SPRITE_SAMPLE_PERIOD-1u))==0)\n        ? sceKernelGetProcessTimeWide():0;\n    ((void (*)(void *))pass12_sprite_tact_original)(self);\n    if (start) {\n        unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);\n        pass12_sprite_samples++;pass12_sprite_sampled_us+=us;\n        if (us>pass12_sprite_max_us) pass12_sprite_max_us=us;\n    }\n}\n\nstatic int install_pass12_exact(const char *symbol,unsigned offset,const uint32_t prologue[2],\n        uintptr_t replacement,uintptr_t *original) {\n    uintptr_t address=(uintptr_t)so_symbol(&so_mod,symbol);\n    uintptr_t entry=address&~(uintptr_t)1;\n    uintptr_t arena=(so_mod.patch_head+3)&~(uintptr_t)3;\n    if (!(address&1) || entry!=so_mod.load_addr+offset ||\n        arena<so_mod.patch_base || arena>so_mod.patch_base+so_mod.patch_size ||\n        so_mod.patch_base+so_mod.patch_size-arena<16) {\n        l_warn("[PATCH] Pass12 hook disabled: %s address/arena mismatch",symbol);return 0;\n    }\n    uint32_t code[4];\n    if (!engine_probe_trampoline(code,(void *)entry,prologue,(uint32_t)(entry+8))) {\n        l_warn("[PATCH] Pass12 hook disabled: %s prologue mismatch",symbol);return 0;\n    }\n    sceClibMemcpy((void *)arena,code,sizeof(code));\n    *original=arena|1;so_mod.patch_head=arena+sizeof(code);\n    hook_addr(address,replacement);\n    kuKernelFlushCaches((void *)arena,sizeof(code));\n    kuKernelFlushCaches((void *)entry,8);\n    l_info("[PATCH] Pass12 hook installed: %s so+0x%X",symbol,offset);\n    return 1;\n}\n\nstatic void install_pass12_extra_hooks(void) {\n    static const uint32_t shadow_prologue[2]={0xaf03b5f0,0xbd04f84d};\n    static const uint32_t sprite_prologue[2]={0xaf03b5f0,0x0f00e92d};\n    install_pass12_exact("_ZNK3MAP13isShowShadowsEv",0x435644,shadow_prologue,\n        (uintptr_t)probe_show_shadows,&pass12_shadow_original);\n    install_pass12_exact("_ZN6SPRITE4TactEv",0x4dbe40,sprite_prologue,\n        (uintptr_t)probe_sprite_tact_hot,&pass12_sprite_tact_original);\n}\n\nstatic void pass12_hot_report(void) {\n    static unsigned old_shadow_calls,old_shadow_skipped,old_sprite_calls,old_sprite_samples,old_sprite_us;\n    unsigned sc=pass12_shadow_calls,ss=pass12_shadow_skipped;\n    unsigned pc=pass12_sprite_calls,ps=pass12_sprite_samples,pu=pass12_sprite_sampled_us;\n    l_perf("pass12_shadows config=%d calls=%u skipped=%u strategy=map_isShowShadows_false",\n        setting_dynamic_shadows,sc-old_shadow_calls,ss-old_shadow_skipped);\n    l_perf("map_hot name=sprite_tact_base calls=%u sampled_calls=%u sampled_us=%u estimated_inclusive_us=%llu max_sample_us_lifetime=%u sample_period=%u",\n        pc-old_sprite_calls,ps-old_sprite_samples,pu-old_sprite_us,\n        (unsigned long long)(pu-old_sprite_us)*PASS12_SPRITE_SAMPLE_PERIOD,\n        pass12_sprite_max_us,PASS12_SPRITE_SAMPLE_PERIOD);\n    old_shadow_calls=sc;old_shadow_skipped=ss;old_sprite_calls=pc;old_sprite_samples=ps;old_sprite_us=pu;\n}\n\n'''
+          changed |= rep('source/patch.c',
+              'void render_reuse_report(void) {\n',
+              hot+'void render_reuse_report(void) {\n')
+          changed |= rep('source/patch.c',
+              '    for (unsigned i=0;i<=RENDER_REUSE_MAX_SKIPS;++i) old_cycles[i]=render_reuse_cycles[i];\n}\nENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)',
+              '    for (unsigned i=0;i<=RENDER_REUSE_MAX_SKIPS;++i) old_cycles[i]=render_reuse_cycles[i];\n    pass12_hot_report();\n}\nENGINE_THIS_PROBE(pre,PERF_ENGINE_PRE)')
+          changed |= rep('source/patch.c',
+              '        l_info("[PATCH] engine probe installed: %s so+0x%X",probes[i].symbol,probes[i].offset);\n    }\n}\n#endif',
+              '        l_info("[PATCH] engine probe installed: %s so+0x%X",probes[i].symbol,probes[i].offset);\n    }\n    install_pass12_extra_hooks();\n}\n#endif')
+
+          # Real-time audio: Pass11 used 128-frame output blocks. Pass12 already
+          # enlarges this to 1024x4; now make the mixer priority explicit too.
+          changed |= rep('lib/opensles_clear/Vita.c',
+              '''\tint affinity_res=sceKernelChangeThreadCpuAffinityMask(\n\t\tsceKernelGetThreadId(),SCE_KERNEL_CPU_MASK_USER_1);\n\t_log_print(1,"[AUDIO] mixer affinity user_core=1 result=0x%08X",(unsigned)affinity_res);''',
+              '''\tSceUID audio_tid=sceKernelGetThreadId();\n\tint old_priority=sceKernelGetThreadCurrentPriority();\n\tint affinity_res=sceKernelChangeThreadCpuAffinityMask(audio_tid,SCE_KERNEL_CPU_MASK_USER_1);\n\tint priority_res=sceKernelChangeThreadPriority(audio_tid,85);\n\tint new_priority=sceKernelGetThreadCurrentPriority();\n\t_log_print(1,"[AUDIO] mixer scheduling core=1 affinity_result=0x%08X priority_before=%d priority_target=85 priority_result=0x%08X priority_after=%d",\n\t\t(unsigned)affinity_res,old_priority,(unsigned)priority_res,new_priority);''')
+
+          # Isolate the heavy render/game thread from the audio mixer. One-time
+          # affinity only; priority remains the engine's original value.
+          changed |= rep('source/utils/glutil.c',
+              '#include <psp2/kernel/threadmgr.h>\n#include <stdint.h>',
+              '#include <psp2/kernel/threadmgr.h>\n#include <psp2/kernel/cpu.h>\n#include <stdint.h>')
+          changed |= rep('source/utils/glutil.c',
+              '''EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {\n    static uint64_t window_start_us;''',
+              '''EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {\n    static int render_affinity_done;\n    if (!render_affinity_done) {\n        SceUID tid=sceKernelGetThreadId();\n        int result=sceKernelChangeThreadCpuAffinityMask(tid,SCE_KERNEL_CPU_MASK_USER_0);\n        l_perf("render_affinity thread=0x%08X target_core=0 result=0x%08X priority=%d",\n            (unsigned)tid,(unsigned)result,sceKernelGetThreadCurrentPriority());\n        render_affinity_done=1;\n    }\n    static uint64_t window_start_us;''')
+
+          # Settings regression: default performance shadows off, opt-in works.
+          changed |= rep('tests/settings_regression.c',
+              '    assert(setting_framebuffer_565==0 && setting_software_frameskip==1);\n\n    FILE *f=',
+              '    assert(setting_framebuffer_565==0 && setting_software_frameskip==1 && setting_dynamic_shadows==0);\n\n    FILE *f=')
+          # Add one explicit dynamic-shadows case before invalid settings case.
+          changed |= rep('tests/settings_regression.c',
+              '''    f=fopen(DATA_PATH "config.txt","w");assert(f);\n    fputs("software_width 123\\nmusic_mode 9\\nvita_shooter 1\\nframebuffer_565 99\\n",f);fclose(f);''',
+              '''    f=fopen(DATA_PATH "config.txt","w");assert(f);\n    fputs("software_width 864\\nmusic_mode 0\\ndynamic_shadows 1\\nsoftware_frameskip 1\\n",f);fclose(f);\n    settings_load();\n    assert(setting_dynamic_shadows==1 && setting_software_frameskip==1);\n\n    f=fopen(DATA_PATH "config.txt","w");assert(f);\n    fputs("software_width 123\\nmusic_mode 9\\nvita_shooter 1\\nframebuffer_565 99\\n",f);fclose(f);''')
+          changed |= rep('tests/settings_regression.c',
+              'Settings regression PASS: 864 default, Pass10 framebuffer_565=1 migration to RGBA, explicit diagnostic=2, render reuse default/on/off, music and input preservation',
+              'Settings regression PASS: 864 default, stable RGBA, adaptive reuse, performance shadows default-off/opt-in, music and input preservation')
+
+          if not changed:
+              print('Pass12 source changes already present')
+          PY
+          git diff --check
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'VegettoSanDev'
+          git config user.email '72358120+VegettoSan@users.noreply.github.com'
+          git add source/patch.c source/utils/settings.c source/utils/settings.h source/utils/glutil.c lib/opensles_clear/Vita.c tests/settings_regression.c
+          git commit -m 'perf: stabilize heavy scenes and harden audio scheduling'
+          git push origin HEAD:fix/run16-disable-render-scale
