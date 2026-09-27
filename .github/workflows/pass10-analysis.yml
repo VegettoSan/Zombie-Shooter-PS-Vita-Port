@@ -14,20 +14,28 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq binutils-arm-linux-gnueabihf
-      - name: Inspect framebuffer upload caller
+      - name: Inspect framebuffer texture lifetime
         run: |
           set -euo pipefail
+          FULL=/tmp/full-disasm.txt
+          arm-linux-gnueabihf-objdump -d -C demo/libzombie_shooter.so > "$FULL"
           {
             echo '=== SHA ==='
             sha256sum demo/libzombie_shooter.so
+            echo '=== OPENGLES SYMBOLS ==='
+            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | grep -E 'OpenGLES::' || true
             echo '=== DYNAMIC GL SYMBOLS ==='
-            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures' || true
+            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | c++filt | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures|glDeleteTextures' || true
             echo '=== RELOCATIONS GL ==='
-            arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures' || true
-            echo '=== CALLER 0x46bd00..0x46c200 ==='
-            arm-linux-gnueabihf-objdump -d -C --start-address=0x46bd00 --stop-address=0x46c200 demo/libzombie_shooter.so
-            echo '=== NEARBY SYMBOLS ==='
-            arm-linux-gnueabihf-readelf -Ws demo/libzombie_shooter.so | awk '$2 ~ /^000000000?46/ {print}' | c++filt || true
+            arm-linux-gnueabihf-readelf -rW demo/libzombie_shooter.so | grep -E 'glTex(Image|SubImage)2D|glBindTexture|glGenTextures|glDeleteTextures' || true
+            echo '=== PLT IMPORT THUNKS ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x8ccb00 --stop-address=0x8cd100 demo/libzombie_shooter.so
+            echo '=== UNLOCK ==='
+            arm-linux-gnueabihf-objdump -d -C --start-address=0x46bea4 --stop-address=0x46c090 demo/libzombie_shooter.so
+            echo '=== RGBA/UBYTE CONSTANT SITES ==='
+            grep -n -B18 -A30 -E 'movw.*#6408|movw.*#5121' "$FULL" | head -n 1600 || true
+            echo '=== TEXTURE CALL TARGET SITES ==='
+            grep -n -B16 -A28 -E 'blx[[:space:]]+8ccc80|blx[[:space:]]+8cce90' "$FULL" | head -n 1200 || true
           } > pass10-analysis.txt
       - uses: actions/upload-artifact@v4
         with:
