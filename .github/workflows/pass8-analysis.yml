@@ -1,4 +1,4 @@
-name: Pass9 validation
+name: Pass10 validation
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  validate-pass9:
+  validate-pass10:
     runs-on: ubuntu-22.04
     env:
       VITASDK: /usr/local/vitasdk
@@ -30,6 +30,7 @@ jobs:
           tests/run_gl_buffer_regression.sh
           tests/run_logger_regression.sh
           bash tests/run_texture_update_regression.sh
+          bash tests/run_framebuffer_565_regression.sh
           bash tests/run_asset_index_regression.sh
           bash tests/run_engine_probe_regression.sh
           python3 tests/run_gamma_palette_regression.py
@@ -71,36 +72,36 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-pass9-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
-          cmake --build build-pass9-debug -j"$(nproc)" 2>&1 | tee build-pass9-debug.log
-          test -s build-pass9-debug/zombie_shooter.vpk
-          test -s build-pass9-debug/so_loader
-          unzip -t build-pass9-debug/zombie_shooter.vpk
+          cmake -S . -B build-pass10-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass10-debug -j"$(nproc)" 2>&1 | tee build-pass10-debug.log
+          test -s build-pass10-debug/zombie_shooter.vpk
+          test -s build-pass10-debug/so_loader
+          unzip -t build-pass10-debug/zombie_shooter.vpk
       - name: Build Release
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-pass9-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
-          cmake --build build-pass9-release -j"$(nproc)" 2>&1 | tee build-pass9-release.log
-          test -s build-pass9-release/zombie_shooter.vpk
-          test -s build-pass9-release/so_loader
-          unzip -t build-pass9-release/zombie_shooter.vpk
-          python3 scripts/check_release_flags.py build-pass9-release
+          cmake -S . -B build-pass10-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          cmake --build build-pass10-release -j"$(nproc)" 2>&1 | tee build-pass10-release.log
+          test -s build-pass10-release/zombie_shooter.vpk
+          test -s build-pass10-release/so_loader
+          unzip -t build-pass10-release/zombie_shooter.vpk
+          python3 scripts/check_release_flags.py build-pass10-release
           git diff --check
       - name: Package test build
         run: |
-          mkdir -p pass9-dist
-          cp build-pass9-release/zombie_shooter.vpk pass9-dist/Zombie-Shooter-Pass9-Release.vpk
-          cp build-pass9-release/so_loader pass9-dist/Zombie-Shooter-Pass9-Release.elf
-          cp build-pass9-debug/zombie_shooter.vpk pass9-dist/Zombie-Shooter-Pass9-Debug.vpk
-          cp build-pass9-debug/so_loader pass9-dist/Zombie-Shooter-Pass9-Debug.elf
-          cp build-pass9-release.log build-pass9-debug.log pass9-dist/
-          sha256sum pass9-dist/*.vpk pass9-dist/*.elf > pass9-dist/SHA256SUMS.txt
-          sha256sum demo/libzombie_shooter.so > pass9-dist/so-reference.sha256.txt
-      - name: Upload Pass9 build
+          mkdir -p pass10-dist
+          cp build-pass10-release/zombie_shooter.vpk pass10-dist/Zombie-Shooter-Pass10-Release.vpk
+          cp build-pass10-release/so_loader pass10-dist/Zombie-Shooter-Pass10-Release.elf
+          cp build-pass10-debug/zombie_shooter.vpk pass10-dist/Zombie-Shooter-Pass10-Debug.vpk
+          cp build-pass10-debug/so_loader pass10-dist/Zombie-Shooter-Pass10-Debug.elf
+          cp build-pass10-release.log build-pass10-debug.log pass10-dist/
+          sha256sum pass10-dist/*.vpk pass10-dist/*.elf > pass10-dist/SHA256SUMS.txt
+          sha256sum demo/libzombie_shooter.so > pass10-dist/so-reference.sha256.txt
+      - name: Upload Pass10 build
         uses: actions/upload-artifact@v4
         with:
-          name: Zombie-Shooter-Pass9-${{ github.sha }}
-          path: pass9-dist
+          name: Zombie-Shooter-Pass10-${{ github.sha }}
+          path: pass10-dist
           if-no-files-found: error
           retention-days: 14
