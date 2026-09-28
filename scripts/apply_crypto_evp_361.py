@@ -1,145 +1,189 @@
 #!/usr/bin/env python3
-"""Inject the narrowly-scoped Zombie Shooter 3.6.1 EVP compatibility hook.
+"""Inject the build-1161 direct Registry file backend compatibility hook.
 
-Real-Vita logs from build #38 prove the Registry reaches SharedPreferences but
-AES-256 encryption fails after the guest has already validated a 32-byte key.
-Build-1161 disassembly shows the observed `Wrong AES key length` is emitted only
-after EVP_CipherInit_ex when EVP_CIPHER_CTX_get_key_length(ctx) does not report
-32. The AES wrapper then performs the same kind of check for the fixed 16-byte
-CBC IV.
+Zombie Shooter 3.6.1 routes persistent game state through core::Registry.
+On Android, encrypted Registry values are transformed by storeEncrypted() and
+then written as SharedPreferences strings. On Vita, the bundled OpenSSL 3
+provider cannot execute that AES-256-CBC path (real-hardware error 0308010C),
+so no value ever reaches SharedPreferences.
 
-The Vita OpenSSL/provider state can therefore disagree with the guest's own
-already-validated AES-256-CBC contract. This patch does NOT alter android_id,
-the SHA-256-derived key, ciphertext, or OpenSSL globally. It hooks only the two
-metadata getters and overrides their result only when the caller is one of the
-exact encrypt/decrypt metadata checks in Zombie Shooter 3.6.1 build 1161.
-The second EVP_CipherInit_ex (with the real key/IV) remains untouched and its
-return value is still checked by the game, so a genuinely unusable context
-continues to fail safely.
-
-Source drift aborts instead of applying a blind patch. The runtime installer
-also validates exact exported symbol addresses, Thumb state and function
-prologues before installing either hook. The normalized/even address is used
-only for byte verification; the original odd ELF symbol is passed to hook_addr
-so so_util installs a Thumb hook rather than an ARM hook.
+Match the pattern used by MetalSyntax ports: keep the game's logical save API,
+but replace the platform persistence boundary with direct files. The hook
+intercepts only Registry::storeEncrypted/loadDecrypted for exact build 1161.
+It still calls SigmaTeam's own Registry::encryptKey(), so contains/remove and
+RegistryEnumerator address the same backend keys. Values are stored unchanged
+by the Vita backend under ux0:data/zombieshooter/save/*.dat.
 """
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PATCH = ROOT / "source/patch.c"
-MARKER = "ZS361_EVP_METADATA_COMPAT"
+MARKER = "ZS361_DIRECT_REGISTRY_SAVE"
 
 HOOK_CODE = r'''
-/* ZS361_EVP_METADATA_COMPAT
+#include <stdlib.h>
+/* ZS361_DIRECT_REGISTRY_SAVE
  *
- * Build 1161's Chipher<encrypt/decrypt,256>::porcess validates key.size()==32
- * before these calls, selects EVP_aes_256_cbc(), and constructs a 16-byte IV.
- * On Vita the OpenSSL 3 provider-backed context can fail to publish that
- * metadata after the first EVP_CipherInit_ex even though the guest inputs are
- * already correct. Keep the workaround exact-call-site only; the subsequent
- * EVP_CipherInit_ex with actual key+IV is NOT bypassed and remains authoritative.
- *
- * IMPORTANT: both target OpenSSL functions are Thumb symbols. so_util's
- * hook_addr() selects hook_thumb() only when bit 0 of the target address is set.
- * Normalize the address only while validating the build-1161 entry/prologue;
- * preserve the original odd symbol value when installing the hook.
+ * Build 1161's Registry::setString/getString route persistent encrypted values
+ * through storeEncrypted/loadDecrypted.  OpenSSL AES-256-CBC is unavailable in
+ * the Vita runtime provider, so bypass only that crypto boundary and persist
+ * the original STRING value through the direct Vita Registry backend.
+ * Registry::encryptKey remains the game's own implementation, preserving the
+ * exact key namespace expected by contains/remove/enumeration.
  */
-static so_hook zs361_evp_key_length_hook;
-static so_hook zs361_evp_iv_length_hook;
+extern int zombie_registry_direct_put(const char *key, const char *value);
+extern char *zombie_registry_direct_get(const char *key);
 
-#define ZS361_EVP_KEYLEN_ENTRY          0x0059A8E0u
-#define ZS361_EVP_IVLEN_ENTRY           0x00599C78u
-#define ZS361_AES_ENC_KEYLEN_RETURN     0x00408626u
-#define ZS361_AES_ENC_IVLEN_RETURN      0x00408632u
-#define ZS361_AES_DEC_KEYLEN_RETURN     0x00408C04u
-#define ZS361_AES_DEC_IVLEN_RETURN      0x00408C10u
+static so_hook zs361_registry_store_encrypted_hook;
+static so_hook zs361_registry_load_decrypted_hook;
 
-static uintptr_t zs361_normalize_thumb(uintptr_t address) {
+typedef const char *(*zs361_string_c_str_fn)(const void *self);
+typedef void (*zs361_string_ctor_cstr_fn)(void *self, const char *value);
+typedef void (*zs361_string_copy_ctor_fn)(void *self, const void *other);
+typedef void (*zs361_string_dtor_fn)(void *self);
+typedef void (*zs361_encrypt_key_fn)(void *result, void *registry, const void *key);
+
+static zs361_string_c_str_fn zs361_string_c_str;
+static zs361_string_ctor_cstr_fn zs361_string_ctor_cstr;
+static zs361_string_copy_ctor_fn zs361_string_copy_ctor;
+static zs361_string_dtor_fn zs361_string_dtor;
+static zs361_encrypt_key_fn zs361_encrypt_key;
+
+typedef struct {
+    uintptr_t words[3]; /* build-1161 STRING is exactly 12 bytes */
+} zs361_string_storage;
+
+#define ZS361_REG_STORE_ENCRYPTED_ENTRY 0x003FB984u
+#define ZS361_REG_LOAD_DECRYPTED_ENTRY  0x003FB054u
+#define ZS361_REG_ENCRYPT_KEY_ENTRY     0x003FBFF4u
+#define ZS361_STRING_C_STR_ENTRY        0x003ED768u
+#define ZS361_STRING_CTOR_CSTR_ENTRY    0x003ED7B0u
+#define ZS361_STRING_COPY_CTOR_ENTRY    0x003ED800u
+#define ZS361_STRING_DTOR_ENTRY         0x003EE644u
+
+static uintptr_t zs361_even(uintptr_t address) {
     return address & ~(uintptr_t)1u;
 }
 
-static int zs361_crypto_caller_is(uintptr_t caller, uintptr_t a, uintptr_t b) {
-    caller = zs361_normalize_thumb(caller);
-    return caller == so_mod.load_addr + a || caller == so_mod.load_addr + b;
-}
-
-static int zs361_hooked_evp_key_length(void *ctx) {
-    uintptr_t caller = zs361_normalize_thumb((uintptr_t)__builtin_return_address(0));
-    int actual = SO_CONTINUE(int, zs361_evp_key_length_hook, ctx);
-    if (zs361_crypto_caller_is(caller,
-                               ZS361_AES_ENC_KEYLEN_RETURN,
-                               ZS361_AES_DEC_KEYLEN_RETURN)) {
-#ifdef ZOMBIE_DEBUG_BUILD
-        static unsigned reports;
-        if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 32)
-            l_perf("[CRYPTO] EVP AES256 keylen caller=so+0x%08X actual=%d expected=32 forced=%d",
-                   (unsigned)(caller - so_mod.load_addr), actual, actual != 32);
-#endif
-        return 32;
-    }
-    return actual;
-}
-
-static int zs361_hooked_evp_iv_length(void *ctx) {
-    uintptr_t caller = zs361_normalize_thumb((uintptr_t)__builtin_return_address(0));
-    int actual = SO_CONTINUE(int, zs361_evp_iv_length_hook, ctx);
-    if (zs361_crypto_caller_is(caller,
-                               ZS361_AES_ENC_IVLEN_RETURN,
-                               ZS361_AES_DEC_IVLEN_RETURN)) {
-#ifdef ZOMBIE_DEBUG_BUILD
-        static unsigned reports;
-        if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 32)
-            l_perf("[CRYPTO] EVP AES256 ivlen caller=so+0x%08X actual=%d expected=16 forced=%d",
-                   (unsigned)(caller - so_mod.load_addr), actual, actual != 16);
-#endif
-        return 16;
-    }
-    return actual;
-}
-
-static int zs361_crypto_symbol_matches(const char *name, uintptr_t expected_offset,
-                                       const uint8_t expected_prologue[8],
-                                       uintptr_t *hook_target_out) {
+static uintptr_t zs361_require_thumb_symbol(const char *name, uintptr_t expected_offset) {
     uintptr_t symbol = so_symbol(&so_mod, name);
-    uintptr_t entry = zs361_normalize_thumb(symbol);
     uintptr_t expected = so_mod.load_addr + expected_offset;
-    if (!symbol || entry != expected) {
-        l_error("[CRYPTO] refusing EVP hook %s: symbol=%p expected=so+0x%08X",
+    if (!symbol || !(symbol & 1u) || zs361_even(symbol) != expected) {
+        l_error("[SAVE] refusing direct Registry hook %s: symbol=%p expected=so+0x%08X Thumb",
                 name, (void *)symbol, (unsigned)expected_offset);
         return 0;
     }
-    if ((symbol & (uintptr_t)1u) == 0) {
-        l_error("[CRYPTO] refusing EVP hook %s: build-1161 symbol lost Thumb bit", name);
+    return symbol;
+}
+
+static int zs361_validate_prologue(uintptr_t symbol, const uint8_t expected[8],
+                                   const char *name) {
+    uintptr_t entry = zs361_even(symbol);
+    if (memcmp((const void *)entry, expected, 8) != 0) {
+        l_error("[SAVE] refusing direct Registry hook %s: build-1161 prologue mismatch", name);
         return 0;
     }
-    if (memcmp((const void *)entry, expected_prologue, 8) != 0) {
-        l_error("[CRYPTO] refusing EVP hook %s: build-1161 prologue mismatch", name);
-        return 0;
-    }
-    *hook_target_out = symbol;
     return 1;
 }
 
-static void install_zs361_crypto_evp_compat(void) {
-    static const uint8_t key_prologue[8] = {0xF0,0xB5,0x03,0xAF,0x4D,0xF8,0x04,0xBD};
-    static const uint8_t iv_prologue[8]  = {0xB0,0xB5,0x02,0xAF,0x8E,0xB0,0x04,0x46};
-    uintptr_t key_target = 0, iv_target = 0;
+static int zs361_make_backend_key(zs361_string_storage *out, void *registry,
+                                  const void *key, const char **chars_out) {
+    memset(out, 0, sizeof(*out));
+    zs361_encrypt_key(out, registry, key);
+    const char *chars = zs361_string_c_str(out);
+    if (!chars || !*chars) {
+        zs361_string_dtor(out);
+        return 0;
+    }
+    *chars_out = chars;
+    return 1;
+}
 
-    if (!zs361_crypto_symbol_matches("EVP_CIPHER_CTX_get_key_length",
-                                     ZS361_EVP_KEYLEN_ENTRY,
-                                     key_prologue, &key_target) ||
-        !zs361_crypto_symbol_matches("EVP_CIPHER_CTX_get_iv_length",
-                                     ZS361_EVP_IVLEN_ENTRY,
-                                     iv_prologue, &iv_target)) {
-        l_error("[CRYPTO] 3.6.1 EVP metadata compatibility disabled; exact guards failed");
+static void zs361_hooked_registry_store_encrypted(void *registry,
+                                                   const void *key,
+                                                   const void *value) {
+    zs361_string_storage backend_key;
+    const char *backend_chars = NULL;
+    const char *value_chars = zs361_string_c_str(value);
+    if (!value_chars || !zs361_make_backend_key(&backend_key, registry, key, &backend_chars)) {
+        l_error("[SAVE] direct Registry store rejected invalid STRING/key");
         return;
     }
 
-    zs361_evp_key_length_hook = hook_addr(key_target,
-                                          (uintptr_t)&zs361_hooked_evp_key_length);
-    zs361_evp_iv_length_hook = hook_addr(iv_target,
-                                         (uintptr_t)&zs361_hooked_evp_iv_length);
-    l_info("[CRYPTO] installed guarded 3.6.1 AES-256 EVP metadata compatibility (Thumb-safe)");
+    int ok = zombie_registry_direct_put(backend_chars, value_chars);
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned reports;
+    if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 128)
+        l_perf("[SAVE] Registry.storeEncrypted -> direct file bytes=%u ok=%d",
+               (unsigned)strlen(value_chars), ok);
+#endif
+    zs361_string_dtor(&backend_key);
+}
+
+static void zs361_hooked_registry_load_decrypted(void *result,
+                                                  void *registry,
+                                                  const void *key,
+                                                  const void *fallback) {
+    zs361_string_storage backend_key;
+    const char *backend_chars = NULL;
+    char *value = NULL;
+    int key_ok = zs361_make_backend_key(&backend_key, registry, key, &backend_chars);
+    if (key_ok)
+        value = zombie_registry_direct_get(backend_chars);
+
+    if (value)
+        zs361_string_ctor_cstr(result, value);
+    else
+        zs361_string_copy_ctor(result, fallback);
+
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned reports;
+    if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 128)
+        l_perf("[SAVE] Registry.loadDecrypted <- direct file hit=%d bytes=%u",
+               value != NULL, value ? (unsigned)strlen(value) : 0u);
+#endif
+    free(value);
+    if (key_ok)
+        zs361_string_dtor(&backend_key);
+}
+
+static void install_zs361_direct_registry_save(void) {
+    static const uint8_t store_prologue[8] = {0xF0,0xB5,0x03,0xAF,0x2D,0xE9,0x00,0x0B};
+    static const uint8_t load_prologue[8]  = {0xF0,0xB5,0x03,0xAF,0x4D,0xF8,0x04,0x8D};
+
+    uintptr_t store = zs361_require_thumb_symbol(
+        "_ZN4core8Registry14storeEncryptedERK6STRINGS3_", ZS361_REG_STORE_ENCRYPTED_ENTRY);
+    uintptr_t load = zs361_require_thumb_symbol(
+        "_ZN4core8Registry13loadDecryptedERK6STRINGS3_", ZS361_REG_LOAD_DECRYPTED_ENTRY);
+    uintptr_t encrypt_key = zs361_require_thumb_symbol(
+        "_ZN4core8Registry10encryptKeyERK6STRING", ZS361_REG_ENCRYPT_KEY_ENTRY);
+    uintptr_t c_str = zs361_require_thumb_symbol(
+        "_ZNK6STRING5c_strEv", ZS361_STRING_C_STR_ENTRY);
+    uintptr_t ctor_cstr = zs361_require_thumb_symbol(
+        "_ZN6STRINGC1EPKc", ZS361_STRING_CTOR_CSTR_ENTRY);
+    uintptr_t copy_ctor = zs361_require_thumb_symbol(
+        "_ZN6STRINGC1ERKS_", ZS361_STRING_COPY_CTOR_ENTRY);
+    uintptr_t dtor = zs361_require_thumb_symbol(
+        "_ZN6STRINGD1Ev", ZS361_STRING_DTOR_ENTRY);
+
+    if (!store || !load || !encrypt_key || !c_str || !ctor_cstr || !copy_ctor || !dtor ||
+        !zs361_validate_prologue(store, store_prologue, "Registry::storeEncrypted") ||
+        !zs361_validate_prologue(load, load_prologue, "Registry::loadDecrypted")) {
+        l_error("[SAVE] direct Registry file backend disabled; exact build-1161 guards failed");
+        return;
+    }
+
+    zs361_encrypt_key = (zs361_encrypt_key_fn)encrypt_key;
+    zs361_string_c_str = (zs361_string_c_str_fn)c_str;
+    zs361_string_ctor_cstr = (zs361_string_ctor_cstr_fn)ctor_cstr;
+    zs361_string_copy_ctor = (zs361_string_copy_ctor_fn)copy_ctor;
+    zs361_string_dtor = (zs361_string_dtor_fn)dtor;
+
+    zs361_registry_store_encrypted_hook = hook_addr(
+        store, (uintptr_t)&zs361_hooked_registry_store_encrypted);
+    zs361_registry_load_decrypted_hook = hook_addr(
+        load, (uintptr_t)&zs361_hooked_registry_load_decrypted);
+    l_info("[SAVE] installed 3.6.1 direct Registry backend -> ux0:data/zombieshooter/save/");
 }
 '''
 
@@ -151,47 +195,64 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
+def remove_legacy_evp_patch(text: str) -> str:
+    legacy = "/* ZS361_EVP_METADATA_COMPAT"
+    if legacy not in text:
+        return text
+    end_marker = '    l_info("[CRYPTO] installed guarded 3.6.1 AES-256 EVP metadata compatibility (Thumb-safe)");\n}\n'
+    start = text.index(legacy)
+    end = text.find(end_marker, start)
+    if end < 0:
+        raise SystemExit("patch.c: legacy EVP marker found but block end is unknown; refusing drift")
+    end += len(end_marker)
+    text = text[:start] + text[end:]
+    call = "\tinstall_zs361_crypto_evp_compat();\n"
+    if text.count(call) != 1:
+        raise SystemExit("patch.c: legacy EVP block found but installer call missing/duplicated")
+    text = text.replace(call, "", 1)
+    print("Removed obsolete EVP metadata hook from prepared patch.c")
+    return text
+
+
 def main() -> None:
     text = PATCH.read_text(encoding="utf-8")
+    text = remove_legacy_evp_patch(text)
     if MARKER in text:
-        # Idempotence: also prove the installer call survived.
-        if text.count("install_zs361_crypto_evp_compat();") != 1:
-            raise SystemExit("patch.c: crypto marker exists but installer call is missing/duplicated")
-        print("3.6.1 guarded EVP metadata compatibility already prepared")
+        if text.count("install_zs361_direct_registry_save();") != 1:
+            raise SystemExit("patch.c: direct Registry marker exists but installer call is missing/duplicated")
+        PATCH.write_text(text, encoding="utf-8")
+        print("3.6.1 direct Registry file backend already prepared")
         return
 
     text = replace_once(
         text,
         "static so_hook registry_load_value_hook;\n",
-        "static so_hook registry_load_value_hook;\n" + HOOK_CODE + "\n",
+        "static so_hook registry_load_value_hook;\n\n" + HOOK_CODE + "\n",
         "registry hook declaration",
     )
     text = replace_once(
         text,
         "\tkuser_patch();\n",
-        "\tkuser_patch();\n\tinstall_zs361_crypto_evp_compat();\n",
+        "\tkuser_patch();\n\tinstall_zs361_direct_registry_save();\n",
         "kuser_patch installer",
     )
 
-    # Static source gates: these exact values were independently disassembled
-    # from the user's canonical 3.6.1 ARMv7 binary. The hook-target checks also
-    # ensure the generated code keeps the ELF Thumb bit instead of passing the
-    # normalized/even address into so_util's architecture-dispatching hook_addr.
     required = [
-        "0x0059A8E0u", "0x00599C78u",
-        "0x00408626u", "0x00408632u",
-        "0x00408C04u", "0x00408C10u",
-        "EVP_CIPHER_CTX_get_key_length", "EVP_CIPHER_CTX_get_iv_length",
-        "*hook_target_out = symbol;",
-        "hook_addr(key_target", "hook_addr(iv_target",
-        "install_zs361_crypto_evp_compat();",
+        "ZS361_DIRECT_REGISTRY_SAVE",
+        "0x003FB984u", "0x003FB054u", "0x003FBFF4u",
+        "_ZN4core8Registry14storeEncryptedERK6STRINGS3_",
+        "_ZN4core8Registry13loadDecryptedERK6STRINGS3_",
+        "_ZN4core8Registry10encryptKeyERK6STRING",
+        "zombie_registry_direct_put", "zombie_registry_direct_get",
+        "hook_addr(\n        store", "hook_addr(\n        load",
+        "install_zs361_direct_registry_save();",
     ]
     missing = [token for token in required if token not in text]
     if missing:
-        raise SystemExit("patch.c: generated crypto patch missing: " + ", ".join(missing))
+        raise SystemExit("patch.c: generated direct Registry patch missing: " + ", ".join(missing))
 
     PATCH.write_text(text, encoding="utf-8")
-    print("Prepared guarded Zombie Shooter 3.6.1 AES-256 EVP metadata compatibility")
+    print("Prepared Zombie Shooter 3.6.1 direct Registry file backend")
 
 
 if __name__ == "__main__":
