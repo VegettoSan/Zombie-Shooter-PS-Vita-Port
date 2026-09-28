@@ -4,9 +4,34 @@ These instructions apply to the entire repository.
 
 ## Project goal
 
-Port the Android version of **Zombie Shooter** to **real PS Vita hardware** by loading and adapting the original ARM Android shared library rather than reimplementing the whole game. The immediate priority is correctness and playability; optimization comes later.
+Port the Android version of **Zombie Shooter** to **real PS Vita hardware** by loading and adapting the original ARM Android shared library rather than reimplementing the whole game. The project has already reached meaningful real-Vita gameplay, so the current priority is **correctness plus measured performance**: save persistence, digital controller fidelity, renderer stability, lighting cost, general FPS and loading time.
 
-For any Android→PS Vita porting, boot, JNI, renderer, asset, audio, input, crash, or loader task, **read `docs/METALSYNTAX_PORTING_GUIDE.md` before editing code**.
+For any Android→PS Vita porting, boot, JNI, renderer, asset, audio, input, crash, loader, save or performance task, **read `docs/METALSYNTAX_PORTING_GUIDE.md` before editing code**.
+
+For the current hardware-tested state and the exact open blockers, **also read `docs/CURRENT_HARDWARE_BLOCKERS_2026-09-27.md` before editing code**. That document supersedes old bring-up assumptions when they conflict with current physical-Vita evidence.
+
+## Current real-Vita baseline — 2026-09-27
+
+Baseline tested immediately before the latest documentation pass:
+
+`5e246c97bbf1a8de4858abb4843757dd980ed271`
+
+Current physical-Vita facts:
+
+- the game boots and reaches playable gameplay;
+- current music/audio path works and must not be casually replaced;
+- `log_mode 0`, `asset_cache_mib 16`, `software_width 864`, `framebuffer_565 0`, `software_frameskip 1` produced a subjective FPS improvement;
+- a small number of textures/sprites flicker;
+- dynamic lights/flashlight still cause obvious FPS drops;
+- analog sticks work, but digital controls still do not match the game's Xbox layout;
+- the failed synthetic/gameplay-touch experiment was removed and the previous strict/hybrid path was restored, which restored the old broken digital behavior rather than fixing it;
+- the SharedPreferences/RegistryEnumerator emulation added in `5e246c97...` did not make campaign progress persist on hardware, and the intended `ux0:data/zombieshooter/shared_preferences.bin` file was not observed;
+- relaunch still returns to the tutorial;
+- initial loading remains a worthwhile optimization target.
+
+Do not report any of those open items as fixed until the user verifies them on a real Vita.
+
+The user's local workspace provides the complete original game material for reverse engineering: XAPK/APK, the canonical Android `.so`, and extracted assets/data. Locate and inspect those local files directly instead of guessing Android behavior.
 
 ## Explicit restoration exception (2026-09-25)
 
@@ -148,6 +173,8 @@ analyze APK + .so
 
 Reuse architecture from another port only after establishing a real engine/ABI/lifecycle match. Never copy binary patch offsets between different `.so` files or versions.
 
+Third-party Android-to-Vita ports may be researched for known-good patterns, especially FalsoJNI/FalsoNDK, NativeActivity and VitaGL ports. Prefer experienced public ports, including work by Rinnegatamante/MetalSyntax and other established Vita port developers, but adapt semantics rather than copying magic constants.
+
 ## JNI / ABI correctness
 
 Treat JNI signatures and ARM ABI as correctness-critical.
@@ -178,20 +205,21 @@ For multiple native modules, derive dependencies from the actual binary (`DT_NEE
 
 Never apply an arbitrary runtime/binary patch merely because another game needed one. A patch must be tied to evidence from this game's binary, log, disassembly, or crash dump.
 
-## Graphics, assets, audio and input
+## Graphics, assets, audio, input and saves
 
 Determine these from the game before choosing an implementation:
 
-- **Graphics:** inspect actual GLES/EGL imports. GLES1 and GLES2 need different compatibility strategies.
+- **Graphics:** inspect actual GLES/EGL imports. GLES1 and GLES2 need different compatibility strategies. Treat flicker as a lifetime/state/synchronization bug until evidence proves otherwise.
 - **Assets:** determine whether the engine uses `AAssetManager`, JNI resource methods, direct `fopen`, APK/ZIP/OBB, `/sdcard`, `/data/data`, or proprietary archives. Do not assume `assets/` is enough.
-- **Audio:** identify OpenSL ES, AudioTrack, OpenAL, SDL, FMOD, engine mixer, Ogg/MP3/WAV, etc. before building a Vita backend.
-- **Input:** prefer the engine's direct/native gamepad API when available; use synthetic touch only when that is the real control path. Real touch and synthetic touch must share safe slot allocation.
+- **Audio:** identify OpenSL ES, AudioTrack, OpenAL, SDL, FMOD, engine mixer, Ogg/MP3/WAV, etc. before changing the current working backend.
+- **Input:** prefer the engine's direct/native gamepad API when available; use synthetic touch only when that is the real control path. Real touch and synthetic touch must share safe slot allocation. Current analog success plus digital failure means axis and digital paths must be investigated separately.
+- **Saves:** reconstruct the actual XAPK persistence path. Do not assume SharedPreferences is the campaign-save backend. Trace SharedPreferences, normal file I/O, app/private/external paths, registry enumeration, encryption/identity and rename/fsync behavior from the exact game version.
 
 Keep saves, game data, logs and caches logically separated under `ux0:data/zombieshooter/`.
 
 ## Debugging policy
 
-Use **one hardware-confirmed bug at a time**.
+Use **one hardware-confirmed bug at a time inside each subsystem**, even when a pass covers several independent subsystems.
 
 Preferred loop:
 
@@ -218,30 +246,26 @@ Useful prefixes:
 
 ```text
 [BOOT] [SO] [JNI] [LIFE] [GL] [ASSET]
-[AUDIO] [INPUT] [THREAD] [PATCH] [WARN] [CRASH]
+[AUDIO] [INPUT] [SAVE] [THREAD] [PATCH] [WARN] [CRASH]
 ```
 
 When a text log cannot root-cause a crash, ask for/use the real `.psp2dmp` and analyze it against the unstripped Debug ELF. For addresses inside a dynamically loaded game `.so`, resolve the offset from the known load base manually with `nm`/`objdump`/Ghidra rather than trusting a guessed base.
 
 ## Current known baseline
 
-Previous real-Vita testing reached approximately:
+The old loader-crash baseline is historical. The current real-Vita build is playable, so do not spend a new pass re-solving already working bring-up without new evidence.
+
+Current blockers are documented in `docs/CURRENT_HARDWARE_BLOCKERS_2026-09-27.md` and are, in order of user-visible importance:
 
 ```text
-SO loaded
-SO relocated
-imports resolved
-41/41 init_array constructors returned
-OpenGL preload returned
-FalsoJNI initialized
-gl_init returned
-game/NDK thread created
-ANativeActivity_onCreate found and returned
-sigaction(SIGSEGV) warnings
-crash
+save/progress persistence
+correct digital Xbox-style controls
+texture/sprite flicker
+lighting-related FPS drop + further measured FPS improvement
+initial loading time
 ```
 
-This is a useful clue, not proof that NativeActivity is the correct lifecycle. Revalidate against the local APK/XAPK before spending major effort on NativeActivity internals.
+For saves and input, inspect the local XAPK/DEX/smali plus the canonical `.so` before implementing another compatibility layer. For performance, profile the exact active path on real gameplay; earlier light work already demonstrated that optimizing an unused path can produce no hardware benefit.
 
 ## Build commands
 
@@ -288,16 +312,19 @@ Never describe something as fixed merely because it compiles.
 
 Keep or create concise project notes:
 
-- `PORTING_PLAN.md`: confirmed ABI/engine/lifecycle/assets/audio/input map and current hypotheses.
+- `PORTING_PLAN.md`: confirmed ABI/engine/lifecycle/assets/audio/input/save map and current hypotheses.
 - `port_progress.md`: one bug entry at a time: symptom, evidence, root cause, change, verification state.
+- `docs/CURRENT_HARDWARE_BLOCKERS_2026-09-27.md`: current physical-Vita blocker handoff until superseded by a newer hardware report.
 
-Do not turn either document into a transcript or giant speculative checklist.
+Do not turn these documents into a transcript or giant speculative checklist.
 
 ## Optimization order
 
-Do not prioritize overclocking, NEON tuning, shader speedhacks, large caches, FBO downsampling, frame skipping, culling hacks or texture compression until the game reaches meaningful gameplay and the bottleneck has been measured.
+Meaningful gameplay has already been reached, so measured performance work is now explicitly in scope.
 
-Correctness and reproducibility first; performance second.
+Prioritize optimizations that are tied to real-Vita profiling and preserve visual/gameplay correctness. Prefer removing redundant work, copies, conversions, failed path probes and synchronization waits before reducing effect quality. Overclocking, blind NEON rewrites, shader speedhacks, large caches, aggressive frame skipping, culling hacks or texture compression are not substitutes for proving the active bottleneck.
+
+For the current pass, specifically measure and address the active light path, texture/sprite flicker interactions and startup I/O. Keep A/B flags for risky experiments and document defaults.
 
 ## End-of-task report
 
@@ -305,12 +332,15 @@ Keep the final Codex report concise and include:
 
 ```text
 Architecture/lifecycle confirmed
-Most relevant external reference(s)
+Exact XAPK/.so evidence used for save and input
+Most relevant external reference repository/repositories
+Measured root cause(s)
 Files changed
+Host/ARM regression status
 Debug build status
 Release build status
 VPK path
 Verification state
-Exact physical-Vita test to run next
+Exact physical-Vita test matrix to run next
 At most 1–3 logs/dumps to return
 ```
