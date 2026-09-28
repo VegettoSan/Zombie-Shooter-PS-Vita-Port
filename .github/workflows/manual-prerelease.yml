@@ -54,7 +54,7 @@ jobs:
       - name: Prepare verified 3.6.1 recovery profile
         run: |
           set -euo pipefail
-          python3 scripts/prepare_game_361_source.py
+          python3 scripts/prepare_game_361_incremental.py
           grep -F 'NewStringUTF(&jni, "3.6.1")' source/java_base.inc
           grep -F 'return 1161;' source/java_base.inc
 
@@ -129,7 +129,7 @@ jobs:
           Commit: $GITHUB_SHA
           Android target: Zombie Shooter 3.6.1 build 1161 armeabi-v7a
           SDK: /usr/local/vitasdk, SoftFP
-          Recovery profile: verified 3.6.1 M4A/AAC music hooks, 864 render scale, adaptive software-frame reuse, native gamepad bridge, durable SharedPreferences
+          Recovery profile: verified 3.6.1 M4A/AAC music hooks, 864 render scale, adaptive software-frame reuse, native gamepad bridge, incremental direct Registry save files
           Safety policy: old 3.2.3-only startup/raster/light/palette hooks remain disabled unless individually re-derived for 3.6.1
           Runtime verification: requires physical PS Vita
           EOF
@@ -160,7 +160,7 @@ jobs:
 
             This build re-enables only functionality re-derived and guarded against the 3.6.1 ARMv7 binary: the working M4A/AAC music replacement, the 864-wide software render scale, and adaptive software-frame reuse. Old 3.2.3-only startup/raster/light/palette hooks remain disabled.
 
-            The Vita control profile now maps L/R to the game's verified next/previous-weapon HAT actions while rear-left/rear-right remain LT/RT (medikit/grenade). SharedPreferences mutations are persisted immediately for the save test.
+            The Vita control profile maps L/R to the game's verified next/previous-weapon HAT actions while rear-left/rear-right remain LT/RT (medikit/grenade). Registry saves are persisted incrementally under `ux0:data/zombieshooter/save/`: one changed key writes one `.dat`, with no per-file device-wide `ux0:` sync or whole-Registry rewrite on apply.
 
             The VPK does not include proprietary Android game files. Prepare the data with `scripts/extract_game_361.py` and copy it to `ux0:data/zombieshooter/`.
 
