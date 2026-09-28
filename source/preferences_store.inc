@@ -1,11 +1,13 @@
 /* Zombie Shooter Registry backing store for Vita.
  *
- * MetalSyntax-style policy: keep the engine's Registry/SharedPreferences
- * contract, but persist each logical SharedPreferences string as a normal
- * file under ux0:data/zombieshooter/save/.  There is no aggregate Vita-only
- * container and no ZSPREF1 header.  File contents are exactly the STRING bytes
- * handed to the backend.  Keys are represented reversibly as hexadecimal file
- * names so RegistryEnumerator can reconstruct the original key set safely.
+ * Keep SigmaTeam's Registry/SharedPreferences contract, but persist each
+ * logical string as a normal file under ux0:data/zombieshooter/save/.
+ *
+ * Build 48 proved this layout works on real hardware, but also exposed two
+ * pathological costs: every tiny write called sceIoSync("ux0:"), and each
+ * SharedPreferences apply rewrote the entire Registry.  This backend is
+ * intentionally incremental: put writes one file, remove deletes one file,
+ * clear deletes the generated files, and apply/commit do no directory rewrite.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -51,7 +53,7 @@ static int pref_find(const char*k){for(unsigned i=0;i<pref_count;i++)if(!strcmp(
 static int pref_grow(void){if(pref_count<pref_capacity)return 1;unsigned n=pref_capacity?pref_capacity*2:32;PrefEntry*p=(PrefEntry*)realloc(pref_entries,n*sizeof(*p));if(!p)return 0;pref_entries=p;pref_capacity=n;return 1;}
 static void pref_free_all(void){for(unsigned i=0;i<pref_count;i++){free(pref_entries[i].key);free(pref_entries[i].value);}free(pref_entries);pref_entries=NULL;pref_count=pref_capacity=0;}
 static int pref_set(const char*k,const char*v){size_t kn=strlen(k),vn=strlen(v);if(!kn||kn>120||vn>(1u<<20))return 0;char*nv=pref_dup(v,vn);if(!nv)return 0;int x=pref_find(k);if(x>=0){free(pref_entries[x].value);pref_entries[x].value=nv;pref_dirty=1;return 1;}char*nk=pref_dup(k,kn);if(!nk||pref_count>=4096||!pref_grow()){free(nk);free(nv);return 0;}pref_entries[pref_count++]=(PrefEntry){nk,nv};pref_dirty=1;return 1;}
-static void pref_remove_key(const char*k){int x=pref_find(k);if(x<0)return;free(pref_entries[x].key);free(pref_entries[x].value);pref_entries[x]=pref_entries[--pref_count];pref_dirty=1;}
+static int pref_remove_key(const char*k){int x=pref_find(k);if(x<0)return 0;free(pref_entries[x].key);free(pref_entries[x].value);pref_entries[x]=pref_entries[--pref_count];pref_dirty=1;return 1;}
 
 static int pref_ensure_dir(void) {
 #ifdef ZOMBIE_VITA_BUILD
@@ -72,11 +74,25 @@ static int pref_path_for_key(char*out,size_t cap,const char*k,const char*suffix)
     memcpy(out+base,suffix,sn);out[base+sn]=0;return 1;
 }
 static int pref_hex_value(char c){if(c>='0'&&c<='9')return c-'0';if(c>='a'&&c<='f')return c-'a'+10;if(c>='A'&&c<='F')return c-'A'+10;return-1;}
+static int pref_hex_basename(const char *name,size_t n) {
+    if(!n||(n&1)||n/2>120)return 0;
+    for(size_t i=0;i<n;i++)if(pref_hex_value(name[i])<0)return 0;
+    return 1;
+}
 static char *pref_key_from_filename(const char*name) {
     size_t n=strlen(name),ext=strlen(PREFS_EXT);if(n<=ext||strcmp(name+n-ext,PREFS_EXT))return NULL;
-    n-=ext;if(!n||(n&1)||n/2>120)return NULL;char*k=(char*)malloc(n/2+1);if(!k)return NULL;
-    for(size_t i=0;i<n;i+=2){int a=pref_hex_value(name[i]),b=pref_hex_value(name[i+1]);if(a<0||b<0){free(k);return NULL;}k[i/2]=(char)((a<<4)|b);}
+    n-=ext;if(!pref_hex_basename(name,n))return NULL;char*k=(char*)malloc(n/2+1);if(!k)return NULL;
+    for(size_t i=0;i<n;i+=2){int a=pref_hex_value(name[i]),b=pref_hex_value(name[i+1]);k[i/2]=(char)((a<<4)|b);}
     k[n/2]=0;if(memchr(k,0,n/2)){free(k);return NULL;}return k;
+}
+static int pref_generated_filename(const char *name) {
+    static const char *suffixes[]={".dat",".tmp",".bak"};
+    size_t n=strlen(name);
+    for(unsigned i=0;i<sizeof(suffixes)/sizeof(suffixes[0]);i++){
+        size_t sn=strlen(suffixes[i]);
+        if(n>sn&&!strcmp(name+n-sn,suffixes[i])&&pref_hex_basename(name,n-sn))return 1;
+    }
+    return 0;
 }
 
 static int pref_read_value_file(const char *path,char **value_out) {
@@ -88,7 +104,7 @@ static int pref_read_value_file(const char *path,char **value_out) {
 }
 
 static void pref_load(void) {
-    if(pref_loaded) return;
+    if(pref_loaded)return;
     pref_loaded=1;
     if(!pref_ensure_dir()){pref_dirty=0;return;}
     DIR*d=opendir(PREFS_DIR);
@@ -103,67 +119,88 @@ static void pref_load(void) {
     closedir(d);pref_dirty=0;SAVE_TRACE("[SAVE] loaded registry directory path=%s keys=%u",PREFS_DIR,pref_count);
 }
 
-static int pref_sync_file(FILE *f,const char *path) {
-    (void)path;
-    if(fflush(f))return 0;
-#ifdef ZOMBIE_VITA_BUILD
-    (void)f;int ret=sceIoSync("ux0:",0);
-#else
-    int ret=fsync(fileno(f));
-#endif
-    SAVE_TRACE("[SAVE] sync path=%s result=%d",path,ret);return ret==0;
-}
-
 static int pref_write_entry(const PrefEntry *e) {
     char path[768],tmp[768],bak[768];
-    if(!pref_path_for_key(path,sizeof(path),e->key,PREFS_EXT)||!pref_path_for_key(tmp,sizeof(tmp),e->key,".tmp")||!pref_path_for_key(bak,sizeof(bak),e->key,".bak"))return 0;
-    FILE*f=fopen(tmp,"wb");SAVE_TRACE("[SAVE] create registry file hash=%08X path=%s ok=%d",pref_key_hash(e->key),tmp,f!=NULL);if(!f)return 0;
-    size_t n=strlen(e->value);int ok=(n==0||fwrite(e->value,1,n,f)==n);if(ok)ok=pref_sync_file(f,tmp);if(fclose(f)!=0)ok=0;
-    if(!ok){remove(tmp);return 0;}
-    int had=(access(path,F_OK)==0);if(had){remove(bak);if(rename(path,bak)!=0){remove(tmp);return 0;}}
-    if(rename(tmp,path)!=0){if(had)rename(bak,path);remove(tmp);return 0;}
-    if(had) remove(bak);
+    if(!pref_path_for_key(path,sizeof(path),e->key,PREFS_EXT)||
+       !pref_path_for_key(tmp,sizeof(tmp),e->key,".tmp")||
+       !pref_path_for_key(bak,sizeof(bak),e->key,".bak"))return 0;
+    FILE*f=fopen(tmp,"wb");
+    if(!f){SAVE_TRACE("[SAVE] write-one open hash=%08X ok=0 errno=%d",pref_key_hash(e->key),errno);return 0;}
+    size_t n=strlen(e->value);
+    int ok=(n==0||fwrite(e->value,1,n,f)==n);
+    if(ok)ok=fflush(f)==0;
+    if(fclose(f)!=0)ok=0;
+    if(!ok){remove(tmp);SAVE_TRACE("[SAVE] write-one hash=%08X bytes=%u ok=0 errno=%d",pref_key_hash(e->key),(unsigned)n,errno);return 0;}
+    int had=(access(path,F_OK)==0);
+    if(had){remove(bak);if(rename(path,bak)!=0){remove(tmp);SAVE_TRACE("[SAVE] write-one rotate hash=%08X ok=0 errno=%d",pref_key_hash(e->key),errno);return 0;}}
+    if(rename(tmp,path)!=0){int saved_errno=errno;if(had)rename(bak,path);remove(tmp);errno=saved_errno;SAVE_TRACE("[SAVE] write-one rename hash=%08X ok=0 errno=%d",pref_key_hash(e->key),errno);return 0;}
+    if(had)remove(bak);
+    SAVE_TRACE("[SAVE] write-one hash=%08X bytes=%u ok=1",pref_key_hash(e->key),(unsigned)n);
     return 1;
 }
 
-static int pref_remove_stale_files(void) {
-    DIR*d=opendir(PREFS_DIR);if(!d)return 1;struct dirent*de;int ok=1;
-    while((de=readdir(d))!=NULL){char*k=pref_key_from_filename(de->d_name);if(!k)continue;if(pref_find(k)<0){char p[768],t[768],b[768];if(pref_path_for_key(p,sizeof(p),k,PREFS_EXT)&&remove(p)!=0&&errno!=ENOENT)ok=0;if(pref_path_for_key(t,sizeof(t),k,".tmp"))remove(t);if(pref_path_for_key(b,sizeof(b),k,".bak"))remove(b);SAVE_TRACE("[SAVE] remove registry file hash=%08X ok=%d",pref_key_hash(k),ok);}free(k);}
-    closedir(d);return ok;
+static int pref_delete_key_file(const char *key) {
+    char path[768],tmp[768],bak[768];int ok=1;
+    if(!pref_path_for_key(path,sizeof(path),key,PREFS_EXT)||
+       !pref_path_for_key(tmp,sizeof(tmp),key,".tmp")||
+       !pref_path_for_key(bak,sizeof(bak),key,".bak"))return 0;
+    if(remove(path)!=0&&errno!=ENOENT)ok=0;
+    if(remove(tmp)!=0&&errno!=ENOENT)ok=0;
+    if(remove(bak)!=0&&errno!=ENOENT)ok=0;
+    SAVE_TRACE("[SAVE] delete-one hash=%08X ok=%d",pref_key_hash(key),ok);
+    return ok;
 }
 
+static int pref_clear_files(void) {
+    if(!pref_ensure_dir())return 0;
+    DIR*d=opendir(PREFS_DIR);if(!d)return errno==ENOENT;
+    struct dirent*de;int ok=1;unsigned removed=0;
+    while((de=readdir(d))!=NULL){
+        if(!pref_generated_filename(de->d_name))continue;
+        char path[768];int n=snprintf(path,sizeof(path),"%s/%s",PREFS_DIR,de->d_name);
+        if(n<=0||(size_t)n>=sizeof(path)){ok=0;continue;}
+        if(remove(path)==0)removed++;else if(errno!=ENOENT)ok=0;
+    }
+    closedir(d);SAVE_TRACE("[SAVE] clear registry files removed=%u ok=%d",removed,ok);return ok;
+}
+
+/* All mutations are persisted at the mutation boundary. apply()/commit() are
+ * therefore bookkeeping only. If an immediate write failed, report failure
+ * rather than falling back to an O(n) rewrite of the whole Registry. */
 static int pref_save(void) {
-    pref_load();if(!pref_dirty)return 1;if(!pref_ensure_dir())return 0;int ok=pref_remove_stale_files();
-    for(unsigned i=0;ok&&i<pref_count;i++)ok=pref_write_entry(&pref_entries[i]);
-#ifdef ZOMBIE_VITA_BUILD
-    if(ok)ok=sceIoSync("ux0:",0)==0;
-#endif
-    SAVE_TRACE("[SAVE] directory commit path=%s keys=%u ok=%d",PREFS_DIR,pref_count,ok);if(ok)pref_dirty=0;return ok;
+    pref_load();
+    int ok=!pref_dirty;
+    SAVE_TRACE("[SAVE] incremental apply path=%s keys=%u dirty=%d ok=%d",PREFS_DIR,pref_count,pref_dirty,ok);
+    return ok;
+}
+
+static int pref_persist_current_key(const char *key) {
+    int x=pref_find(key);
+    if(x<0||!pref_ensure_dir())return 0;
+    int ok=pref_write_entry(&pref_entries[x]);
+    if(ok)pref_dirty=0;
+    return ok;
 }
 
 /* Used by the 3.6.1 Registry::storeEncrypted/loadDecrypted compatibility hooks.
  * The key supplied here is SigmaTeam's own Registry::encryptKey() output, so
  * Registry::contains/remove continue to address exactly the same logical key. */
 int zombie_registry_direct_put(const char *key,const char *value) {
-    if(!key||!value) return 0;
-    pref_lock();
-    pref_load();
-    int was_dirty=pref_dirty;
-    int ok=pref_set(key,value);
-    int x=ok?pref_find(key):-1;
-    if(ok) ok=x>=0&&pref_ensure_dir()&&pref_write_entry(&pref_entries[x]);
-    if(ok && !was_dirty) pref_dirty=0;
+    if(!key||!value)return 0;
+    pref_lock();pref_load();
+    int x=pref_find(key),changed=x<0||strcmp(pref_entries[x].value,value)!=0;
+    int ok=1;
+    if(changed){ok=pref_set(key,value);if(ok)ok=pref_persist_current_key(key);}
     pref_unlock();
-    SAVE_TRACE("[SAVE] direct Registry put hash=%08X bytes=%u ok=%d",pref_key_hash(key),(unsigned)strlen(value),ok);
+    SAVE_TRACE("[SAVE] direct Registry put hash=%08X bytes=%u changed=%d ok=%d",pref_key_hash(key),(unsigned)strlen(value),changed,ok);
     return ok;
 }
 char *zombie_registry_direct_get(const char *key) {
-    if(!key) return NULL;
+    if(!key)return NULL;
     char*out=NULL;
-    pref_lock();
-    pref_load();
+    pref_lock();pref_load();
     int x=pref_find(key);
-    if(x>=0) out=pref_dup(pref_entries[x].value,strlen(pref_entries[x].value));
+    if(x>=0)out=pref_dup(pref_entries[x].value,strlen(pref_entries[x].value));
     pref_trace_read(key,x>=0);
     pref_unlock();
     return out;
