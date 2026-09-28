@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2022-2024 Volodymyr Atamanenko
+ * Copyright (C) 2026      VegettoSan
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -29,7 +30,7 @@
 /**
  * Convert bionic (Android) `open()` flags to newlib (Vita) flags
  *
- * @param[in] flags open() flags created using musl defines
+ * @param[in] flags open() flags created using bionic defines
  *
  * @return open(flags) recreated using newlib defines
  */
@@ -65,7 +66,10 @@ SC_INLINE int oflags_bionic_to_newlib(int flags) {
 SC_INLINE
 dirent64_bionic * dirent_newlib_to_bionic(const struct dirent* dirent_newlib) {
     dirent64_bionic * ret = malloc(sizeof(dirent64_bionic));
-    strncpy(ret->d_name, dirent_newlib->d_name, sizeof(ret->d_name));
+    if (!ret)
+        return NULL;
+    memset(ret, 0, sizeof(*ret));
+    strncpy(ret->d_name, dirent_newlib->d_name, sizeof(ret->d_name) - 1);
     ret->d_off = 0;
     ret->d_reclen = 0;
     ret->d_type = SCE_S_ISDIR(dirent_newlib->d_stat.st_mode) ? DT_DIR : DT_REG;
@@ -73,27 +77,36 @@ dirent64_bionic * dirent_newlib_to_bionic(const struct dirent* dirent_newlib) {
 }
 
 /**
- * Convert newlib (Vita) `stat` struct to bionic (Android) format.
+ * Convert newlib (Vita) `stat` struct to the exact Android/Bionic ARM32
+ * stat64 byte layout expected by the guest .so.
+ *
+ * Do not assign Vita libc structs/typedefs wholesale here: nlink_t/uid_t/gid_t
+ * differ in width between Vita/newlib and Android/Bionic. The destination is
+ * intentionally fixed-width and is zeroed first so every ABI padding byte is
+ * deterministic.
+ *
  * @param[in]  src Pointer to a newlib-format stat struct
  * @param[out] dst Pointer to a bionic-format stat struct
  */
 SC_INLINE
 void stat_newlib_to_bionic(const struct stat * src, stat64_bionic * dst) {
-    dst->st_dev = src->st_dev;
-    dst->__st_ino = src->st_ino;
-    dst->st_ino = src->st_ino;
-    dst->st_mode = src->st_mode;
-    dst->st_nlink = src->st_nlink;
-    dst->st_uid = src->st_uid;
-    dst->st_gid = src->st_gid;
-    dst->st_rdev = src->st_rdev;
-    dst->st_size = src->st_size;
-    dst->st_blksize = src->st_blksize;
-    dst->st_blocks = src->st_blocks;
-    dst->st_atim.tv_sec = src->st_atime;
-    dst->st_atim.tv_nsec = 0;
-    dst->st_mtim.tv_sec = src->st_mtime;
-    dst->st_mtim.tv_nsec = 0;
-    dst->st_ctim.tv_sec = src->st_ctime;
-    dst->st_ctim.tv_nsec = 0;
+    memset(dst, 0, sizeof(*dst));
+
+    dst->st_dev = (uint64_t) src->st_dev;
+    dst->__st_ino = (uint32_t) src->st_ino;
+    dst->st_ino = (uint64_t) src->st_ino;
+    dst->st_mode = (uint32_t) src->st_mode;
+    dst->st_nlink = (uint32_t) src->st_nlink;
+    dst->st_uid = (uint32_t) src->st_uid;
+    dst->st_gid = (uint32_t) src->st_gid;
+    dst->st_rdev = (uint64_t) src->st_rdev;
+    dst->st_size = (int64_t) src->st_size;
+    dst->st_blksize = (uint32_t) src->st_blksize;
+    dst->st_blocks = (uint64_t) src->st_blocks;
+    dst->st_atim_sec = (int32_t) src->st_atime;
+    dst->st_atim_nsec = 0;
+    dst->st_mtim_sec = (int32_t) src->st_mtime;
+    dst->st_mtim_nsec = 0;
+    dst->st_ctim_sec = (int32_t) src->st_ctime;
+    dst->st_ctim_nsec = 0;
 }
