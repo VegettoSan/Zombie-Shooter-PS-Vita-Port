@@ -34,18 +34,28 @@
 // Same address used by mc3-vita / gdash-vita / most so_loader ports
 #define LOAD_ADDRESS 0x98000000
 
+/* Exact user-owned Android binary expected by this branch.  Keeping the
+ * identity check in the loader prevents accidental testing with the old
+ * 3.2.3/3.5.3 library and avoids interpreting crashes from the wrong SO. */
+#define TARGET_GAME_VERSION "3.6.1"
+#define TARGET_GAME_VERSION_CODE 1161
+#define TARGET_SO_SIZE 9908972u
+#define TARGET_SO_SHA1 "F7C7BBFC41F7ED8B76C8C5B1AF3E9B0DFDF188C0"
+
 /*
  * Constructors 16 and 17 previously crashed because protobuf's exported
  * pLinuxKernelMemoryBarrier/pLinuxKernelCmpxchg pointers still contained the
- * Android kuser addresses. kuser_patch() now fixes those .data pointers, so
- * every constructor must run: protobuf descriptor registration and the other
- * static subsystems are required by the game after ANativeActivity_onCreate.
+ * Android kuser addresses. kuser_patch() fixes those .data pointers.  The
+ * 3.6.1 ARMv7 SO contains the same exported protobuf kuser pointers, so this
+ * generic compatibility patch remains required while old game-version hooks
+ * stay disabled until they are re-derived for 3.6.1.
  *
  * Set this to a concrete index only for a targeted hardware diagnostic build.
  */
 #define SKIP_INIT_FROM_INDEX UINT32_MAX
 
 extern so_module so_mod;
+extern void kuser_patch(void);
 
 static void write_last_init_breadcrumb(uint32_t index, uint32_t total, uintptr_t fn) {
     char buf[256];
@@ -125,6 +135,8 @@ static void so_initialize_logged(so_module *mod) {
 
 void soloader_init_all() {
     l_info("=== Zombie Shooter Vita Port - soloader_init_all() start ===");
+    l_info("Target Android game: %s (versionCode=%d, armeabi-v7a)",
+           TARGET_GAME_VERSION, TARGET_GAME_VERSION_CODE);
     l_info("DATA_PATH=%s", DATA_PATH);
     l_info("SO_PATH=%s", SO_PATH);
     l_info("LOAD_ADDRESS=0x%08X", (unsigned)LOAD_ADDRESS);
@@ -220,14 +232,46 @@ void soloader_init_all() {
     l_info("Checking SO file exists: %s", SO_PATH);
     if (!file_exists(SO_PATH)) {
         l_fatal("SO file MISSING at %s", SO_PATH);
-        fatal_error("Looks like you haven't installed the data files for this "
-                    "port, or they are in an incorrect location.\n"
+        fatal_error("Zombie Shooter %s ARMv7 data is missing or installed in the wrong location.\n"
                     "Required file:\n%s",
-                    SO_PATH);
+                    TARGET_GAME_VERSION, SO_PATH);
     }
 
     size_t so_sz = file_size(SO_PATH);
     l_success("SO file found. Size = %u bytes (0x%X)", (unsigned)so_sz, (unsigned)so_sz);
+    if (so_sz != TARGET_SO_SIZE) {
+        l_fatal("Wrong game SO size: got=%u expected=%u", (unsigned)so_sz,
+                (unsigned)TARGET_SO_SIZE);
+        fatal_error("Wrong libzombie_shooter.so.\n\nThis VPK requires Zombie Shooter %s build %d armeabi-v7a.\nExpected size: %u bytes\nFound: %u bytes",
+                    TARGET_GAME_VERSION, TARGET_GAME_VERSION_CODE,
+                    (unsigned)TARGET_SO_SIZE, (unsigned)so_sz);
+    }
+
+    char *game_hash = file_sha1sum(SO_PATH);
+    if (!game_hash || strcmp(game_hash, TARGET_SO_SHA1) != 0) {
+        l_fatal("Wrong game SO SHA1: got=%s expected=%s",
+                game_hash ? game_hash : "<unreadable>", TARGET_SO_SHA1);
+        if (game_hash) free(game_hash);
+        fatal_error("Wrong libzombie_shooter.so.\n\nUse the 3.6.1 build 1161 armeabi-v7a split (config.armeabi_v7a.apk).");
+    }
+    l_success("Verified Zombie Shooter %s ARMv7 SO SHA1: %s",
+              TARGET_GAME_VERSION, game_hash);
+    free(game_hash);
+
+    static const char *required_assets[] = {
+        DATA_PATH "assets/game.res",
+        DATA_PATH "assets/game.cfg",
+        DATA_PATH "assets/strings.ini",
+        DATA_PATH "assets/bundles.config",
+    };
+    for (unsigned i = 0; i < sizeof(required_assets) / sizeof(required_assets[0]); ++i) {
+        if (!file_exists(required_assets[i])) {
+            l_fatal("Required 3.6.1 asset missing: %s", required_assets[i]);
+            fatal_error("Zombie Shooter 3.6.1 assets are incomplete.\n\nMissing:\n%s\n\nExtract the complete assets/ directory from the base APK.",
+                        required_assets[i]);
+        }
+    }
+    l_success("Required 3.6.1 asset root files found.");
 
     l_info("Calling so_file_load(path=%s, addr=0x%08X)...", SO_PATH, (unsigned)LOAD_ADDRESS);
     int load_res = so_file_load(&so_mod, SO_PATH, LOAD_ADDRESS);
@@ -250,9 +294,13 @@ void soloader_init_all() {
     resolve_imports(&so_mod);
     l_success("SO imports resolved.");
 
-    l_info("Applying patches...");
-    so_patch();
-    l_success("SO patched.");
+    /* All former so_patch() engine/raster/audio/registry hooks were derived
+     * from the previous game binary.  3.6.1 has different internal addresses
+     * and must not receive those hooks until each one is revalidated.  Keep
+     * only the generic kuser/protobuf fix required by this exact ARMv7 SO. */
+    l_info("Applying 3.6.1 safe bring-up patches (kuser/protobuf only)...");
+    kuser_patch();
+    l_success("3.6.1 safe bring-up patches applied; legacy game-specific hooks disabled.");
 
     l_info("Flushing caches...");
     so_flush_caches(&so_mod);
