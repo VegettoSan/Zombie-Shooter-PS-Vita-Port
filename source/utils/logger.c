@@ -1,4 +1,4 @@
-/* Port logger: serialized formatting, buffered Release output and bounded sync. */
+/* Port logger: serialized formatting, buffered output and bounded sync. */
 #include "utils/logger.h"
 #include "utils/settings.h"
 #include <psp2/kernel/clib.h>
@@ -38,6 +38,11 @@ static unsigned replacement;
  *   1: errors + fatal
  *   2: errors + fatal + PERF
  *   3: all messages that exist in this build (verbose Debug diagnostics)
+ *
+ * Modes 1/2 are intended to be usable while actually playing. They flush log
+ * bytes periodically but do NOT call sceIoSyncByFd from the caller/game thread.
+ * Physical fsync is reserved for fatal/explicit sync and verbose mode 3. This
+ * matters on Vita: hardware logs showed individual log fsyncs taking >1 second.
  */
 static int persist_type(int t) {
     int mode = setting_log_mode;
@@ -78,6 +83,15 @@ static void flush_locked(void) {
         done += (unsigned)n;
     }
     if (done) { buffered -= done; memmove(file_buffer, file_buffer + done, buffered); }
+}
+static void flush_checkpoint_locked(void) {
+    if (fd < 0) return;
+    flush_locked();
+    /* This is intentionally not a physical fsync. The bytes have left our
+     * userspace buffer, so reset the batching counters without stalling the
+     * render/game caller on sceIoSyncByFd. */
+    last_sync = sceKernelGetProcessTimeWide();
+    unsynced = 0;
 }
 static void sync_locked(void) {
     if (fd < 0) return;
@@ -185,12 +199,18 @@ void _log_print(int t, const char *fmt, ...) {
     if (setting_log_mode >= 3) {
         if (t == LT_WARN || t == LT_ERROR || t == LT_FATAL || unsynced >= 32) sync_locked();
         else flush_locked();
-    } else if (t == LT_ERROR || t == LT_FATAL || unsynced >= 64 ||
-               (unsynced && now-last_sync >= 1000000)) sync_locked();
-    /* Quiet Debug buffers PERF, retains errors immediately and supports an
-     * explicit logger_force_sync at any diagnostic boundary. */
+    } else if (t == LT_FATAL) {
+        sync_locked();
+    } else if (t == LT_ERROR || unsynced >= 64 ||
+               (unsynced && now-last_sync >= 1000000)) {
+        flush_checkpoint_locked();
+    }
+    /* Quiet Debug modes never device-sync normal ERROR/PERF output on the
+     * render/game caller. Fatal and explicit logger_force_sync remain durable. */
 #else
-    if (t == LT_FATAL || unsynced >= 64 || (unsynced && now-last_sync >= 1000000)) sync_locked();
+    if (t == LT_FATAL) sync_locked();
+    else if (unsynced >= 64 || (unsynced && now-last_sync >= 1000000))
+        flush_checkpoint_locked();
 #endif
     stats.total_us += (unsigned)(sceKernelGetProcessTimeWide()-start);
     sceKernelUnlockLwMutex(&mutex, 1);
