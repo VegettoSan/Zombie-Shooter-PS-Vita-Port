@@ -95,6 +95,13 @@ def main():
            if not (ROOT / name).is_file() or digest(ROOT / name, True) != sha]
     if bad:
         raise RuntimeError('Dependency sources differ from the baseline: ' + ', '.join(bad[:12]))
+
+    # Build-1161-only first-party compatibility patch. It is deliberately kept
+    # outside the submodule lock: the script itself rejects source drift and the
+    # runtime installer verifies the exact 3.6.1 OpenSSL symbols/prologues before
+    # touching them. Running it here makes local CMake and GitHub Actions agree.
+    subprocess.check_call([sys.executable, str(ROOT / 'scripts/apply_crypto_evp_361.py')])
+
     print('Functional SDK, SoftFP ABI, pinned submodules and exact Pass11 sources verified')
 
 
