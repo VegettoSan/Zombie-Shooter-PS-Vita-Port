@@ -1,10 +1,10 @@
 /*
  * Copyright (C) 2021      Andy Nguyen
- * Copyright (C) 2022      Rinnegatamante
- * Copyright (C) 2022-2024 Volodymyr Atamanenko
+ * Copyright (C) 2022-2024 Rinnegatamante / Volodymyr Atamanenko
+ * Copyright (C) 2026      VegettoSan
  *
- * This software may be modified and distributed under the terms
- * of the MIT license. See the LICENSE file for details.
+ * This software may be modified and distributed under the terms of the MIT
+ * license. See the LICENSE file for details.
  */
 
 /**
@@ -20,6 +20,8 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <sys/dirent.h>
 #include <sys/syslimits.h>
 #include <sys/fcntl.h>
@@ -40,24 +42,61 @@ extern "C" {
 #define DT_WHT 14
 #endif
 
+/*
+ * Android/Bionic ARM32 stat/stat64 ABI.
+ *
+ * IMPORTANT: never use Vita/newlib's nlink_t/uid_t/gid_t/time_t directly in
+ * this guest-facing struct. On Vita/newlib several of those typedefs are
+ * 16-bit, while Android 7/Bionic ARM32 uses 32-bit nlink/uid/gid and a fixed
+ * layout. A size/offset mismatch shifts st_size and timestamps, so a game can
+ * successfully write a save and then reject it as zero-sized/corrupt when it
+ * calls stat()/fstat().
+ *
+ * The explicit padding below reproduces the natural ARM EABI layout of
+ * Bionic's struct stat64 while keeping this host compiler independent from
+ * its own libc typedef widths. Android 7 ARM32 expected size: 104 bytes.
+ *
+ * Reference: AOSP bionic libc/include/sys/stat.h + sys/types.h (ARM32), and
+ * the same class of save bug documented/fixed in MetalSyntax/ILLUSIA-2-Vita.
+ */
 typedef struct __attribute__((__packed__)) stat64_bionic {
-    unsigned long long st_dev;
-    unsigned char __pad0[4];
-    unsigned long __st_ino;
-    unsigned int st_mode;
-    nlink_t st_nlink;
-    uid_t st_uid;
-    gid_t st_gid;
-    unsigned long long st_rdev;
-    unsigned char __pad3[4];
-    long long st_size;
-    unsigned long st_blksize;
-    unsigned long long st_blocks;
-    struct timespec st_atim;
-    struct timespec st_mtim;
-    struct timespec st_ctim;
-    unsigned long long st_ino;
+    uint64_t st_dev;          /* 0x00 */
+    uint8_t  __pad0[4];       /* 0x08 */
+    uint32_t __st_ino;        /* 0x0C */
+    uint32_t st_mode;         /* 0x10 */
+    uint32_t st_nlink;        /* 0x14 */
+    uint32_t st_uid;          /* 0x18 */
+    uint32_t st_gid;          /* 0x1C */
+    uint64_t st_rdev;         /* 0x20 */
+    uint8_t  __pad3[4];       /* 0x28: Bionic field */
+    uint8_t  __pad4[4];       /* 0x2C: ARM EABI alignment before int64 */
+    int64_t  st_size;         /* 0x30 */
+    uint32_t st_blksize;      /* 0x38 */
+    uint8_t  __pad5[4];       /* 0x3C: ARM EABI alignment before uint64 */
+    uint64_t st_blocks;       /* 0x40 */
+    int32_t  st_atim_sec;     /* 0x48 */
+    int32_t  st_atim_nsec;    /* 0x4C */
+    int32_t  st_mtim_sec;     /* 0x50 */
+    int32_t  st_mtim_nsec;    /* 0x54 */
+    int32_t  st_ctim_sec;     /* 0x58 */
+    int32_t  st_ctim_nsec;    /* 0x5C */
+    uint64_t st_ino;          /* 0x60 */
 } stat64_bionic;
+
+#if defined(__cplusplus)
+#define ZS_STATIC_ASSERT(cond, msg) static_assert((cond), msg)
+#else
+#define ZS_STATIC_ASSERT(cond, msg) _Static_assert((cond), msg)
+#endif
+
+ZS_STATIC_ASSERT(sizeof(stat64_bionic) == 104, "ARM32 Bionic stat64 must be 104 bytes");
+ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_nlink) == 0x14, "Bionic st_nlink offset mismatch");
+ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_size) == 0x30, "Bionic st_size offset mismatch");
+ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_blocks) == 0x40, "Bionic st_blocks offset mismatch");
+ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_atim_sec) == 0x48, "Bionic st_atim offset mismatch");
+ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_ino) == 0x60, "Bionic st_ino offset mismatch");
+
+#undef ZS_STATIC_ASSERT
 
 typedef struct __attribute__((__packed__)) dirent64_bionic {
     int16_t d_ino; // 2 bytes // offset 0x0
