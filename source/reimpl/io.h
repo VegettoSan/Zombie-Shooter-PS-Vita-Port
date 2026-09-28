@@ -83,6 +83,22 @@ typedef struct __attribute__((__packed__)) stat64_bionic {
     uint64_t st_ino;          /* 0x60 */
 } stat64_bionic;
 
+/*
+ * Android/Bionic dirent/dirent64 ABI on 32-bit Android.
+ * Both public structures are identical: uint64 inode, int64 offset,
+ * uint16 record length, uint8 type, char name[256], then natural tail
+ * padding to an 8-byte-aligned total of 280 bytes. The old Vita wrapper used
+ * a 16-bit inode and 64-bit record length, shifting every field after d_ino.
+ */
+typedef struct __attribute__((__packed__)) dirent64_bionic {
+    uint64_t d_ino;           /* 0x00 */
+    int64_t  d_off;           /* 0x08 */
+    uint16_t d_reclen;        /* 0x10 */
+    uint8_t  d_type;          /* 0x12 */
+    char     d_name[256];     /* 0x13 */
+    uint8_t  __pad_tail[5];   /* 0x113 -> sizeof 280 */
+} dirent64_bionic;
+
 #if defined(__cplusplus)
 #define ZS_STATIC_ASSERT(cond, msg) static_assert((cond), msg)
 #else
@@ -96,15 +112,13 @@ ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_blocks) == 0x40, "Bionic st_blocks o
 ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_atim_sec) == 0x48, "Bionic st_atim offset mismatch");
 ZS_STATIC_ASSERT(offsetof(stat64_bionic, st_ino) == 0x60, "Bionic st_ino offset mismatch");
 
-#undef ZS_STATIC_ASSERT
+ZS_STATIC_ASSERT(sizeof(dirent64_bionic) == 280, "ARM32 Bionic dirent64 must be 280 bytes");
+ZS_STATIC_ASSERT(offsetof(dirent64_bionic, d_off) == 0x08, "Bionic dirent d_off offset mismatch");
+ZS_STATIC_ASSERT(offsetof(dirent64_bionic, d_reclen) == 0x10, "Bionic dirent d_reclen offset mismatch");
+ZS_STATIC_ASSERT(offsetof(dirent64_bionic, d_type) == 0x12, "Bionic dirent d_type offset mismatch");
+ZS_STATIC_ASSERT(offsetof(dirent64_bionic, d_name) == 0x13, "Bionic dirent d_name offset mismatch");
 
-typedef struct __attribute__((__packed__)) dirent64_bionic {
-    int16_t d_ino; // 2 bytes // offset 0x0
-    int64_t d_off; // 8 bytes // offset 0x2
-    uint64_t d_reclen; // 8 bytes // 0xA
-    unsigned char d_type; // 1 byte // offset 0x12
-    char d_name[256]; // 256 bytes // offset 0x13
-} dirent64_bionic;
+#undef ZS_STATIC_ASSERT
 
 int open_soloader(const char * path, int oflag, ...);
 
