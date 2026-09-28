@@ -1,7 +1,7 @@
 # Zombie Shooter 3.6.1 — save / crypto findings
 
 Date: 2026-09-28
-Status: root cause narrowed by real-Vita logs + build-1161 disassembly; fix requires physical verification.
+Status: root cause narrowed by real-Vita logs + exact build-1161 disassembly; EVP compatibility fix is BUILD-PENDING / REAL-VITA-PENDING.
 
 This is a permanent handoff for humans, ChatGPT and Codex. Read it before changing Registry, SharedPreferences, Android identity, AES, `stat/fstat`, save paths or JNI identity code.
 
@@ -22,18 +22,17 @@ The Debug log proves the game **does reach our SharedPreferences bridge**:
 [SAVE] RegistryEnumerator.onKey registered
 [SAVE] resolve Activity.getPreferences(I) receiver=0x42424242
 [SAVE] open path=ux0:data/zombieshooter/shared_preferences.bin mode=rb ok=0 errno=2
-[SAVE] open path=ux0:data/zombieshooter/shared_preferences.bak mode=rb ok=0 errno=2
 [SAVE] Activity.getPreferences keys=0 path=ux0:data/zombieshooter/shared_preferences.bin
 ```
 
-However, the run contains hundreds of operations equivalent to:
+The same run repeatedly shows operations equivalent to:
 
 ```text
 [SAVE] durable remove hash=... ok=1
 [SAVE] apply ok=1 keys=0
 ```
 
-There are no successful non-null preference values and the registry stays at zero keys. The same run contains roughly 299 instances of:
+interleaved with roughly 299 occurrences of:
 
 ```text
 [AES] Wrong AES key length
@@ -41,11 +40,11 @@ bool core::crypto::Chipher<1, 256>::porcess(...)
 aes256.cpp:156
 ```
 
-The AES errors and zero-key remove/apply sequence are strongly interleaved. Therefore the missing file is **not evidence that SharedPreferences is never reached**. Instead, the native Registry encryption fails before a usable string value reaches `Editor.putString`; the null result is then observed as removal semantics, leaving no dirty non-empty store to persist.
+Therefore the missing file is **not evidence that SharedPreferences is never reached**. Native Registry encryption fails before a usable encrypted string reaches `Editor.putString`, leaving the registry at zero useful keys.
 
 ## Exact native key derivation in 3.6.1 build 1161
 
-Target native library:
+Target library:
 
 ```text
 libzombie_shooter.so
@@ -54,104 +53,122 @@ armeabi-v7a
 SHA256 cb461ac47de79536824e8f7b64fa82293b796bcc159675b4f5ad6304e60bdca1
 ```
 
-Thumb disassembly and relocations show this chain:
+Disassembly shows:
 
 ```text
-core::CryptEngine::encryptionKey()
+CryptEngine::encryptionKey()
   -> CryptEngine::salt()
   -> CryptEngine::applicationUID()
-  -> Activity.getContentResolver()
-  -> android.provider.Settings$Secure.getString(resolver, "android_id")
-  -> native STRING
-  -> core::crypto::sha256(c_str, length)
-  -> 32-byte digest
-  -> ICryptEngine::generateKey(...)
-  -> AES-256 encryption
-  -> Registry string
+  -> Settings.Secure.getString(..., "android_id")
+  -> STRING
+  -> SHA-256
+  -> 32-byte key vector
+  -> Chipher<encrypt,256>::porcess
+  -> EVP_aes_256_cbc / EVP_CipherInit_ex
+  -> Registry encrypted string
   -> SharedPreferences
 ```
 
-### Important: do NOT make Android ID 32 characters
+### Do NOT make Android ID 32 characters
 
-`Settings.Secure.ANDROID_ID` is correctly emulated as a stable 16-character hexadecimal identifier:
+The emulated Android ID remains a stable 16-character hexadecimal identifier:
 
 ```text
 a1b2c3d4e5f60718
 ```
 
-The engine itself SHA-256 hashes that value. A valid 16-byte ASCII Android ID therefore produces the required 32-byte digest.
+The engine hashes the identity itself with SHA-256. Changing it to a pre-hashed or 32-character fake key changes the original SigmaTeam contract and is prohibited without new binary evidence.
 
-Changing the Java result to a 32-character/pre-hashed key would change SigmaTeam's real key derivation contract and is prohibited unless new disassembly proves otherwise.
+The exact JNI descriptors for `Activity.getContentResolver()` and `Settings$Secure.getString(ContentResolver,String)` are explicitly handled by the 3.6.1 compatibility profile. Wrong signatures are rejected instead of falling through to name-only lookup.
 
-### Why an empty Android ID breaks exactly as observed
+## Refined root cause: observed error is AFTER the native 32-byte key check
 
-`core::crypto::sha256` in build 1161 special-cases null/zero-length input by returning an **empty byte vector**, not SHA256(empty).
+Deeper build-1161 disassembly corrects an earlier interpretation of the error text.
 
-`Chipher<1,256>::porcess` then computes the byte-vector size and explicitly requires:
-
-```text
-key.size() == 0x20
-```
-
-If not, it emits the exact hardware message:
+`Chipher<1,256>::porcess` first checks the actual C++ key vector:
 
 ```text
-Wrong AES key length
+so+0x004085DC  load key begin/end
+so+0x004085E0  subtract
+so+0x004085E2  cmp #0x20
 ```
 
-Thus a null/empty value from the Java identity path is sufficient to explain the hardware failure.
-
-## JNI compatibility bug
-
-The old FalsoJNI compatibility path primarily resolves methods by name. That is unsafe when the native engine expects exact Java descriptors.
-
-For the save crypto path, build 1161 expects exactly:
+That earlier branch has a different error path. The **hardware message** `Wrong AES key length` at `aes256.cpp:156` is emitted later, after the first `EVP_CipherInit_ex`, when this call does not report 32:
 
 ```text
-Activity.getContentResolver()
-  ()Landroid/content/ContentResolver;
-
-android.provider.Settings$Secure.getString(
-  Landroid/content/ContentResolver;
-  Ljava/lang/String;
-)Ljava/lang/String;
+so+0x00408622  EVP_CIPHER_CTX_get_key_length(ctx)
+so+0x00408626  cmp #0x20
 ```
 
-The 3.6.1 preparation now explicitly intercepts those class/name/signature combinations before legacy FalsoJNI lookup.
-
-It also consumes wrong signatures and returns `NULL`, so an incorrect descriptor cannot silently resolve by method name alone.
-
-The synthetic resolver object is no longer used as a hard rejection criterion inside `secureGetString()`. Once the exact static API is resolved, only the requested key name matters; `android_id` returns the stable ID and unrelated Settings.Secure names return null.
-
-## Host regression gate
-
-`tests/input_device_regression.c` follows the same identity route the native `applicationUID()` uses. It must prove:
-
-- exact `getContentResolver` descriptor resolves;
-- wrong descriptor does not resolve;
-- exact `Settings$Secure.getString(ContentResolver,String)` resolves;
-- wrong descriptor does not resolve;
-- `android_id` returns non-null;
-- value is exactly the stable 16-character hex ID;
-- unrelated secure keys return null.
-
-Expected host message:
+The decrypt path has the same metadata check:
 
 ```text
-Crypto identity JNI regression passed: exact Settings.Secure android_id path and stable non-empty UID
+so+0x00408C00  EVP_CIPHER_CTX_get_key_length(ctx)
+so+0x00408C04  cmp #0x20
 ```
 
-A build must stop if this regression fails.
+Therefore the observed hardware error proves the guest already passed its own 32-byte key-vector validation. The failure is the **OpenSSL EVP context metadata query on Vita**, not the length of `android_id` and not the SHA-256 output vector.
 
-## Expected next real-Vita evidence
+This is consistent with the previous controlled native crypto regression: the original key derivation with the stable 16-character UID produces a 32-byte key and the original encrypt/decrypt path round-trips correctly under the controlled host fixture. Vita's runtime/provider state is the remaining difference.
 
-In the next Debug run, a working Java identity path should log something equivalent to:
+## IV metadata has the same provider-backed pattern
+
+Encrypt constructs a fixed 16-byte CBC IV (`0xA0` repeated) and then checks:
 
 ```text
-[CRYPTO] Settings.Secure.getString name=android_id ... android_id=1
+so+0x0040862E  EVP_CIPHER_CTX_get_iv_length(ctx)
+so+0x00408632  cmp #0x10
 ```
 
-Then the previous repeated AES error should disappear. The save bridge should begin seeing non-null values, for example:
+Decrypt checks:
+
+```text
+so+0x00408C0C  EVP_CIPHER_CTX_get_iv_length(ctx)
+so+0x00408C10  cmp #0x10
+```
+
+The guest has already selected `EVP_aes_256_cbc()`, for which key/IV sizes are fixed at 32/16 bytes.
+
+## Guarded compatibility fix
+
+`scripts/apply_crypto_evp_361.py` injects a build-1161-only compatibility layer into `source/patch.c` at build time. `scripts/prepare_build.py` runs it for both local CMake builds and GitHub Actions.
+
+The patch:
+
+1. resolves `EVP_CIPHER_CTX_get_key_length` and `EVP_CIPHER_CTX_get_iv_length` from the loaded guest `.so`;
+2. requires their exact build-1161 normalized entries:
+
+```text
+EVP_CIPHER_CTX_get_key_length  so+0x0059A8E0
+EVP_CIPHER_CTX_get_iv_length   so+0x00599C78
+```
+
+3. verifies the exact first 8 bytes of each function before installing hooks;
+4. calls the original getter first;
+5. overrides only the four exact AES-256 metadata call sites listed above;
+6. returns 32 for the key metadata query and 16 for the IV metadata query only at those call sites;
+7. leaves every other OpenSSL caller untouched.
+
+Most importantly, the **second `EVP_CipherInit_ex` with the actual key and IV is not bypassed**. Zombie Shooter checks its return value. If the context is genuinely unable to perform AES-256-CBC, encryption still fails naturally instead of being falsely reported as successful.
+
+This makes the workaround substantially narrower than globally stubbing OpenSSL metadata or replacing the game's encryption algorithm.
+
+## Runtime Debug evidence expected from the patched build
+
+A successful hook installation should report:
+
+```text
+[CRYPTO] installed guarded 3.6.1 AES-256 EVP metadata compatibility
+```
+
+At encryption/decryption metadata checks Debug can report, bounded to a small number of lines:
+
+```text
+[CRYPTO] EVP AES256 keylen caller=so+0x00408626 actual=... expected=32 forced=...
+[CRYPTO] EVP AES256 ivlen  caller=so+0x00408632 actual=... expected=16 forced=...
+```
+
+If the second `EVP_CipherInit_ex` succeeds, the expected save progression is then:
 
 ```text
 [SAVE] preference put hash=... bytes=>0 ok=1
@@ -165,27 +182,34 @@ and VitaShell should show:
 ux0:data/zombieshooter/shared_preferences.bin
 ```
 
-Only after completing progress, fully closing the game, relaunching and observing restored campaign state may this be marked `REAL VITA VERIFIED / GAMEPLAY VERIFIED`.
+Only after campaign progress is restored following a full close/relaunch may save support be marked `REAL VITA VERIFIED / GAMEPLAY VERIFIED`.
 
-## Decision tree if the next test still fails
+## Decision tree after the EVP test
 
-If `[CRYPTO] ... android_id=1` appears but `Wrong AES key length` remains, the Java identity layer is no longer the culprit. Instrument the output size of native `applicationUID()` / `encryptionKey()` with a guarded build-1161-specific hook and verify the vector size before AES.
+If the old `Wrong AES key length` disappears but the next failure is `Wrong AES IV length`, verify the IV hook installation/caller value; do not alter the IV data.
 
-If `[CRYPTO]` never appears, native `applicationUID()` is not reaching the emulated Java call (or an empty value was cached earlier). Trace exact method-resolution/call order and, if necessary, guard-instrument `applicationUID()` itself.
+If key/IV metadata checks pass but the second `EVP_CipherInit_ex` returns failure, inspect `ERR_peek_last_error` and provider/context initialization. Do not bypass that failure.
 
-If AES errors disappear and non-null `[SAVE] preference put` events appear but relaunch still loses progress, continue with Registry batching/flush/load semantics (`beginBatchUpdate`, `endBatchUpdate`, `setRegSync`, `setRegAsync`, `queueFlush`, dump/load) rather than changing AES or Android ID again.
+If AES succeeds and non-null preference puts appear but relaunch still loses progress, continue with Registry batching/flush/load semantics (`beginBatchUpdate`, `endBatchUpdate`, `setRegSync`, `setRegAsync`, `queueFlush`, dump/load) rather than changing AES again.
 
-If `shared_preferences.bin` is written but native code sees a wrong size/existence, inspect the already-corrected Android/Bionic `stat/fstat` ABI and its Debug traces before changing storage format.
+If `shared_preferences.bin` is written but native code sees a wrong size/existence, inspect the already-corrected Android/Bionic `stat/fstat` ABI and its Debug traces before changing the storage format.
 
 ## Safety / rollback
 
-Pre-fix backup:
+Pre-save-crypto backup:
 
 ```text
 backup/pre-save-crypto-fix-20260928
 2944b377f12d3713fa4fc1c6d2d498779cb7db17
 ```
 
-Do not remove this branch.
+Earlier MetalSyntax integration backup:
 
-No save/crypto change is considered fixed merely because host regressions and VPK builds pass. Physical Vita evidence is authoritative.
+```text
+backup/pre-metalsyntax-integration-20260928
+24d8d4c2db27bd6d953db37ac881ea3e56ebd7b1
+```
+
+Do not remove either branch.
+
+No save/crypto change is considered fixed merely because host regressions and VPK builds pass. Physical Vita evidence remains authoritative.
