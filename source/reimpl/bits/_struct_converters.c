@@ -60,6 +60,12 @@ SC_INLINE int oflags_bionic_to_newlib(int flags) {
  * dirent/dirent64 layout. Android 32-bit uses a 64-bit inode and offset,
  * followed by a 16-bit record length and 8-bit type.
  *
+ * Vita's public `struct dirent` exposes `SceIoStat d_stat`, but SceIoStat has
+ * no inode field. Keep the ABI slot present and set d_ino=0 instead of
+ * inventing an unstable identifier. Zombie Shooter's directory consumers use
+ * names/types; if a future call path proves inode identity matters, derive a
+ * stable value from an authoritative source rather than guessing here.
+ *
  * @param[in] dirent_newlib Pointer to a newlib-format dirent struct
  *
  * @return Pointer to a bionic-format dirent struct.
@@ -72,7 +78,7 @@ dirent64_bionic * dirent_newlib_to_bionic(const struct dirent* dirent_newlib) {
         return NULL;
 
     memset(ret, 0, sizeof(*ret));
-    ret->d_ino = (uint64_t) dirent_newlib->d_stat.st_ino;
+    ret->d_ino = 0;
     ret->d_off = 0;
     ret->d_reclen = (uint16_t) sizeof(*ret);
     ret->d_type = SCE_S_ISDIR(dirent_newlib->d_stat.st_mode) ? DT_DIR : DT_REG;
