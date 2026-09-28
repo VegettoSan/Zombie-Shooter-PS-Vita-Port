@@ -51,14 +51,14 @@ jobs:
           "$VITASDK/bin/arm-vita-eabi-gcc" -Q --help=target | tee /tmp/gcc-target.txt
           grep -E -- '-mfloat-abi=[[:space:]]*softfp|softfp' /tmp/gcc-target.txt
 
-      - name: Prepare 3.6.1 Java-facing identity
+      - name: Prepare verified 3.6.1 recovery profile
         run: |
           set -euo pipefail
           python3 scripts/prepare_game_361_source.py
           grep -F 'NewStringUTF(&jni, "3.6.1")' source/java_base.inc
           grep -F 'return 1161;' source/java_base.inc
 
-      - name: Bridge regressions relevant to 3.6.1 bring-up
+      - name: Bridge regressions for 3.6.1 recovery
         run: |
           set -euo pipefail
           bash tests/run_jni_field_regression.sh
@@ -129,7 +129,8 @@ jobs:
           Commit: $GITHUB_SHA
           Android target: Zombie Shooter 3.6.1 build 1161 armeabi-v7a
           SDK: /usr/local/vitasdk, SoftFP
-          Bring-up policy: generic kuser/protobuf compatibility only; legacy 3.2.3 game-specific hooks disabled
+          Recovery profile: verified 3.6.1 M4A/AAC music hooks, 864 render scale, adaptive software-frame reuse, native gamepad bridge, durable SharedPreferences
+          Safety policy: old 3.2.3-only startup/raster/light/palette hooks remain disabled unless individually re-derived for 3.6.1
           Runtime verification: requires physical PS Vita
           EOF
 
@@ -155,11 +156,15 @@ jobs:
           prerelease: true
           make_latest: false
           body: |
-            Zombie Shooter 3.6.1 build 1161 armeabi-v7a bring-up for physical PS Vita.
+            Zombie Shooter 3.6.1 build 1161 armeabi-v7a recovery test for physical PS Vita.
+
+            This build re-enables only functionality re-derived and guarded against the 3.6.1 ARMv7 binary: the working M4A/AAC music replacement, the 864-wide software render scale, and adaptive software-frame reuse. Old 3.2.3-only startup/raster/light/palette hooks remain disabled.
+
+            The Vita control profile now maps L/R to the game's verified next/previous-weapon HAT actions while rear-left/rear-right remain LT/RT (medikit/grenade). SharedPreferences mutations are persisted immediately for the save test.
 
             The VPK does not include proprietary Android game files. Prepare the data with `scripts/extract_game_361.py` and copy it to `ux0:data/zombieshooter/`.
 
-            Install the Debug VPK first. The migration intentionally disables old 3.2.3 binary-specific hooks until they are re-derived against 3.6.1.
+            Use Release for FPS comparison. If music, controls, saves or stability still fail, reproduce once with Debug and attach the generated logs.
 
             Commit: `${{ github.sha }}`
             Physical Vita verification remains separate from build verification.
