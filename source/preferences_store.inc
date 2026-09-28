@@ -127,6 +127,10 @@ static int pref_read_value_file(const char *path,char **value_out) {
 #endif
 }
 
+#ifdef ZOMBIE_VITA_BUILD
+static int pref_io_ensure_worker(void);
+#endif
+
 static void pref_load(void) {
     if(pref_loaded)return;
     pref_loaded=1;
@@ -140,12 +144,18 @@ static void pref_load(void) {
         }
         free(k);free(v);
     }
-    closedir(d);pref_dirty=0;SAVE_TRACE("[SAVE] loaded registry directory path=%s keys=%u",PREFS_DIR,pref_count);
+    closedir(d);pref_dirty=0;
+#ifdef ZOMBIE_VITA_BUILD
+    /* Pay thread creation during loading, never on the first gameplay save. */
+    (void)pref_io_ensure_worker();
+#endif
+    SAVE_TRACE("[SAVE] loaded registry directory path=%s keys=%u",PREFS_DIR,pref_count);
 }
 
 /* Physical filesystem operations. On Vita these are called by the save worker,
  * never by the game thread unless worker creation fails. */
 static int pref_write_key_value_now(const char *key,const char *value) {
+    if(!pref_ensure_dir())return 0;
     char path[768],tmp[768],bak[768];
     if(!pref_path_for_key(path,sizeof(path),key,PREFS_EXT)||
        !pref_path_for_key(tmp,sizeof(tmp),key,".tmp")||
@@ -356,7 +366,7 @@ static int pref_save(void) {
 
 static int pref_persist_current_key(const char *key) {
     int x=pref_find(key);
-    if(x<0||!pref_ensure_dir())return 0;
+    if(x<0)return 0;
     int ok=pref_write_entry(&pref_entries[x]);
     if(ok)pref_dirty=0;
     return ok;
