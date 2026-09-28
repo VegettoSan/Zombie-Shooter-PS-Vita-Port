@@ -71,10 +71,13 @@ static jobject prefs_put_string(jmethodID id,va_list a){
             changed=x<0||strcmp(pref_entries[x].value,v)!=0;
             if(changed){ok=pref_set(k,v);if(ok)ok=pref_persist_current_key(k);}
         }else{
-            changed=pref_find(k)>=0;
-            (void)pref_remove_key(k);
-            ok=pref_delete_key_file(k);
-            if(ok)pref_dirty=0;
+            int existed=pref_find(k)>=0;
+            changed=existed;
+            if(existed){
+                (void)pref_remove_key(k);
+                ok=pref_delete_key_file(k);
+                if(ok)pref_dirty=0;
+            }
         }
         SAVE_TRACE("[SAVE] preference put-one hash=%08X bytes=%u changed=%d ok=%d",
                    pref_key_hash(k),v?(unsigned)strlen(v):0,changed,ok);
@@ -94,11 +97,20 @@ static jobject prefs_remove(jmethodID id,va_list a){
         if(k){
             pref_lock();pref_load();
             int existed=pref_find(k)>=0;
-            (void)pref_remove_key(k);
-            int ok=pref_delete_key_file(k);
-            if(ok)pref_dirty=0;
-            SAVE_TRACE("[SAVE] preference remove-one hash=%08X existed=%d ok=%d",
-                       pref_key_hash(k),existed,ok);
+            int ok=1;
+            if(existed){
+                (void)pref_remove_key(k);
+                ok=pref_delete_key_file(k);
+                if(ok)pref_dirty=0;
+            }
+#ifdef ZOMBIE_DEBUG_BUILD
+            static unsigned noop_remove_reports;
+            if(existed || __atomic_fetch_add(&noop_remove_reports,1,__ATOMIC_RELAXED)<8)
+                SAVE_TRACE("[SAVE] preference remove-one hash=%08X existed=%d ok=%d",
+                           pref_key_hash(k),existed,ok);
+#else
+            (void)existed;
+#endif
             pref_unlock();
             jni->ReleaseStringUTFChars(&jni,s,(char*)k);
         }
@@ -128,7 +140,13 @@ static jboolean prefs_commit(jmethodID id,va_list a){
 static void prefs_apply(jmethodID id,va_list a){
     (void)id;(void)a;
     pref_lock();int ok=pref_save();
-    SAVE_TRACE("[SAVE] apply incremental ok=%d keys=%u",ok,pref_count);
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned apply_reports;
+    if(__atomic_fetch_add(&apply_reports,1,__ATOMIC_RELAXED)<16)
+        SAVE_TRACE("[SAVE] apply incremental ok=%d keys=%u",ok,pref_count);
+#else
+    (void)ok;
+#endif
     pref_unlock();
 }
 
