@@ -1,116 +1,158 @@
-# Zombie Shooter - PS Vita Port (so_loader)
+# Zombie Shooter — PS Vita Port
 
-Plantilla lista basada en **soloader-boilerplate** de v-atamanenko para portar **Zombie Shooter** (versión Android de Sigma Team) a PS Vita.
+Android-to-PS-Vita port of **Zombie Shooter** by Sigma Team using `so_loader`, vitaGL, FalsoJNI and FalsoNDK.
 
-## ¿Qué es esto?
+## Current target
 
-Este repositorio es una base lista para empezar el port. Usa **so_loader** + **vitaGL** + **FalsoJNI**.
+The active target is now:
 
-El juego usa:
-- `libzombie_shooter.so` (ARMv7)
-- OpenGL ES 2.0 (`libGLESv2` + `libEGL`)
-- OpenSL ES para audio
-- Motor nativo propio de Sigma Team (no es Unity)
+```text
+Zombie Shooter Free 3.6.1
+versionCode: 1161
+ABI: armeabi-v7a
+package: com.sigmateam.zombieshooter.free
+```
 
-## Requisitos
+The game files are proprietary and are **not included** in this repository or in the VPK.
 
-### En el PC (WSL / Ubuntu)
-- VitaSDK (softfp) instalado y variable `VITASDK` configurada
-- CMake, git, build-essential
+The verified 3.6.1 ARMv7 native library is:
 
-### En la PS Vita
+```text
+libzombie_shooter.so
+size:   9908972 bytes
+SHA1:   f7c7bbfc41f7ed8b76c8c5b1af3e9b0dfdf188c0
+SHA256: cb461ac47de79536824e8f7b64fa82293b796bcc159675b4f5ad6304e60bdca1
+```
+
+See `docs/ZOMBIE_SHOOTER_3_6_1.md` for the migration and hardware-test notes.
+
+## Requirements
+
+### PS Vita
+
 - HENkaku / Enso
-- **kubridge.skprx** instalado (obligatorio)
 - VitaShell
+- `kubridge.skprx` v0.3.1 or newer loaded under `*KERNEL`
 
-## Cómo usarlo (pasos claros)
+### Building locally
 
-### 1. Clonar el repositorio con submódulos
-
-```bash
-cd ~
-git clone --recurse-submodules https://github.com/VegettoSan/soloader-boilerplate.git ZombieShooter-Vita
-cd ZombieShooter-Vita
-```
-
-Si ya lo clonaste sin submódulos:
+Zombie Shooter uses the repository's pinned **SoftFP VitaSDK** configuration:
 
 ```bash
-git submodule update --init --recursive
+export VITASDK=/usr/local/vitasdk
+export PATH="$VITASDK/bin:$PATH"
 ```
 
-### 2. Poner los archivos del juego
+Do not build this port with the HardFP SDK.
 
-Crea la carpeta de datos (después de compilar el VPK se usará `ux0:data/zombieshooter/`):
+## Prepare your 3.6.1 game data
 
-En el PC, prepara:
+Use your own **Zombie Shooter 3.6.1 APKPure XAPK, armeabi-v7a**.
 
+From the repository root:
+
+```bash
+python3 scripts/extract_game_361.py /path/to/Zombie+Shooter_3.6.1_APKPure.xapk
 ```
-libzombie_shooter.so     ← el .so principal
-assets/                  ← carpeta assets extraída del APK principal
+
+The script validates the exact version and ARMv7 `.so`, then creates:
+
+```text
+zombieshooter-3.6.1-vita-data/
+├── libzombie_shooter.so
+├── GAME_VERSION.txt
+└── assets/
+    └── ... complete assets tree ...
 ```
 
-Más adelante los copiarás a la Vita en:
+Copy the **contents** of that directory to:
 
+```text
+ux0:data/zombieshooter/
 ```
+
+Result:
+
+```text
 ux0:data/zombieshooter/libzombie_shooter.so
-ux0:data/zombieshooter/assets/   (o la estructura que use el juego)
+ux0:data/zombieshooter/assets/game.res
+ux0:data/zombieshooter/assets/game.cfg
+ux0:data/zombieshooter/assets/strings.ini
+ux0:data/zombieshooter/assets/bundles.config
+ux0:data/zombieshooter/assets/... all remaining game assets ...
 ```
 
-### 3. Configurar el proyecto
+The verified 3.6.1 XAPK does **not** require an OBB.
 
-Abre `CMakeLists.txt` y revisa/ajusta estas líneas al principio:
+Do not copy `config.armeabi_v7a.apk` itself to the Vita; the extraction script takes the required `.so` from that split. Do not mix 3.2.3/3.5.3 files with 3.6.1.
 
-```cmake
-set(VITA_APP_NAME "Zombie Shooter")
-set(VITA_TITLEID  "ZOMB00001")
-set(VITA_VPKNAME  "zombie_shooter")
+For a clean first test, rename the previous data folder before copying 3.6.1:
 
-set(DATA_PATH "ux0:data/zombieshooter/" CACHE STRING "Path to data (with trailing /)")
-set(SO_PATH "${DATA_PATH}libzombie_shooter.so" CACHE STRING "Path to .so")
+```text
+ux0:data/zombieshooter/ -> ux0:data/zombieshooter_old/
 ```
 
-### 4. Compilar
+## GitHub Actions VPK
+
+The workflow in `.github/workflows/manual-prerelease.yml` builds both:
+
+```text
+Zombie-Shooter-Vita-Debug.vpk
+Zombie-Shooter-Vita-Release.vpk
+```
+
+The VPK contains only the Vita loader and LiveArea resources. **Game assets and the Android `.so` are never packaged.**
+
+For a first 3.6.1 hardware test, install the **Debug VPK** so the bring-up log contains enough information to diagnose missing imports/JNI/NDK behavior.
+
+## Local build
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
+python3 scripts/prepare_game_361_source.py
+rm -rf build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build -j"$(nproc)"
 ```
 
-El VPK saldrá en `build/`.
+The generated VPK is:
 
-### 5. Instalar en la Vita
+```text
+build/zombie_shooter.vpk
+```
 
-1. Copia el `.vpk` a la Vita e instálalo con VitaShell.
-2. Crea la carpeta `ux0:data/zombieshooter/`
-3. Copia `libzombie_shooter.so` y los assets ahí.
-4. Asegúrate de tener **kubridge** en `*KERNEL` del `config.txt`.
+## 3.6.1 migration policy
 
-## Archivos importantes a editar
+3.6.1 has different internal addresses from the older game binary. The first 3.6.1 bring-up intentionally disables old game-version-specific engine/raster/audio/registry hooks and keeps only the generic Android kuser/protobuf compatibility patch.
 
-| Archivo              | Para qué sirve                                      |
-|----------------------|-----------------------------------------------------|
-| `source/dynlib.c`    | Resolver símbolos que faltan (GLES, OpenSL, etc.)  |
-| `source/java.c`      | Implementar llamadas JNI que use el juego           |
-| `source/patch.c`     | Parches específicos (DRM, crashes, etc.)          |
-| `source/main.c`      | Loop principal y controles                          |
-| `CMakeLists.txt`     | Nombre, TitleID, rutas                              |
+The 3.6.1 engine contains a real native Android gamepad path (`AndroidJoystickControl`, `InputHandlerNative`, `AInputEvent`/`AKeyEvent`/MotionEvent axes). The port should use that path rather than recreating the old synthetic gameplay-touch workaround.
 
-## Notas del análisis del juego
+Do not report a controller/save/performance fix as complete until it has been tested on real PS Vita hardware.
 
-- Librería principal: `libzombie_shooter.so` (~9.3 MB)
-- Usa GLES 2.0 → perfecto para vitaGL
-- Usa OpenSL ES → hay que stubear o reimplementar audio
-- No es Unity ni GameMaker
-- Versión recomendada del APK: la que tenía soporte mínimo Android 7 (3.5.3)
+## Runtime data and diagnostics
 
-## Créditos
+The loader uses:
 
-- Boilerplate original: [v-atamanenko/soloader-boilerplate](https://github.com/v-atamanenko/soloader-boilerplate)
-- so_util / TheFloW
-- vitaGL / Rinnegatamante
-- kubridge
+```text
+ux0:data/zombieshooter/
+```
 
-## Licencia
+If the first 3.6.1 test fails, preserve the newest files from:
 
-MIT (igual que el boilerplate original)
+```text
+ux0:data/zombieshooter/logs/
+ux0:data/zombieshooter/last_init.txt
+ux0:data/zombieshooter/ndk_step.txt
+```
+
+and the `.psp2dmp` if the Vita creates one.
+
+## Credits
+
+- v-atamanenko — soloader-boilerplate / FalsoJNI / FalsoNDK ecosystem
+- TheFloW — so_util / kubridge foundations
+- Rinnegatamante — vitaGL and Android-to-Vita porting work
+- MetalSyntax and the wider Vita homebrew community — porting methodology and reference implementations
+
+## License
+
+Repository code is licensed under MIT where applicable. Original Zombie Shooter game files remain property of their respective rights holders and are not redistributed here.
