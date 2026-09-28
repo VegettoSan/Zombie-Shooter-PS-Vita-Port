@@ -18,8 +18,10 @@ return value is still checked by the game, so a genuinely unusable context
 continues to fail safely.
 
 Source drift aborts instead of applying a blind patch. The runtime installer
-also validates exact exported symbol addresses and function prologues before
-installing either hook.
+also validates exact exported symbol addresses, Thumb state and function
+prologues before installing either hook. The normalized/even address is used
+only for byte verification; the original odd ELF symbol is passed to hook_addr
+so so_util installs a Thumb hook rather than an ARM hook.
 """
 from pathlib import Path
 
@@ -36,6 +38,11 @@ HOOK_CODE = r'''
  * metadata after the first EVP_CipherInit_ex even though the guest inputs are
  * already correct. Keep the workaround exact-call-site only; the subsequent
  * EVP_CipherInit_ex with actual key+IV is NOT bypassed and remains authoritative.
+ *
+ * IMPORTANT: both target OpenSSL functions are Thumb symbols. so_util's
+ * hook_addr() selects hook_thumb() only when bit 0 of the target address is set.
+ * Normalize the address only while validating the build-1161 entry/prologue;
+ * preserve the original odd symbol value when installing the hook.
  */
 static so_hook zs361_evp_key_length_hook;
 static so_hook zs361_evp_iv_length_hook;
@@ -92,7 +99,7 @@ static int zs361_hooked_evp_iv_length(void *ctx) {
 
 static int zs361_crypto_symbol_matches(const char *name, uintptr_t expected_offset,
                                        const uint8_t expected_prologue[8],
-                                       uintptr_t *entry_out) {
+                                       uintptr_t *hook_target_out) {
     uintptr_t symbol = so_symbol(&so_mod, name);
     uintptr_t entry = zs361_normalize_thumb(symbol);
     uintptr_t expected = so_mod.load_addr + expected_offset;
@@ -101,34 +108,38 @@ static int zs361_crypto_symbol_matches(const char *name, uintptr_t expected_offs
                 name, (void *)symbol, (unsigned)expected_offset);
         return 0;
     }
+    if ((symbol & (uintptr_t)1u) == 0) {
+        l_error("[CRYPTO] refusing EVP hook %s: build-1161 symbol lost Thumb bit", name);
+        return 0;
+    }
     if (memcmp((const void *)entry, expected_prologue, 8) != 0) {
         l_error("[CRYPTO] refusing EVP hook %s: build-1161 prologue mismatch", name);
         return 0;
     }
-    *entry_out = entry;
+    *hook_target_out = symbol;
     return 1;
 }
 
 static void install_zs361_crypto_evp_compat(void) {
     static const uint8_t key_prologue[8] = {0xF0,0xB5,0x03,0xAF,0x4D,0xF8,0x04,0xBD};
     static const uint8_t iv_prologue[8]  = {0xB0,0xB5,0x02,0xAF,0x8E,0xB0,0x04,0x46};
-    uintptr_t key_entry = 0, iv_entry = 0;
+    uintptr_t key_target = 0, iv_target = 0;
 
     if (!zs361_crypto_symbol_matches("EVP_CIPHER_CTX_get_key_length",
                                      ZS361_EVP_KEYLEN_ENTRY,
-                                     key_prologue, &key_entry) ||
+                                     key_prologue, &key_target) ||
         !zs361_crypto_symbol_matches("EVP_CIPHER_CTX_get_iv_length",
                                      ZS361_EVP_IVLEN_ENTRY,
-                                     iv_prologue, &iv_entry)) {
+                                     iv_prologue, &iv_target)) {
         l_error("[CRYPTO] 3.6.1 EVP metadata compatibility disabled; exact guards failed");
         return;
     }
 
-    zs361_evp_key_length_hook = hook_addr(key_entry,
+    zs361_evp_key_length_hook = hook_addr(key_target,
                                           (uintptr_t)&zs361_hooked_evp_key_length);
-    zs361_evp_iv_length_hook = hook_addr(iv_entry,
+    zs361_evp_iv_length_hook = hook_addr(iv_target,
                                          (uintptr_t)&zs361_hooked_evp_iv_length);
-    l_info("[CRYPTO] installed guarded 3.6.1 AES-256 EVP metadata compatibility");
+    l_info("[CRYPTO] installed guarded 3.6.1 AES-256 EVP metadata compatibility (Thumb-safe)");
 }
 '''
 
@@ -163,12 +174,16 @@ def main() -> None:
     )
 
     # Static source gates: these exact values were independently disassembled
-    # from the user's canonical 3.6.1 ARMv7 binary.
+    # from the user's canonical 3.6.1 ARMv7 binary. The hook-target checks also
+    # ensure the generated code keeps the ELF Thumb bit instead of passing the
+    # normalized/even address into so_util's architecture-dispatching hook_addr.
     required = [
         "0x0059A8E0u", "0x00599C78u",
         "0x00408626u", "0x00408632u",
         "0x00408C04u", "0x00408C10u",
         "EVP_CIPHER_CTX_get_key_length", "EVP_CIPHER_CTX_get_iv_length",
+        "*hook_target_out = symbol;",
+        "hook_addr(key_target", "hook_addr(iv_target",
         "install_zs361_crypto_evp_compat();",
     ]
     missing = [token for token in required if token not in text]
