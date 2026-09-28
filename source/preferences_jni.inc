@@ -5,8 +5,6 @@
 #define PREFS_CLASS "android/content/SharedPreferences"
 #define PREFS_EDITOR_CLASS "android/content/SharedPreferences$Editor"
 #define REGISTRY_ENUM_CLASS "com/sigmateam/sige/RegistryEnumerator"
-#define PREFS_FILE DATA_PATH "shared_preferences.bin"
-#define PREFS_TMP  DATA_PATH "shared_preferences.tmp"
 enum { METHOD_PREFS_ACTIVITY=400, METHOD_PREFS_GET, METHOD_PREFS_CONTAINS, METHOD_PREFS_EDIT,
        METHOD_PREFS_PUT, METHOD_PREFS_REMOVE, METHOD_PREFS_CLEAR, METHOD_PREFS_COMMIT,
        METHOD_PREFS_APPLY, METHOD_PREFS_ENUM };
@@ -14,7 +12,7 @@ static uint32_t prefs_object, prefs_editor_object;
 typedef void (*RegistryKeyCallback)(JNIEnv *, jclass, jstring);
 static RegistryKeyCallback registry_key_callback;
 #include "preferences_store.inc"
-static jobject activity_get_preferences(jmethodID id,va_list a){(void)id;(void)va_arg(a,jint);pref_lock();pref_load();SAVE_TRACE("[SAVE] Activity.getPreferences keys=%u path=%s",pref_count,PREFS_FILE);pref_unlock();return(jobject)&prefs_object;}
+static jobject activity_get_preferences(jmethodID id,va_list a){(void)id;(void)va_arg(a,jint);pref_lock();pref_load();SAVE_TRACE("[SAVE] Activity.getPreferences keys=%u path=%s",pref_count,PREFS_DIR);pref_unlock();return(jobject)&prefs_object;}
 static jobject prefs_get_string(jmethodID id,va_list a){(void)id;jstring ks=va_arg(a,jstring),fallback=va_arg(a,jstring);if(!ks)return fallback;const char*k=jni->GetStringUTFChars(&jni,ks,NULL);if(!k)return fallback;char*v=NULL;pref_lock();pref_load();int x=pref_find(k);pref_trace_read(k,x>=0);if(x>=0)v=pref_dup(pref_entries[x].value,strlen(pref_entries[x].value));pref_unlock();jni->ReleaseStringUTFChars(&jni,ks,(char*)k);if(!v)return fallback;jstring out=jni->NewStringUTF(&jni,v);free(v);return out;}
 static jboolean prefs_contains(jmethodID id,va_list a){(void)id;jstring s=va_arg(a,jstring);if(!s)return JNI_FALSE;const char*k=jni->GetStringUTFChars(&jni,s,NULL);if(!k)return JNI_FALSE;pref_lock();pref_load();int found=pref_find(k)>=0;pref_unlock();jni->ReleaseStringUTFChars(&jni,s,(char*)k);return found?JNI_TRUE:JNI_FALSE;}
 static jobject prefs_edit(jmethodID id,va_list a){(void)id;(void)a;pref_lock();pref_load();pref_unlock();return(jobject)&prefs_editor_object;}
