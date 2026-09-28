@@ -167,7 +167,7 @@ void _log_print(int t, const char *fmt, ...) {
         static const char *tags[] = {"debug", "info", "warning", "error", "fatal", "success", "waiting", "PERF"};
         int n = sceClibSnprintf(line, sizeof(line), "[%s] %s%s\n", tags[t], message, repeat_suffix);
 #ifdef DEBUG_SOLOADER
-        sceClibPrintf("%s", line);
+        if (setting_log_mode >= 3 || t == LT_FATAL) sceClibPrintf("%s", line);
 #else
         if (t == LT_FATAL) sceClibPrintf("%s", line);
 #endif
@@ -182,8 +182,13 @@ void _log_print(int t, const char *fmt, ...) {
     }
     uint64_t now = sceKernelGetProcessTimeWide();
 #ifdef DEBUG_SOLOADER
-    if (t == LT_WARN || t == LT_ERROR || t == LT_FATAL || unsynced >= 32) sync_locked();
-    else flush_locked(); /* Debug preserves every selected diagnostic before a crash. */
+    if (setting_log_mode >= 3) {
+        if (t == LT_WARN || t == LT_ERROR || t == LT_FATAL || unsynced >= 32) sync_locked();
+        else flush_locked();
+    } else if (t == LT_ERROR || t == LT_FATAL || unsynced >= 64 ||
+               (unsynced && now-last_sync >= 1000000)) sync_locked();
+    /* Quiet Debug buffers PERF, retains errors immediately and supports an
+     * explicit logger_force_sync at any diagnostic boundary. */
 #else
     if (t == LT_FATAL || unsynced >= 64 || (unsynced && now-last_sync >= 1000000)) sync_locked();
 #endif

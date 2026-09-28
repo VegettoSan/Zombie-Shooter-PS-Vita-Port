@@ -1,5 +1,12 @@
 # Estado del port de Zombie Shooter para PS Vita
 
+## Actualización física — log_0001, 2026-09-28
+
+La entrega engineering `local-5f67eec-5e3402a4c9` ya fue probada: SAVE, controles y flicker siguen fallando; Release observado por el usuario ~25–40 FPS con caídas. Debug verbose no es baseline de FPS. Log termina en std::bad_alloc. El error AES corresponde al contexto EVP después de CipherInit, no a la longitud del android_id. Seguimiento `local-5f67eec-c50a43be87` añade Debug selectivo y diagnóstico de OpenSSL/bindings/asignación fallida; todavía pendiente de Vita.
+
+Detalles y prueba reducida: [FOLLOWUP_LOG0001_2026-09-28.md](docs/FOLLOWUP_LOG0001_2026-09-28.md).
+
+
 ## Pase9: acelerar Gamma/preparePalette (2026-09-26)
 
 El Release Pass8 `1aebd541` ya fue probado en Vita real. Runtime confirma
@@ -240,3 +247,7 @@ Build local-d8b8c5e-ee2bcbe20f-clearfast Release/Debug; hashes/verificación en 
 Uso real, FPS y audio de Clear nuevo PENDIENTES Vita. Pedir1log de juego con
 disparos/explosiones/linterna y regreso al menú. Originales intactos, local-only.
 Informe: docs/LIGHTS_LOG0004_0005_FOLLOWUP_2026-09-27.md.
+
+## Local engineering checkpoint — 2026-09-28
+
+The playable real-Vita baseline remains the reference. A new local diagnostic/performance package adds save durability and recovery, native save/input traces, framebuffer lifetime guards and isolated renderer A/B controls, plus bounded ENOENT asset lookup reuse. Compilation/package and host/ARM validation do not close the physical campaign/input/flicker/light/load blockers. See [engineering report](docs/ENGINEERING_PASS_2026-09-28.md) and [Vita test matrix](docs/ENGINEERING_VITA_TEST_2026-09-28.md).

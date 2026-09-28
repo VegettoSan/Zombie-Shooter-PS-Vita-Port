@@ -45,3 +45,30 @@ int munmap(void *addr, size_t length) {
     if (addr) free(addr);
     return 0;
 }
+
+#ifdef ZOMBIE_DEBUG_BUILD
+#include <errno.h>
+static void allocation_failure(const char *op,size_t size,void *previous,void *caller) {
+    static unsigned failures;
+    if(__atomic_fetch_add(&failures,1,__ATOMIC_RELAXED)>=8) return;
+    int saved_errno=errno;
+    struct mallinfo heap=mallinfo();
+    l_error("[MEM] guest %s failed bytes=%u previous=%p caller=%p errno=%d heap_arena=%u allocated=%u free=%u",op,(unsigned)size,previous,caller,saved_errno,(unsigned)heap.arena,(unsigned)heap.uordblks,(unsigned)heap.fordblks);
+    logger_force_sync();errno=saved_errno;
+}
+void *malloc_soloader_diagnostic(size_t size) {
+    void *result=malloc(size);
+    if(!result && size) allocation_failure("malloc",size,NULL,__builtin_return_address(0));
+    return result;
+}
+void *calloc_soloader_diagnostic(size_t count,size_t size) {
+    void *result=calloc(count,size);
+    if(!result && count && size) allocation_failure("calloc",count<=SIZE_MAX/size?count*size:SIZE_MAX,NULL,__builtin_return_address(0));
+    return result;
+}
+void *realloc_soloader_diagnostic(void *previous,size_t size) {
+    void *result=realloc(previous,size);
+    if(!result && size) allocation_failure("realloc",size,previous,__builtin_return_address(0));
+    return result;
+}
+#endif

@@ -1,0 +1,161 @@
+classes4/com/sigmateam/sige/WebFrameHelper.smali:63:.method static synthetic access$000(Lcom/sigmateam/sige/WebFrameHelper;)Landroid/widget/PopupWindow;
+classes4/com/sigmateam/sige/WebFrameHelper.smali:95:.method static synthetic access$100(Lcom/sigmateam/sige/WebFrameHelper;)V
+classes4/com/sigmateam/sige/WebFrameHelper.smali:127:.method static synthetic access$200(Lcom/sigmateam/sige/WebFrameHelper;Ljava/lang/String;)V
+classes4/com/sigmateam/sige/WebFrameHelper.smali:363:    invoke-virtual {v4}, Landroid/webkit/WebView;->getSettings()Landroid/webkit/WebSettings;
+classes4/com/sigmateam/sige/WebFrameHelper.smali:374:    invoke-virtual {v5, v6}, Landroid/webkit/WebSettings;->setJavaScriptEnabled(Z)V
+classes4/com/sigmateam/sige/WebFrameHelper$3.smali:70:    invoke-static {p1}, Lcom/sigmateam/sige/WebFrameHelper;->access$100(Lcom/sigmateam/sige/WebFrameHelper;)V
+classes4/com/sigmateam/sige/WebFrameHelper$2.smali:70:    invoke-static {v0}, Lcom/sigmateam/sige/WebFrameHelper;->access$100(Lcom/sigmateam/sige/WebFrameHelper;)V
+classes4/com/sigmateam/sige/WebFrameHelper$1.smali:104:    invoke-static {v0}, Lcom/sigmateam/sige/WebFrameHelper;->access$000(Lcom/sigmateam/sige/WebFrameHelper;)Landroid/widget/PopupWindow;
+classes4/com/sigmateam/sige/WebFrameHelper$1.smali:121:    invoke-static {v0}, Lcom/sigmateam/sige/WebFrameHelper;->access$100(Lcom/sigmateam/sige/WebFrameHelper;)V
+classes4/com/sigmateam/sige/WebFrameHelper$1.smali:136:    invoke-static {v0, v1}, Lcom/sigmateam/sige/WebFrameHelper;->access$200(Lcom/sigmateam/sige/WebFrameHelper;Ljava/lang/String;)V
+classes4/com/sigmateam/sige/StringsHelper.smali:6:# static fields
+classes4/com/sigmateam/sige/StringsHelper.smali:7:.field public static button_close:Ljava/lang/String;
+classes4/com/sigmateam/sige/StringsHelper.smali:9:.field public static button_continue:Ljava/lang/String;
+classes4/com/sigmateam/sige/StringsHelper.smali:11:.field public static wifi_disabled:Ljava/lang/CharSequence;
+classes4/com/sigmateam/sige/StringsHelper.smali:13:.field public static wifi_settings:Ljava/lang/String;
+classes4/com/sigmateam/sige/StringsHelper.smali:40:.method public static LoadStrings(Landroid/app/Activity;)V
+classes4/com/sigmateam/sige/StringsHelper.smali:52:    sget v1, Lcom/sigmateam/sige/R$string;->sg_wifi_settings:I
+classes4/com/sigmateam/sige/StringsHelper.smali:56:    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getString(I)Ljava/lang/String;
+classes4/com/sigmateam/sige/StringsHelper.smali:64:    sput-object v0, Lcom/sigmateam/sige/StringsHelper;->wifi_settings:Ljava/lang/String;
+classes4/com/sigmateam/sige/StringsHelper.smali:80:    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getString(I)Ljava/lang/String;
+classes4/com/sigmateam/sige/StringsHelper.smali:104:    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getString(I)Ljava/lang/String;
+classes4/com/sigmateam/sige/SimpleWebViewClient.smali:6:# static fields
+classes4/com/sigmateam/sige/SimpleWebViewClient.smali:7:.field private static final LOG:Lorg/slf4j/Logger;
+classes4/com/sigmateam/sige/SimpleWebViewClient.smali:11:.method static constructor <clinit>()V
+classes4/com/sigmateam/sige/SimpleWebViewClient.smali:19:    invoke-static {v0}, Lorg/slf4j/LoggerFactory;->getLogger(Ljava/lang/Class;)Lorg/slf4j/Logger;
+classes4/com/sigmateam/sige/RegistryEnumerator.smali:1:.class public Lcom/sigmateam/sige/RegistryEnumerator;
+classes4/com/sigmateam/sige/RegistryEnumerator.smali:30:.method public static enumerateKeys(Landroid/app/Activity;)V
+classes4/com/sigmateam/sige/RegistryEnumerator.smali:37:    invoke-virtual {p0, v0}, Landroid/app/Activity;->getPreferences(I)Landroid/content/SharedPreferences;
+classes4/com/sigmateam/sige/RegistryEnumerator.smali:45:    invoke-interface {p0}, Landroid/content/SharedPreferences;->getAll()Ljava/util/Map;
+classes4/com/sigmateam/sige/RegistryEnumerator.smali:94:    invoke-static {v0}, Lcom/sigmateam/sige/RegistryEnumerator;->onKey(Ljava/lang/String;)V
+classes4/com/sigmateam/sige/RegistryEnumerator.smali:177:.method private static native onKey(Ljava/lang/String;)V
+classes4/com/sigmateam/sige/PermissionsHelper.smali:14:# static fields
+classes4/com/sigmateam/sige/PermissionsHelper.smali:15:.field private static final LOG:Lorg/slf4j/Logger;
+classes4/com/sigmateam/sige/PermissionsHelper.smali:17:.field public static final PERMISSIONS_REQUEST:I = 0x2
+classes4/com/sigmateam/sige/PermissionsHelper.smali:19:.field private static final PERMISSIONS_REQUEST_START:I = 0x285d
+classes4/com/sigmateam/sige/PermissionsHelper.smali:21:.field public static final PERMISSION_GRANTED:I = 0x0
+classes4/com/sigmateam/sige/PermissionsHelper.smali:23:.field public static final PERMISSION_INVALID:I = 0x3
+classes4/com/sigmateam/sige/PermissionsHelper.smali:25:.field public static final PERMISSION_NEED_EXPLANATION:I = 0x1
+classes4/com/sigmateam/sige/PermissionsHelper.smali:27:.field private static TAG:Ljava/lang/String;
+classes4/com/sigmateam/sige/PermissionsHelper.smali:29:.field private static s_active:Z
+classes4/com/sigmateam/sige/PermissionsHelper.smali:31:.field private static s_listener:Lcom/sigmateam/sige/PermissionsHelper$IListener;
+classes4/com/sigmateam/sige/PermissionsHelper.smali:33:.field private static s_permissions:[Ljava/lang/String;
+classes4/com/sigmateam/sige/PermissionsHelper.smali:41:.method static constructor <clinit>()V
+classes4/com/sigmateam/sige/PermissionsHelper.smali:49:    invoke-static {v0}, Lorg/slf4j/LoggerFactory;->getLogger(Ljava/lang/Class;)Lorg/slf4j/Logger;
+classes4/com/sigmateam/sige/PermissionsHelper.smali:208:.method public static onRequestPermissionsResult(I[Ljava/lang/String;[I)V
+classes4/com/sigmateam/sige/PermissionsHelper.smali:232:    invoke-static {p0}, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
+classes4/com/sigmateam/sige/PermissionsHelper.smali:833:    invoke-static {v2, p1, v0}, Landroidx/core/app/ActivityCompat;->f(Landroid/app/Activity;[Ljava/lang/String;I)V
+classes4/com/sigmateam/sige/PermissionsHelper.smali:951:    invoke-static {v1, p1}, Landroidx/core/content/ContextCompat;->checkSelfPermission(Landroid/content/Context;Ljava/lang/String;)I
+classes4/com/sigmateam/sige/PermissionsHelper.smali:967:    invoke-static {v1, p1}, Landroidx/core/app/ActivityCompat;->i(Landroid/app/Activity;Ljava/lang/String;)Z
+classes4/com/sigmateam/sige/NetworkObserver.smali:6:# static fields
+classes4/com/sigmateam/sige/NetworkObserver.smali:7:.field private static final CellularNetwork:I = 0x2
+classes4/com/sigmateam/sige/NetworkObserver.smali:9:.field private static final LanNetwork:I = 0x4
+classes4/com/sigmateam/sige/NetworkObserver.smali:11:.field private static final TAG:Ljava/lang/String; = "NetworkObserver"
+classes4/com/sigmateam/sige/NetworkObserver.smali:13:.field private static final Unavailable:I = 0x1
+classes4/com/sigmateam/sige/NetworkObserver.smali:15:.field private static final WiFiNetwork:I = 0x3
+classes4/com/sigmateam/sige/NetworkObserver.smali:57:.method private static native updateNetworkStatus(I)V
+classes4/com/sigmateam/sige/NetworkObserver.smali:66:    invoke-virtual {p0}, Lcom/sigmateam/sige/NetworkObserver;->refreshStatus()V
+classes4/com/sigmateam/sige/NetworkObserver.smali:119:.method public refreshStatus()V
+classes4/com/sigmateam/sige/NetworkObserver.smali:185:    invoke-static {v0}, Lcom/sigmateam/sige/NetworkObserver;->updateNetworkStatus(I)V
+classes4/com/sigmateam/sige/NetworkObserver.smali:209:    invoke-static {v0}, Lcom/sigmateam/sige/NetworkObserver;->updateNetworkStatus(I)V
+classes4/com/sigmateam/sige/NetworkObserver.smali:237:    invoke-static {v0}, Lcom/sigmateam/sige/NetworkObserver;->updateNetworkStatus(I)V
+classes4/com/sigmateam/sige/NetworkObserver.smali:247:    invoke-static {v1}, Lcom/sigmateam/sige/NetworkObserver;->updateNetworkStatus(I)V
+classes4/com/sigmateam/sige/NetworkObserver.smali:263:    invoke-virtual {p0}, Lcom/sigmateam/sige/NetworkObserver;->refreshStatus()V
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:6:# static fields
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:7:.field private static final TAG:Ljava/lang/String; = "InputDeviceHelper"
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:34:.method static getInputSources()I
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:38:    invoke-static {}, Landroid/view/InputDevice;->getDeviceIds()[I
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:64:    invoke-static {v3}, Landroid/view/InputDevice;->getDevice(I)Landroid/view/InputDevice;
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:141:.method static getMotionRanges(Landroid/view/InputDevice;)V
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:245:    invoke-static {v3, v4, v1, v2}, Lcom/sigmateam/sige/InputDeviceHelper;->onAxisInfo(IFFF)V
+classes4/com/sigmateam/sige/InputDeviceHelper.smali:311:.method private static native onAxisInfo(IFFF)V
+classes4/com/sigmateam/sige/CommonActivity.smali:10:# static fields
+classes4/com/sigmateam/sige/CommonActivity.smali:11:.field static final FRAGMENTS_TAG:Ljava/lang/String; = "android:support:fragments"
+classes4/com/sigmateam/sige/CommonActivity.smali:13:.field private static final LOG:Lorg/slf4j/Logger;
+classes4/com/sigmateam/sige/CommonActivity.smali:49:.method static constructor <clinit>()V
+classes4/com/sigmateam/sige/CommonActivity.smali:57:    invoke-static {v0}, Lorg/slf4j/LoggerFactory;->getLogger(Ljava/lang/Class;)Lorg/slf4j/Logger;
+classes4/com/sigmateam/sige/CommonActivity.smali:192:.method private static native nativeOnActivityResult(Landroid/app/Activity;IILandroid/content/Intent;)V
+classes4/com/sigmateam/sige/CommonActivity.smali:837:    invoke-static {p0, p1, p2, p3}, Lcom/sigmateam/sige/CommonActivity;->nativeOnActivityResult(Landroid/app/Activity;IILandroid/content/Intent;)V
+classes4/com/sigmateam/sige/CommonActivity.smali:1410:    invoke-static {p1, p2, p3}, Lcom/sigmateam/sige/PermissionsHelper;->onRequestPermissionsResult(I[Ljava/lang/String;[I)V
+classes4/com/sigmateam/sige/CommonActivity.smali:1604:.method protected onSaveInstanceState(Landroid/os/Bundle;)V
+classes4/com/sigmateam/sige/CommonActivity.smali:1608:    invoke-super {p0, p1}, Landroid/app/NativeActivity;->onSaveInstanceState(Landroid/os/Bundle;)V
+classes4/com/sigmateam/sige/CommonActivity.smali:1900:    invoke-static {p1}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+classes4/com/sigmateam/sige/AlertHelper.smali:51:.method static synthetic access$000(Lcom/sigmateam/sige/AlertHelper;)Landroid/app/Activity;
+classes4/com/sigmateam/sige/AlertHelper.smali:83:.method static synthetic access$100(Lcom/sigmateam/sige/AlertHelper;)Landroid/app/AlertDialog;
+classes4/com/sigmateam/sige/AlertHelper.smali:115:.method static synthetic access$102(Lcom/sigmateam/sige/AlertHelper;Landroid/app/AlertDialog;)Landroid/app/AlertDialog;
+classes4/com/sigmateam/sige/AlertHelper.smali:172:.method private static native dismissed()V
+classes4/com/sigmateam/sige/AlertHelper.smali:188:    invoke-static {}, Lcom/sigmateam/sige/AlertHelper;->dismissed()V
+classes4/com/sigmateam/sige/CommonActivity$1.smali:103:    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+classes4/com/sigmateam/sige/CommonActivity$1.smali:284:    invoke-virtual {p2, p3}, Landroid/content/Intent;->getStringArrayExtra(Ljava/lang/String;)[Ljava/lang/String;
+classes4/com/sigmateam/sige/CommonActivity$1.smali:308:    invoke-static {p3, p2, p1}, Landroidx/core/app/ActivityCompat;->f(Landroid/app/Activity;[Ljava/lang/String;I)V
+classes4/com/sigmateam/sige/CommonActivity$1.smali:403:    invoke-static/range {v0 .. v7}, Landroidx/core/app/ActivityCompat;->k(Landroid/app/Activity;Landroid/content/IntentSender;ILandroid/content/Intent;IIILandroid/os/Bundle;)V
+classes4/com/sigmateam/sige/CommonActivity$1.smali:439:    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+classes4/com/sigmateam/sige/CommonActivity$1.smali:478:    invoke-static {p1, p2, v2, v7}, Landroidx/core/app/ActivityCompat;->j(Landroid/app/Activity;Landroid/content/Intent;ILandroid/os/Bundle;)V
+classes4/com/sigmateam/sige/BuildConfig.smali:6:# static fields
+classes4/com/sigmateam/sige/BuildConfig.smali:7:.field public static final BUILD_TYPE:Ljava/lang/String; = "release"
+classes4/com/sigmateam/sige/BuildConfig.smali:9:.field public static final DEBUG:Z = false
+classes4/com/sigmateam/sige/BuildConfig.smali:11:.field public static final LIBRARY_PACKAGE_NAME:Ljava/lang/String; = "com.sigmateam.sige"
+classes4/com/sigmateam/sige/AlertHelper$2.smali:70:    invoke-static {v0}, Lcom/sigmateam/sige/AlertHelper;->access$100(Lcom/sigmateam/sige/AlertHelper;)Landroid/app/AlertDialog;
+classes4/com/sigmateam/sige/AlertHelper$2.smali:87:    invoke-static {v0}, Lcom/sigmateam/sige/AlertHelper;->access$100(Lcom/sigmateam/sige/AlertHelper;)Landroid/app/AlertDialog;
+classes4/com/sigmateam/sige/AlertHelper$2.smali:108:    invoke-static {v0, v1}, Lcom/sigmateam/sige/AlertHelper;->access$102(Lcom/sigmateam/sige/AlertHelper;Landroid/app/AlertDialog;)Landroid/app/AlertDialog;
+classes4/com/sigmateam/sige/AlertHelper$3.smali:104:    invoke-static {v0}, Lcom/sigmateam/sige/AlertHelper;->access$000(Lcom/sigmateam/sige/AlertHelper;)Landroid/app/Activity;
+classes4/com/sigmateam/sige/AlertHelper$3.smali:119:    invoke-static {v0, v1, v2}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+classes4/com/sigmateam/sige/AlertHelper$1.smali:123:    invoke-static {v1}, Lcom/sigmateam/sige/AlertHelper;->access$000(Lcom/sigmateam/sige/AlertHelper;)Landroid/app/Activity;
+classes4/com/sigmateam/sige/AlertHelper$1.smali:167:    invoke-static {v1}, Lcom/sigmateam/sige/AlertHelper;->access$000(Lcom/sigmateam/sige/AlertHelper;)Landroid/app/Activity;
+classes4/com/sigmateam/sige/AlertHelper$1.smali:236:    invoke-static {v1, v0}, Lcom/sigmateam/sige/AlertHelper;->access$102(Lcom/sigmateam/sige/AlertHelper;Landroid/app/AlertDialog;)Landroid/app/AlertDialog;
+classes4/com/sigmateam/sige/logger/NativeLoggerFactory.smali:9:# static fields
+classes4/com/sigmateam/sige/logger/NativeLoggerFactory.smali:10:.field private static final ANONYMOUS_CLASS:Ljava/util/regex/Pattern;
+classes4/com/sigmateam/sige/logger/NativeLoggerFactory.smali:27:.method static constructor <clinit>()V
+classes4/com/sigmateam/sige/logger/NativeLoggerFactory.smali:35:    invoke-static {v0}, Ljava/util/regex/Pattern;->compile(Ljava/lang/String;)Ljava/util/regex/Pattern;
+classes4/com/sigmateam/sige/logger/NativeLoggerFactory.smali:85:.method private static createTag(Ljava/lang/String;)Ljava/lang/String;
+classes4/com/sigmateam/sige/logger/NativeLoggerFactory.smali:233:    invoke-static {p1}, Lcom/sigmateam/sige/logger/NativeLoggerFactory;->createTag(Ljava/lang/String;)Ljava/lang/String;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:25:# static fields
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:26:.field private static final synthetic $VALUES:[Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:28:.field public static final enum DEBUG:Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:30:.field public static final enum ERROR:Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:32:.field public static final enum INFO:Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:34:.field public static final enum TRACE:Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:36:.field public static final enum WARN:Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:40:.method private static synthetic $values()[Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:75:.method static constructor <clinit>()V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:179:    invoke-static {}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;->$values()[Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:265:.method public static valueOf(Ljava/lang/String;)Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:273:    invoke-static {v0, p0}, Ljava/lang/Enum;->valueOf(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$LogType.smali:303:.method public static values()[Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$1.smali:17:# static fields
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$1.smali:18:.field static final synthetic $SwitchMap$com$sigmateam$sige$logger$NativeLoggerAdapter$LogType:[I
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$1.smali:22:.method static constructor <clinit>()V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter$1.smali:26:    invoke-static {}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;->values()[Lcom/sigmateam/sige/logger/NativeLoggerAdapter$LogType;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:14:# static fields
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:15:.field private static final L_ASSERT:I = 0x1
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:17:.field private static final L_DEBUG:I = 0x5
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:19:.field private static final L_ERROR:I = 0x2
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:21:.field private static final L_INFO:I = 0x4
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:23:.field private static final L_NONE:I = 0x0
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:25:.field private static final L_SILENT:I = 0x0
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:27:.field private static final L_WARNING:I = 0x3
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:29:.field private static s_loggingLevel:I
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:31:.field private static s_tag:Ljava/lang/String;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:35:.method static constructor <clinit>()V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:94:    invoke-static {p2, p3}, Lorg/slf4j/helpers/MessageFormatter;->arrayFormat(Ljava/lang/String;[Ljava/lang/Object;)Lorg/slf4j/helpers/FormattingTuple;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:170:.method private static getStackTrace(Ljava/lang/Throwable;)Ljava/lang/String;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:220:.method public static initialize(Ljava/lang/String;I)I
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:271:    invoke-static {}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter;->updateLogLevel()V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:366:    invoke-static {p3}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter;->getStackTrace(Ljava/lang/Throwable;)Ljava/lang/String;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:400:    invoke-static {p3}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter;->getStackTrace(Ljava/lang/Throwable;)Ljava/lang/String;
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:462:    invoke-static {v0, p2}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter;->writeLog(ILjava/lang/String;)V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:479:    invoke-static {p1, p2}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:496:    invoke-static {p3, p2}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter;->writeLog(ILjava/lang/String;)V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:513:    invoke-static {p1, p2}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:530:    invoke-static {v0, p2}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter;->writeLog(ILjava/lang/String;)V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:547:    invoke-static {p1, p2}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:567:    invoke-static {p3, p2}, Lcom/sigmateam/sige/logger/NativeLoggerAdapter;->writeLog(ILjava/lang/String;)V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:584:    invoke-static {p1, p2}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:966:.method public static updateLogLevel()V
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:977:    invoke-static {v0, v1}, Landroid/util/Log;->isLoggable(Ljava/lang/String;I)Z
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:1007:    invoke-static {v0, v3}, Landroid/util/Log;->isLoggable(Ljava/lang/String;I)Z
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:1034:    invoke-static {v0, v4}, Landroid/util/Log;->isLoggable(Ljava/lang/String;I)Z
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:1058:    invoke-static {v0, v2}, Landroid/util/Log;->isLoggable(Ljava/lang/String;I)Z
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:1085:    invoke-static {v0, v2}, Landroid/util/Log;->isLoggable(Ljava/lang/String;I)Z
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:1112:    invoke-static {v0, v2}, Landroid/util/Log;->isLoggable(Ljava/lang/String;I)Z
+classes4/com/sigmateam/sige/logger/NativeLoggerAdapter.smali:1347:.method private static native writeLog(ILjava/lang/String;)V

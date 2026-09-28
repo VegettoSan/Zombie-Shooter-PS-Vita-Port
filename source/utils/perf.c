@@ -143,7 +143,9 @@ AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode) 
     if(name && strlen(name)<sizeof(normalized)) {
         strcpy(normalized,name);for(char *p=normalized;*p;p++) if(*p=='\\') *p='/';name=normalized;
     }
-    AAsset *ret=asset_index_missing(name)?NULL:AAssetManager_open(mgr,name,mode);
+    int indexed_missing=asset_index_missing(name);
+    AAsset *ret=indexed_missing?NULL:AAssetManager_open(mgr,name,mode);
+    if(!ret && !indexed_missing)asset_index_record_missing(name,errno);
     int saved_errno=errno;
     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
     io_record(s,ret?0:-1,start);

@@ -16,7 +16,7 @@ SDK = Path('/usr/local/vitasdk')
 # but its corrected diagnostic implementation is still pinned exactly here.
 PASS11_FINAL_FILES = {
     'lib/vitagl/source/textures.c':
-        '4655017c147ed010640481685a86668fbaa72361c97ed0a54410def6b71f9be2',
+        'd6f66290b11d1f270d48f28f8338ccf13555e81189f5ed3825785e264177e7a7',
     'lib/vitagl/source/utils/zombie_texture_update.h':
         '9435ede2c24596128a4136dbacd8cfdf05fe3cec419fa9c64cd3582c37933382',
 }
@@ -87,6 +87,7 @@ def main():
 
     if not vitagl_ready:
         apply_patch('vitagl', ROOT / 'patches' / 'vitagl_pass10.patch')
+        apply_patch('vitagl', ROOT / 'patches' / 'vitagl_engineering.patch')
 
     expected_files = dict(lock['files'])
     expected_files.update(PASS11_FINAL_FILES)

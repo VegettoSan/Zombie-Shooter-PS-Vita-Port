@@ -1,5 +1,12 @@
 # Current real-Vita blockers and investigation priorities — 2026-09-27
 
+## Actualización física — log_0001, 2026-09-28
+
+La entrega engineering `local-5f67eec-5e3402a4c9` ya fue probada: SAVE, controles y flicker siguen fallando; Release observado por el usuario ~25–40 FPS con caídas. Debug verbose no es baseline de FPS. Log termina en std::bad_alloc. El error AES corresponde al contexto EVP después de CipherInit, no a la longitud del android_id. Seguimiento `local-5f67eec-c50a43be87` añade Debug selectivo y diagnóstico de OpenSSL/bindings/asignación fallida; todavía pendiente de Vita.
+
+Detalles y prueba reducida: [FOLLOWUP_LOG0001_2026-09-28.md](FOLLOWUP_LOG0001_2026-09-28.md).
+
+
 This document is the current hardware-tested handoff for the next Codex pass. Read it together with `AGENTS.md`, `docs/METALSYNTAX_PORTING_GUIDE.md`, `PORT_STATUS.md`, `port_progress.md`, and the focused input/performance notes.
 
 ## Baseline under test
@@ -267,3 +274,7 @@ The final Codex report should include:
 - all new config/debug flags and their defaults;
 - a concise physical-Vita test matrix for save, controls, flicker, lights, FPS and load time;
 - no claim of a hardware fix until the user tests it.
+
+## Local engineering follow-up — 2026-09-28
+
+The physical blockers above remain open. See [engineering pass](ENGINEERING_PASS_2026-09-28.md) and [physical protocol](ENGINEERING_VITA_TEST_2026-09-28.md). This local pass adds durable SharedPreferences replacement/recovery, guarded input/save native traces, upload identity/invalidation checks, isolated COW/GPU/reuse A/B flags and a bounded exact ENOENT asset cache. Campaign keys/end-to-end persistence, digital gameplay bindings and flicker cause are not yet demonstrated. No new measured physical lighting/FPS/loading speedup is claimed. The new builds require REAL VITA VERIFIED and GAMEPLAY VERIFIED; host/ARM/build/package checks are separate.

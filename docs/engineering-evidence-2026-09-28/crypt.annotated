@@ -1,0 +1,1386 @@
+
+/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/demo/libzombie_shooter.so:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+003f59a0 <core::crypto::ICryptEngine::instance()@@Base+0xc>:
+  3f59a0:	6805      	ldr	r5, [r0, #0]
+  3f59a2:	6828      	ldr	r0, [r5, #0]
+  3f59a4:	2800      	cmp	r0, #0
+  3f59a6:	d16a      	bne.n	3f5a7e <core::crypto::ICryptEngine::instance()@@Base+0xea>
+  3f59a8:	2004      	movs	r0, #4
+  3f59aa:	f0ca e7da 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f59ae:	4680      	mov	r8, r0
+  3f59b0:	4838      	ldr	r0, [pc, #224]	; (3f5a94 <core::crypto::ICryptEngine::instance()@@Base+0x100>)
+  3f59b2:	4478      	add	r0, pc
+  3f59b4:	6804      	ldr	r4, [r0, #0]
+  3f59b6:	6820      	ldr	r0, [r4, #0]
+  3f59b8:	f0cc e6f2 	blx	8c27a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1ed0> // strlen
+  3f59bc:	4e36      	ldr	r6, [pc, #216]	; (3f5a98 <core::crypto::ICryptEngine::instance()@@Base+0x104>)
+  3f59be:	6861      	ldr	r1, [r4, #4]
+  3f59c0:	447e      	add	r6, pc
+  3f59c2:	6030      	str	r0, [r6, #0]
+  3f59c4:	4608      	mov	r0, r1
+  3f59c6:	f0cc e6ec 	blx	8c27a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1ed0> // strlen
+  3f59ca:	68a1      	ldr	r1, [r4, #8]
+  3f59cc:	6070      	str	r0, [r6, #4]
+  3f59ce:	4608      	mov	r0, r1
+  3f59d0:	f0cc e6e6 	blx	8c27a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1ed0> // strlen
+  3f59d4:	68e1      	ldr	r1, [r4, #12]
+  3f59d6:	60b0      	str	r0, [r6, #8]
+  3f59d8:	4608      	mov	r0, r1
+  3f59da:	f0cc e6e2 	blx	8c27a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1ed0> // strlen
+  3f59de:	492f      	ldr	r1, [pc, #188]	; (3f5a9c <core::crypto::ICryptEngine::instance()@@Base+0x108>)
+  3f59e0:	60f0      	str	r0, [r6, #12]
+  3f59e2:	4479      	add	r1, pc
+  3f59e4:	6809      	ldr	r1, [r1, #0]
+  3f59e6:	f101 0008 	add.w	r0, r1, #8
+  3f59ea:	f8c8 0000 	str.w	r0, [r8]
+  3f59ee:	2010      	movs	r0, #16
+  3f59f0:	f0ca e7b6 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f59f4:	492a      	ldr	r1, [pc, #168]	; (3f5aa0 <core::crypto::ICryptEngine::instance()@@Base+0x10c>)
+  3f59f6:	2200      	movs	r2, #0
+  3f59f8:	4606      	mov	r6, r0
+  3f59fa:	e9c0 2802 	strd	r2, r8, [r0, #8]
+  3f59fe:	4479      	add	r1, pc
+  3f5a00:	f846 2f04 	str.w	r2, [r6, #4]!
+  3f5a04:	6809      	ldr	r1, [r1, #0]
+  3f5a06:	3108      	adds	r1, #8
+  3f5a08:	6001      	str	r1, [r0, #0]
+  3f5a0a:	e856 1f00 	ldrex	r1, [r6]
+  3f5a0e:	3101      	adds	r1, #1
+  3f5a10:	e846 1200 	strex	r2, r1, [r6]
+  3f5a14:	2a00      	cmp	r2, #0
+  3f5a16:	d1f8      	bne.n	3f5a0a <core::crypto::ICryptEngine::instance()@@Base+0x76>
+  3f5a18:	f8d5 9004 	ldr.w	r9, [r5, #4]
+  3f5a1c:	f8c5 8000 	str.w	r8, [r5]
+  3f5a20:	f1b9 0f00 	cmp.w	r9, #0
+  3f5a24:	6068      	str	r0, [r5, #4]
+  3f5a26:	d017      	beq.n	3f5a58 <core::crypto::ICryptEngine::instance()@@Base+0xc4>
+  3f5a28:	f109 0104 	add.w	r1, r9, #4
+  3f5a2c:	f3bf 8f5b 	dmb	ish
+  3f5a30:	e851 2f00 	ldrex	r2, [r1]
+  3f5a34:	1e53      	subs	r3, r2, #1
+  3f5a36:	e841 3400 	strex	r4, r3, [r1]
+  3f5a3a:	2c00      	cmp	r4, #0
+  3f5a3c:	d1f8      	bne.n	3f5a30 <core::crypto::ICryptEngine::instance()@@Base+0x9c>
+  3f5a3e:	f3bf 8f5b 	dmb	ish
+  3f5a42:	b94a      	cbnz	r2, 3f5a58 <core::crypto::ICryptEngine::instance()@@Base+0xc4>
+  3f5a44:	f8d9 1000 	ldr.w	r1, [r9]
+  3f5a48:	4680      	mov	r8, r0
+  3f5a4a:	4648      	mov	r0, r9
+  3f5a4c:	6889      	ldr	r1, [r1, #8]
+  3f5a4e:	4788      	blx	r1
+  3f5a50:	4648      	mov	r0, r9
+  3f5a52:	f0cb e46e 	blx	8c1330 <operator new[](unsigned int, std::align_val_t)@@Base+0xa60> // std::__ndk1::__shared_weak_count::__release_weak()
+  3f5a56:	4640      	mov	r0, r8
+  3f5a58:	f3bf 8f5b 	dmb	ish
+  3f5a5c:	e856 1f00 	ldrex	r1, [r6]
+  3f5a60:	1e4a      	subs	r2, r1, #1
+  3f5a62:	e846 2300 	strex	r3, r2, [r6]
+  3f5a66:	2b00      	cmp	r3, #0
+  3f5a68:	d1f8      	bne.n	3f5a5c <core::crypto::ICryptEngine::instance()@@Base+0xc8>
+  3f5a6a:	f3bf 8f5b 	dmb	ish
+  3f5a6e:	b931      	cbnz	r1, 3f5a7e <core::crypto::ICryptEngine::instance()@@Base+0xea>
+  3f5a70:	6801      	ldr	r1, [r0, #0]
+  3f5a72:	4604      	mov	r4, r0
+  3f5a74:	6889      	ldr	r1, [r1, #8]
+  3f5a76:	4788      	blx	r1
+  3f5a78:	4620      	mov	r0, r4
+  3f5a7a:	f0cb e45a 	blx	8c1330 <operator new[](unsigned int, std::align_val_t)@@Base+0xa60> // std::__ndk1::__shared_weak_count::__release_weak()
+  3f5a7e:	6828      	ldr	r0, [r5, #0]
+  3f5a80:	e8bd 0b00 	ldmia.w	sp!, {r8, r9, fp}
+  3f5a84:	bdf0      	pop	{r4, r5, r6, r7, pc}
+  3f5a86:	4640      	mov	r0, r8
+  3f5a88:	f0ca e7b2 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f5a8c:	f0ca e7a8 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f5a90:	a38e      	add	r3, pc, #568	; (adr r3, 3f5ccc <core::crypto::encrypt(STRING const&, STRING&)@@Base+0xe8>)
+  3f5a92:	0054      	lsls	r4, r2, #1
+  3f5a94:	9e7a      	ldr	r6, [sp, #488]	; 0x1e8
+  3f5a96:	0054      	lsls	r4, r2, #1
+  3f5a98:	e3e8      	b.n	3f626c <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x188>
+  3f5a9a:	0055      	lsls	r5, r2, #1
+  3f5a9c:	a34e      	add	r3, pc, #312	; (adr r3, 3f5bd8 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x128>)
+  3f5a9e:	0054      	lsls	r4, r2, #1
+  3f5aa0:	a336      	add	r3, pc, #216	; (adr r3, 3f5b7c <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0xcc>)
+  3f5aa2:	0054      	lsls	r4, r2, #1
+
+003f5aa4 <core::crypto::ICryptEngine::tag() const@@Base>:
+  3f5aa4:	f245 4043 	movw	r0, #21571	; 0x5443
+  3f5aa8:	f2c4 7041 	movt	r0, #18241	; 0x4741
+  3f5aac:	4770      	bx	lr
+  3f5aae:	d4d4      	bmi.n	3f5a5a <core::crypto::ICryptEngine::instance()@@Base+0xc6>
+
+003f5ab0 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base>:
+  3f5ab0:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f5ab2:	af03      	add	r7, sp, #12
+  3f5ab4:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3f5ab8:	b087      	sub	sp, #28
+  3f5aba:	9001      	str	r0, [sp, #4]
+  3f5abc:	4614      	mov	r4, r2
+  3f5abe:	4847      	ldr	r0, [pc, #284]	; (3f5bdc <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x12c>)
+  3f5ac0:	4478      	add	r0, pc
+  3f5ac2:	6800      	ldr	r0, [r0, #0]
+  3f5ac4:	6800      	ldr	r0, [r0, #0]
+  3f5ac6:	9006      	str	r0, [sp, #24]
+  3f5ac8:	2000      	movs	r0, #0
+  3f5aca:	9005      	str	r0, [sp, #20]
+  3f5acc:	e9cd 0003 	strd	r0, r0, [sp, #12]
+  3f5ad0:	4610      	mov	r0, r2
+  3f5ad2:	f0cb e2de 	blx	8c1090 <operator new[](unsigned int, std::align_val_t)@@Base+0x7c0> // STRING::isEmpty() const
+  3f5ad6:	b340      	cbz	r0, 3f5b2a <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x7a>
+  3f5ad8:	a903      	add	r1, sp, #12
+  3f5ada:	2000      	movs	r0, #0
+  3f5adc:	f000 fcc6 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f5ae0:	a903      	add	r1, sp, #12
+  3f5ae2:	2001      	movs	r0, #1
+  3f5ae4:	f000 fcc2 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f5ae8:	a903      	add	r1, sp, #12
+  3f5aea:	2002      	movs	r0, #2
+  3f5aec:	f000 fcbe 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f5af0:	a903      	add	r1, sp, #12
+  3f5af2:	2003      	movs	r0, #3
+  3f5af4:	f000 fcba 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f5af8:	e9dd 1003 	ldrd	r1, r0, [sp, #12]
+  3f5afc:	1a42      	subs	r2, r0, r1
+  3f5afe:	9801      	ldr	r0, [sp, #4]
+  3f5b00:	f0cb e766 	blx	8c19d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1100> // core::crypto::sha256(unsigned char const*, unsigned int)
+  3f5b04:	9803      	ldr	r0, [sp, #12]
+  3f5b06:	2800      	cmp	r0, #0
+  3f5b08:	bf1c      	itt	ne
+  3f5b0a:	9004      	strne	r0, [sp, #16]
+  3f5b0c:	f0ca e770 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5b10:	9806      	ldr	r0, [sp, #24]
+  3f5b12:	4933      	ldr	r1, [pc, #204]	; (3f5be0 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x130>)
+  3f5b14:	4479      	add	r1, pc
+  3f5b16:	6809      	ldr	r1, [r1, #0]
+  3f5b18:	6809      	ldr	r1, [r1, #0]
+  3f5b1a:	4281      	cmp	r1, r0
+  3f5b1c:	bf02      	ittt	eq
+  3f5b1e:	b007      	addeq	sp, #28
+  3f5b20:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3f5b24:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f5b26:	f0ca e754 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5b2a:	2500      	movs	r5, #0
+  3f5b2c:	9402      	str	r4, [sp, #8]
+  3f5b2e:	e007      	b.n	3f5b40 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x90>
+  3f5b30:	f809 5b01 	strb.w	r5, [r9], #1
+  3f5b34:	4655      	mov	r5, sl
+  3f5b36:	9c02      	ldr	r4, [sp, #8]
+  3f5b38:	f8cd 9010 	str.w	r9, [sp, #16]
+  3f5b3c:	f10a 0501 	add.w	r5, sl, #1
+  3f5b40:	4620      	mov	r0, r4
+  3f5b42:	f0cc e0fe 	blx	8c1d40 <operator new[](unsigned int, std::align_val_t)@@Base+0x1470> // STRING::Length() const
+  3f5b46:	4285      	cmp	r5, r0
+  3f5b48:	d8c6      	bhi.n	3f5ad8 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x28>
+  3f5b4a:	4620      	mov	r0, r4
+  3f5b4c:	4629      	mov	r1, r5
+  3f5b4e:	46aa      	mov	sl, r5
+  3f5b50:	f0ce e12e 	blx	8c3db0 <operator new[](unsigned int, std::align_val_t)@@Base+0x34e0> // STRING::operator[](unsigned int) const
+  3f5b54:	4605      	mov	r5, r0
+  3f5b56:	e9dd 9004 	ldrd	r9, r0, [sp, #16]
+  3f5b5a:	4581      	cmp	r9, r0
+  3f5b5c:	d3e8      	bcc.n	3f5b30 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x80>
+  3f5b5e:	9c03      	ldr	r4, [sp, #12]
+  3f5b60:	eba9 0b04 	sub.w	fp, r9, r4
+  3f5b64:	f10b 0601 	add.w	r6, fp, #1
+  3f5b68:	f1b6 3fff 	cmp.w	r6, #4294967295	; 0xffffffff
+  3f5b6c:	dd26      	ble.n	3f5bbc <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x10c>
+  3f5b6e:	1b00      	subs	r0, r0, r4
+  3f5b70:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f5b74:	ebb6 0f40 	cmp.w	r6, r0, lsl #1
+  3f5b78:	bf38      	it	cc
+  3f5b7a:	0046      	lslcc	r6, r0, #1
+  3f5b7c:	4288      	cmp	r0, r1
+  3f5b7e:	bf28      	it	cs
+  3f5b80:	f06f 4600 	mvncs.w	r6, #2147483648	; 0x80000000
+  3f5b84:	b126      	cbz	r6, 3f5b90 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0xe0>
+  3f5b86:	4630      	mov	r0, r6
+  3f5b88:	f0ca e6ea 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f5b8c:	4680      	mov	r8, r0
+  3f5b8e:	e001      	b.n	3f5b94 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0xe4>
+  3f5b90:	f04f 0800 	mov.w	r8, #0
+  3f5b94:	eb08 090b 	add.w	r9, r8, fp
+  3f5b98:	4640      	mov	r0, r8
+  3f5b9a:	4621      	mov	r1, r4
+  3f5b9c:	465a      	mov	r2, fp
+  3f5b9e:	f809 5b01 	strb.w	r5, [r9], #1
+  3f5ba2:	f0c2 e730 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f5ba6:	2c00      	cmp	r4, #0
+  3f5ba8:	eb08 0006 	add.w	r0, r8, r6
+  3f5bac:	9005      	str	r0, [sp, #20]
+  3f5bae:	f8cd 800c 	str.w	r8, [sp, #12]
+  3f5bb2:	bf1c      	itt	ne
+  3f5bb4:	4620      	movne	r0, r4
+  3f5bb6:	f0ca e71c 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5bba:	e7bb      	b.n	3f5b34 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x84>
+  3f5bbc:	a803      	add	r0, sp, #12
+  3f5bbe:	f7fc fb7d 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f5bc2:	e002      	b.n	3f5bca <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x11a>
+  3f5bc4:	e001      	b.n	3f5bca <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x11a>
+  3f5bc6:	e000      	b.n	3f5bca <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x11a>
+  3f5bc8:	e7ff      	b.n	3f5bca <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x11a>
+  3f5bca:	9803      	ldr	r0, [sp, #12]
+  3f5bcc:	2800      	cmp	r0, #0
+  3f5bce:	bf1c      	itt	ne
+  3f5bd0:	9004      	strne	r0, [sp, #16]
+  3f5bd2:	f0ca e70e 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5bd6:	f0ca e704 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f5bda:	bf00      	nop
+  3f5bdc:	9d58      	ldr	r5, [sp, #352]	; 0x160
+  3f5bde:	0054      	lsls	r4, r2, #1
+  3f5be0:	9d04      	ldr	r5, [sp, #16]
+  3f5be2:	0054      	lsls	r4, r2, #1
+
+003f5be4 <core::crypto::encrypt(STRING const&, STRING&)@@Base>:
+  3f5be4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f5be6:	af03      	add	r7, sp, #12
+  3f5be8:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3f5bec:	b08d      	sub	sp, #52	; 0x34
+  3f5bee:	9100      	str	r1, [sp, #0]
+  3f5bf0:	4681      	mov	r9, r0
+  3f5bf2:	48e2      	ldr	r0, [pc, #904]	; (3f5f7c <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x398>)
+  3f5bf4:	2440      	movs	r4, #64	; 0x40
+  3f5bf6:	4478      	add	r0, pc
+  3f5bf8:	6800      	ldr	r0, [r0, #0]
+  3f5bfa:	6800      	ldr	r0, [r0, #0]
+  3f5bfc:	900c      	str	r0, [sp, #48]	; 0x30
+  3f5bfe:	2000      	movs	r0, #0
+  3f5c00:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f5c02:	e9cd 0009 	strd	r0, r0, [sp, #36]	; 0x24
+  3f5c06:	4648      	mov	r0, r9
+  3f5c08:	f0cc e09a 	blx	8c1d40 <operator new[](unsigned int, std::align_val_t)@@Base+0x1470> // STRING::Length() const
+  3f5c0c:	3005      	adds	r0, #5
+  3f5c0e:	4284      	cmp	r4, r0
+  3f5c10:	d201      	bcs.n	3f5c16 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x32>
+  3f5c12:	3440      	adds	r4, #64	; 0x40
+  3f5c14:	e7f7      	b.n	3f5c06 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x22>
+  3f5c16:	4621      	mov	r1, r4
+  3f5c18:	9c09      	ldr	r4, [sp, #36]	; 0x24
+  3f5c1a:	980b      	ldr	r0, [sp, #44]	; 0x2c
+  3f5c1c:	9101      	str	r1, [sp, #4]
+  3f5c1e:	1b00      	subs	r0, r0, r4
+  3f5c20:	4288      	cmp	r0, r1
+  3f5c22:	d21a      	bcs.n	3f5c5a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x76>
+  3f5c24:	f8dd 8004 	ldr.w	r8, [sp, #4]
+  3f5c28:	f1b8 3fff 	cmp.w	r8, #4294967295	; 0xffffffff
+  3f5c2c:	f340 817b 	ble.w	3f5f26 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x342>
+  3f5c30:	9e0a      	ldr	r6, [sp, #40]	; 0x28
+  3f5c32:	4640      	mov	r0, r8
+  3f5c34:	f0ca e694 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f5c38:	1b36      	subs	r6, r6, r4
+  3f5c3a:	4621      	mov	r1, r4
+  3f5c3c:	4605      	mov	r5, r0
+  3f5c3e:	4632      	mov	r2, r6
+  3f5c40:	f0c2 e6e0 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f5c44:	eb05 0008 	add.w	r0, r5, r8
+  3f5c48:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f5c4a:	19a8      	adds	r0, r5, r6
+  3f5c4c:	2c00      	cmp	r4, #0
+  3f5c4e:	e9cd 5009 	strd	r5, r0, [sp, #36]	; 0x24
+  3f5c52:	bf1c      	itt	ne
+  3f5c54:	4620      	movne	r0, r4
+  3f5c56:	f0ca e6cc 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5c5a:	f0ce e3aa 	blx	8c43b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ae0> // core::crypto::ICryptEngine::instance()
+  3f5c5e:	f8dd a028 	ldr.w	sl, [sp, #40]	; 0x28
+  3f5c62:	f245 4043 	movw	r0, #21571	; 0x5443
+  3f5c66:	f2c4 7041 	movt	r0, #18241	; 0x4741
+  3f5c6a:	2400      	movs	r4, #0
+  3f5c6c:	9008      	str	r0, [sp, #32]
+  3f5c6e:	e008      	b.n	3f5c82 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x9e>
+  3f5c70:	a808      	add	r0, sp, #32
+  3f5c72:	5d00      	ldrb	r0, [r0, r4]
+  3f5c74:	f80a 0b01 	strb.w	r0, [sl], #1
+  3f5c78:	3401      	adds	r4, #1
+  3f5c7a:	f8cd a028 	str.w	sl, [sp, #40]	; 0x28
+  3f5c7e:	2c04      	cmp	r4, #4
+  3f5c80:	d035      	beq.n	3f5cee <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x10a>
+  3f5c82:	980b      	ldr	r0, [sp, #44]	; 0x2c
+  3f5c84:	4582      	cmp	sl, r0
+  3f5c86:	d3f3      	bcc.n	3f5c70 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x8c>
+  3f5c88:	f8dd 8024 	ldr.w	r8, [sp, #36]	; 0x24
+  3f5c8c:	ebaa 0b08 	sub.w	fp, sl, r8
+  3f5c90:	f10b 0601 	add.w	r6, fp, #1
+  3f5c94:	f1b6 3fff 	cmp.w	r6, #4294967295	; 0xffffffff
+  3f5c98:	f340 813c 	ble.w	3f5f14 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x330>
+  3f5c9c:	eba0 0008 	sub.w	r0, r0, r8
+  3f5ca0:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f5ca4:	ebb6 0f40 	cmp.w	r6, r0, lsl #1
+  3f5ca8:	bf38      	it	cc
+  3f5caa:	0046      	lslcc	r6, r0, #1
+  3f5cac:	4288      	cmp	r0, r1
+  3f5cae:	bf28      	it	cs
+  3f5cb0:	f06f 4600 	mvncs.w	r6, #2147483648	; 0x80000000
+  3f5cb4:	b126      	cbz	r6, 3f5cc0 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0xdc>
+  3f5cb6:	4630      	mov	r0, r6
+  3f5cb8:	f0ca e652 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f5cbc:	4605      	mov	r5, r0
+  3f5cbe:	e000      	b.n	3f5cc2 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0xde>
+  3f5cc0:	2500      	movs	r5, #0
+  3f5cc2:	a808      	add	r0, sp, #32
+  3f5cc4:	eb05 0a0b 	add.w	sl, r5, fp
+  3f5cc8:	4641      	mov	r1, r8
+  3f5cca:	465a      	mov	r2, fp
+  3f5ccc:	5d00      	ldrb	r0, [r0, r4]
+  3f5cce:	f80a 0b01 	strb.w	r0, [sl], #1
+  3f5cd2:	4628      	mov	r0, r5
+  3f5cd4:	f0c2 e696 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f5cd8:	f1b8 0f00 	cmp.w	r8, #0
+  3f5cdc:	eb05 0006 	add.w	r0, r5, r6
+  3f5ce0:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f5ce2:	9509      	str	r5, [sp, #36]	; 0x24
+  3f5ce4:	bf1c      	itt	ne
+  3f5ce6:	4640      	movne	r0, r8
+  3f5ce8:	f0ca e682 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5cec:	e7c4      	b.n	3f5c78 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x94>
+  3f5cee:	4648      	mov	r0, r9
+  3f5cf0:	f0cb e36e 	blx	8c13d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xb00> // STRING::CharPtr() const
+  3f5cf4:	f890 a000 	ldrb.w	sl, [r0]
+  3f5cf8:	f8dd b028 	ldr.w	fp, [sp, #40]	; 0x28
+  3f5cfc:	f1ba 0f00 	cmp.w	sl, #0
+  3f5d00:	d03e      	beq.n	3f5d80 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x19c>
+  3f5d02:	1c44      	adds	r4, r0, #1
+  3f5d04:	e008      	b.n	3f5d18 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x134>
+  3f5d06:	f80b ab01 	strb.w	sl, [fp], #1
+  3f5d0a:	f8cd b028 	str.w	fp, [sp, #40]	; 0x28
+  3f5d0e:	f814 ab01 	ldrb.w	sl, [r4], #1
+  3f5d12:	f1ba 0f00 	cmp.w	sl, #0
+  3f5d16:	d033      	beq.n	3f5d80 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x19c>
+  3f5d18:	980b      	ldr	r0, [sp, #44]	; 0x2c
+  3f5d1a:	4583      	cmp	fp, r0
+  3f5d1c:	d3f3      	bcc.n	3f5d06 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x122>
+  3f5d1e:	f8dd 8024 	ldr.w	r8, [sp, #36]	; 0x24
+  3f5d22:	ebab 0908 	sub.w	r9, fp, r8
+  3f5d26:	f109 0601 	add.w	r6, r9, #1
+  3f5d2a:	f1b6 3fff 	cmp.w	r6, #4294967295	; 0xffffffff
+  3f5d2e:	f340 80f4 	ble.w	3f5f1a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x336>
+  3f5d32:	eba0 0008 	sub.w	r0, r0, r8
+  3f5d36:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f5d3a:	ebb6 0f40 	cmp.w	r6, r0, lsl #1
+  3f5d3e:	bf38      	it	cc
+  3f5d40:	0046      	lslcc	r6, r0, #1
+  3f5d42:	4288      	cmp	r0, r1
+  3f5d44:	bf28      	it	cs
+  3f5d46:	f06f 4600 	mvncs.w	r6, #2147483648	; 0x80000000
+  3f5d4a:	b126      	cbz	r6, 3f5d56 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x172>
+  3f5d4c:	4630      	mov	r0, r6
+  3f5d4e:	f0ca e608 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f5d52:	4605      	mov	r5, r0
+  3f5d54:	e000      	b.n	3f5d58 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x174>
+  3f5d56:	2500      	movs	r5, #0
+  3f5d58:	eb05 0b09 	add.w	fp, r5, r9
+  3f5d5c:	4628      	mov	r0, r5
+  3f5d5e:	4641      	mov	r1, r8
+  3f5d60:	464a      	mov	r2, r9
+  3f5d62:	f80b ab01 	strb.w	sl, [fp], #1
+  3f5d66:	f0c2 e64e 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f5d6a:	f1b8 0f00 	cmp.w	r8, #0
+  3f5d6e:	eb05 0006 	add.w	r0, r5, r6
+  3f5d72:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f5d74:	9509      	str	r5, [sp, #36]	; 0x24
+  3f5d76:	bf1c      	itt	ne
+  3f5d78:	4640      	movne	r0, r8
+  3f5d7a:	f0ca e63a 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5d7e:	e7c4      	b.n	3f5d0a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x126>
+  3f5d80:	980b      	ldr	r0, [sp, #44]	; 0x2c
+  3f5d82:	4583      	cmp	fp, r0
+  3f5d84:	d204      	bcs.n	3f5d90 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x1ac>
+  3f5d86:	2000      	movs	r0, #0
+  3f5d88:	f80b 0b01 	strb.w	r0, [fp], #1
+  3f5d8c:	9e09      	ldr	r6, [sp, #36]	; 0x24
+  3f5d8e:	e030      	b.n	3f5df2 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x20e>
+  3f5d90:	f8dd 9024 	ldr.w	r9, [sp, #36]	; 0x24
+  3f5d94:	ebab 0509 	sub.w	r5, fp, r9
+  3f5d98:	1c6c      	adds	r4, r5, #1
+  3f5d9a:	f1b4 3fff 	cmp.w	r4, #4294967295	; 0xffffffff
+  3f5d9e:	f340 80c5 	ble.w	3f5f2c <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x348>
+  3f5da2:	eba0 0009 	sub.w	r0, r0, r9
+  3f5da6:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f5daa:	f04f 0800 	mov.w	r8, #0
+  3f5dae:	ebb4 0f40 	cmp.w	r4, r0, lsl #1
+  3f5db2:	bf38      	it	cc
+  3f5db4:	0044      	lslcc	r4, r0, #1
+  3f5db6:	4288      	cmp	r0, r1
+  3f5db8:	bf28      	it	cs
+  3f5dba:	f06f 4400 	mvncs.w	r4, #2147483648	; 0x80000000
+  3f5dbe:	b124      	cbz	r4, 3f5dca <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x1e6>
+  3f5dc0:	4620      	mov	r0, r4
+  3f5dc2:	f0ca e5ce 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f5dc6:	4606      	mov	r6, r0
+  3f5dc8:	e000      	b.n	3f5dcc <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x1e8>
+  3f5dca:	2600      	movs	r6, #0
+  3f5dcc:	eb06 0b05 	add.w	fp, r6, r5
+  3f5dd0:	4630      	mov	r0, r6
+  3f5dd2:	4649      	mov	r1, r9
+  3f5dd4:	462a      	mov	r2, r5
+  3f5dd6:	f80b 8b01 	strb.w	r8, [fp], #1
+  3f5dda:	f0c2 e614 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f5dde:	f1b9 0f00 	cmp.w	r9, #0
+  3f5de2:	eb06 0004 	add.w	r0, r6, r4
+  3f5de6:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f5de8:	9609      	str	r6, [sp, #36]	; 0x24
+  3f5dea:	bf1c      	itt	ne
+  3f5dec:	4648      	movne	r0, r9
+  3f5dee:	f0ca e600 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5df2:	9901      	ldr	r1, [sp, #4]
+  3f5df4:	ebab 0006 	sub.w	r0, fp, r6
+  3f5df8:	f8cd b028 	str.w	fp, [sp, #40]	; 0x28
+  3f5dfc:	4288      	cmp	r0, r1
+  3f5dfe:	d24c      	bcs.n	3f5e9a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x2b6>
+  3f5e00:	f248 0b81 	movw	fp, #32897	; 0x8081
+  3f5e04:	f2c8 0b80 	movt	fp, #32896	; 0x8080
+  3f5e08:	e007      	b.n	3f5e1a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x236>
+  3f5e0a:	f804 8b01 	strb.w	r8, [r4], #1
+  3f5e0e:	9e09      	ldr	r6, [sp, #36]	; 0x24
+  3f5e10:	9901      	ldr	r1, [sp, #4]
+  3f5e12:	1ba0      	subs	r0, r4, r6
+  3f5e14:	940a      	str	r4, [sp, #40]	; 0x28
+  3f5e16:	4288      	cmp	r0, r1
+  3f5e18:	d23f      	bcs.n	3f5e9a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x2b6>
+  3f5e1a:	f0cf e17a 	blx	8c5110 <operator new[](unsigned int, std::align_val_t)@@Base+0x4840> // rand
+  3f5e1e:	fb5b 0200 	smmla	r2, fp, r0, r0
+  3f5e22:	e9dd 410a 	ldrd	r4, r1, [sp, #40]	; 0x28
+  3f5e26:	428c      	cmp	r4, r1
+  3f5e28:	ea4f 13e2 	mov.w	r3, r2, asr #7
+  3f5e2c:	eb03 72d2 	add.w	r2, r3, r2, lsr #31
+  3f5e30:	ebc2 2202 	rsb	r2, r2, r2, lsl #8
+  3f5e34:	eba0 0802 	sub.w	r8, r0, r2
+  3f5e38:	d3e7      	bcc.n	3f5e0a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x226>
+  3f5e3a:	f8dd a024 	ldr.w	sl, [sp, #36]	; 0x24
+  3f5e3e:	eba4 090a 	sub.w	r9, r4, sl
+  3f5e42:	f109 0501 	add.w	r5, r9, #1
+  3f5e46:	f1b5 3fff 	cmp.w	r5, #4294967295	; 0xffffffff
+  3f5e4a:	dd69      	ble.n	3f5f20 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x33c>
+  3f5e4c:	eba1 000a 	sub.w	r0, r1, sl
+  3f5e50:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f5e54:	ebb5 0f40 	cmp.w	r5, r0, lsl #1
+  3f5e58:	bf38      	it	cc
+  3f5e5a:	0045      	lslcc	r5, r0, #1
+  3f5e5c:	4288      	cmp	r0, r1
+  3f5e5e:	bf28      	it	cs
+  3f5e60:	f06f 4500 	mvncs.w	r5, #2147483648	; 0x80000000
+  3f5e64:	b125      	cbz	r5, 3f5e70 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x28c>
+  3f5e66:	4628      	mov	r0, r5
+  3f5e68:	f0ca e57a 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f5e6c:	4606      	mov	r6, r0
+  3f5e6e:	e000      	b.n	3f5e72 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x28e>
+  3f5e70:	2600      	movs	r6, #0
+  3f5e72:	eb06 0409 	add.w	r4, r6, r9
+  3f5e76:	4630      	mov	r0, r6
+  3f5e78:	4651      	mov	r1, sl
+  3f5e7a:	464a      	mov	r2, r9
+  3f5e7c:	f804 8b01 	strb.w	r8, [r4], #1
+  3f5e80:	f0c2 e5c0 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f5e84:	f1ba 0f00 	cmp.w	sl, #0
+  3f5e88:	eb06 0005 	add.w	r0, r6, r5
+  3f5e8c:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f5e8e:	9609      	str	r6, [sp, #36]	; 0x24
+  3f5e90:	bf1c      	itt	ne
+  3f5e92:	4650      	movne	r0, sl
+  3f5e94:	f0ca e5ac 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5e98:	e7ba      	b.n	3f5e10 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x22c>
+  3f5e9a:	2000      	movs	r0, #0
+  3f5e9c:	9007      	str	r0, [sp, #28]
+  3f5e9e:	e9cd 0005 	strd	r0, r0, [sp, #20]
+  3f5ea2:	f0ce e286 	blx	8c43b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ae0> // core::crypto::ICryptEngine::instance()
+  3f5ea6:	4601      	mov	r1, r0
+  3f5ea8:	6808      	ldr	r0, [r1, #0]
+  3f5eaa:	6882      	ldr	r2, [r0, #8]
+  3f5eac:	a802      	add	r0, sp, #8
+  3f5eae:	4790      	blx	r2
+  3f5eb0:	a809      	add	r0, sp, #36	; 0x24
+  3f5eb2:	a905      	add	r1, sp, #20
+  3f5eb4:	aa02      	add	r2, sp, #8
+  3f5eb6:	f0ce e224 	blx	8c4300 <operator new[](unsigned int, std::align_val_t)@@Base+0x3a30> // core::crypto::encrypt_aes_256(std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3f5eba:	4605      	mov	r5, r0
+  3f5ebc:	9802      	ldr	r0, [sp, #8]
+  3f5ebe:	2800      	cmp	r0, #0
+  3f5ec0:	bf1c      	itt	ne
+  3f5ec2:	9003      	strne	r0, [sp, #12]
+  3f5ec4:	f0ca e594 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5ec8:	b155      	cbz	r5, 3f5ee0 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x2fc>
+  3f5eca:	a802      	add	r0, sp, #8
+  3f5ecc:	a905      	add	r1, sp, #20
+  3f5ece:	f0ce e258 	blx	8c4380 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ab0> // core::crypto::base64Encode(std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3f5ed2:	9800      	ldr	r0, [sp, #0]
+  3f5ed4:	a902      	add	r1, sp, #8
+  3f5ed6:	f0ca e79c 	blx	8c0e10 <operator new[](unsigned int, std::align_val_t)@@Base+0x540> // STRING::operator=(STRING const&)
+  3f5eda:	a802      	add	r0, sp, #8
+  3f5edc:	f0ca e568 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5ee0:	9805      	ldr	r0, [sp, #20]
+  3f5ee2:	2800      	cmp	r0, #0
+  3f5ee4:	bf1c      	itt	ne
+  3f5ee6:	9006      	strne	r0, [sp, #24]
+  3f5ee8:	f0ca e582 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5eec:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3f5eee:	2800      	cmp	r0, #0
+  3f5ef0:	bf1c      	itt	ne
+  3f5ef2:	900a      	strne	r0, [sp, #40]	; 0x28
+  3f5ef4:	f0ca e57c 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5ef8:	980c      	ldr	r0, [sp, #48]	; 0x30
+  3f5efa:	4921      	ldr	r1, [pc, #132]	; (3f5f80 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x39c>)
+  3f5efc:	4479      	add	r1, pc
+  3f5efe:	6809      	ldr	r1, [r1, #0]
+  3f5f00:	6809      	ldr	r1, [r1, #0]
+  3f5f02:	4281      	cmp	r1, r0
+  3f5f04:	bf01      	itttt	eq
+  3f5f06:	4628      	moveq	r0, r5
+  3f5f08:	b00d      	addeq	sp, #52	; 0x34
+  3f5f0a:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3f5f0e:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f5f10:	f0ca e55e 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5f14:	a809      	add	r0, sp, #36	; 0x24
+  3f5f16:	f7fc f9d1 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f5f1a:	a809      	add	r0, sp, #36	; 0x24
+  3f5f1c:	f7fc f9ce 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f5f20:	a809      	add	r0, sp, #36	; 0x24
+  3f5f22:	f7fc f9cb 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f5f26:	a809      	add	r0, sp, #36	; 0x24
+  3f5f28:	f7fc f9c8 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f5f2c:	a809      	add	r0, sp, #36	; 0x24
+  3f5f2e:	f7fc f9c5 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f5f32:	a802      	add	r0, sp, #8
+  3f5f34:	f0ca e53c 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5f38:	e00a      	b.n	3f5f50 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x36c>
+  3f5f3a:	e009      	b.n	3f5f50 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x36c>
+  3f5f3c:	e015      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f3e:	9802      	ldr	r0, [sp, #8]
+  3f5f40:	b130      	cbz	r0, 3f5f50 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x36c>
+  3f5f42:	9003      	str	r0, [sp, #12]
+  3f5f44:	f0ca e554 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f5f48:	e002      	b.n	3f5f50 <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x36c>
+  3f5f4a:	e00e      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f4c:	e00d      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f4e:	e00c      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f50:	9805      	ldr	r0, [sp, #20]
+  3f5f52:	2800      	cmp	r0, #0
+  3f5f54:	bf1c      	itt	ne
+  3f5f56:	9006      	strne	r0, [sp, #24]
+  3f5f58:	f0ca e54a 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5f5c:	e005      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f5e:	e004      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f60:	e003      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f62:	e002      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f64:	e001      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f66:	e000      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f68:	e7ff      	b.n	3f5f6a <core::crypto::encrypt(STRING const&, STRING&)@@Base+0x386>
+  3f5f6a:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3f5f6c:	2800      	cmp	r0, #0
+  3f5f6e:	bf1c      	itt	ne
+  3f5f70:	900a      	strne	r0, [sp, #40]	; 0x28
+  3f5f72:	f0ca e53e 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5f76:	f0ca e534 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f5f7a:	bf00      	nop
+  3f5f7c:	9c22      	ldr	r4, [sp, #136]	; 0x88
+  3f5f7e:	0054      	lsls	r4, r2, #1
+  3f5f80:	991c      	ldr	r1, [sp, #112]	; 0x70
+  3f5f82:	0054      	lsls	r4, r2, #1
+
+003f5f84 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base>:
+  3f5f84:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f5f86:	af03      	add	r7, sp, #12
+  3f5f88:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3f5f8c:	b088      	sub	sp, #32
+  3f5f8e:	4606      	mov	r6, r0
+  3f5f90:	4831      	ldr	r0, [pc, #196]	; (3f6058 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0xd4>)
+  3f5f92:	4615      	mov	r5, r2
+  3f5f94:	460c      	mov	r4, r1
+  3f5f96:	4478      	add	r0, pc
+  3f5f98:	6800      	ldr	r0, [r0, #0]
+  3f5f9a:	6800      	ldr	r0, [r0, #0]
+  3f5f9c:	9007      	str	r0, [sp, #28]
+  3f5f9e:	4630      	mov	r0, r6
+  3f5fa0:	f0cb e076 	blx	8c1090 <operator new[](unsigned int, std::align_val_t)@@Base+0x7c0> // STRING::isEmpty() const
+  3f5fa4:	4601      	mov	r1, r0
+  3f5fa6:	2000      	movs	r0, #0
+  3f5fa8:	bba1      	cbnz	r1, 3f6014 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x90>
+  3f5faa:	9006      	str	r0, [sp, #24]
+  3f5fac:	e9cd 0004 	strd	r0, r0, [sp, #16]
+  3f5fb0:	a801      	add	r0, sp, #4
+  3f5fb2:	4631      	mov	r1, r6
+  3f5fb4:	f0ce e1ec 	blx	8c4390 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ac0> // core::crypto::base64Decode(STRING const&)
+  3f5fb8:	a801      	add	r0, sp, #4
+  3f5fba:	a904      	add	r1, sp, #16
+  3f5fbc:	462a      	mov	r2, r5
+  3f5fbe:	f0ce e1b8 	blx	8c4330 <operator new[](unsigned int, std::align_val_t)@@Base+0x3a60> // core::crypto::decrypt_aes_256(std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3f5fc2:	4605      	mov	r5, r0
+  3f5fc4:	9801      	ldr	r0, [sp, #4]
+  3f5fc6:	2800      	cmp	r0, #0
+  3f5fc8:	bf1c      	itt	ne
+  3f5fca:	9002      	strne	r0, [sp, #8]
+  3f5fcc:	f0ca e510 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f5fd0:	b1bd      	cbz	r5, 3f6002 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x7e>
+  3f5fd2:	9804      	ldr	r0, [sp, #16]
+  3f5fd4:	6805      	ldr	r5, [r0, #0]
+  3f5fd6:	f0ce e1ec 	blx	8c43b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ae0> // core::crypto::ICryptEngine::instance()
+  3f5fda:	f245 4043 	movw	r0, #21571	; 0x5443
+  3f5fde:	f2c4 7041 	movt	r0, #18241	; 0x4741
+  3f5fe2:	4285      	cmp	r5, r0
+  3f5fe4:	d10d      	bne.n	3f6002 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x7e>
+  3f5fe6:	9804      	ldr	r0, [sp, #16]
+  3f5fe8:	1d01      	adds	r1, r0, #4
+  3f5fea:	a801      	add	r0, sp, #4
+  3f5fec:	f0ca e518 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  3f5ff0:	a901      	add	r1, sp, #4
+  3f5ff2:	4620      	mov	r0, r4
+  3f5ff4:	f0ca e70c 	blx	8c0e10 <operator new[](unsigned int, std::align_val_t)@@Base+0x540> // STRING::operator=(STRING const&)
+  3f5ff8:	a801      	add	r0, sp, #4
+  3f5ffa:	f0ca e4da 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5ffe:	2001      	movs	r0, #1
+  3f6000:	e000      	b.n	3f6004 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x80>
+  3f6002:	2000      	movs	r0, #0
+  3f6004:	9904      	ldr	r1, [sp, #16]
+  3f6006:	b129      	cbz	r1, 3f6014 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x90>
+  3f6008:	4604      	mov	r4, r0
+  3f600a:	4608      	mov	r0, r1
+  3f600c:	9105      	str	r1, [sp, #20]
+  3f600e:	f0ca e4f0 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f6012:	4620      	mov	r0, r4
+  3f6014:	9907      	ldr	r1, [sp, #28]
+  3f6016:	4a11      	ldr	r2, [pc, #68]	; (3f605c <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0xd8>)
+  3f6018:	447a      	add	r2, pc
+  3f601a:	6812      	ldr	r2, [r2, #0]
+  3f601c:	6812      	ldr	r2, [r2, #0]
+  3f601e:	428a      	cmp	r2, r1
+  3f6020:	bf02      	ittt	eq
+  3f6022:	b008      	addeq	sp, #32
+  3f6024:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3f6028:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f602a:	f0ca e4d2 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f602e:	a801      	add	r0, sp, #4
+  3f6030:	f0ca e4be 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f6034:	e007      	b.n	3f6046 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0xc2>
+  3f6036:	e006      	b.n	3f6046 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0xc2>
+  3f6038:	e005      	b.n	3f6046 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0xc2>
+  3f603a:	9801      	ldr	r0, [sp, #4]
+  3f603c:	b118      	cbz	r0, 3f6046 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0xc2>
+  3f603e:	9002      	str	r0, [sp, #8]
+  3f6040:	f0ca e4d6 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f6044:	e7ff      	b.n	3f6046 <core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0xc2>
+  3f6046:	9804      	ldr	r0, [sp, #16]
+  3f6048:	2800      	cmp	r0, #0
+  3f604a:	bf1c      	itt	ne
+  3f604c:	9005      	strne	r0, [sp, #20]
+  3f604e:	f0ca e4d0 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f6052:	f0ca e4c6 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f6056:	bf00      	nop
+  3f6058:	9882      	ldr	r0, [sp, #520]	; 0x208
+  3f605a:	0054      	lsls	r4, r2, #1
+  3f605c:	9800      	ldr	r0, [sp, #0]
+  3f605e:	0054      	lsls	r4, r2, #1
+
+003f6060 <core::crypto::CryptEngine::encryptionKey()@@Base>:
+  3f6060:	b5d0      	push	{r4, r6, r7, lr}
+  3f6062:	af02      	add	r7, sp, #8
+  3f6064:	b088      	sub	sp, #32
+  3f6066:	4604      	mov	r4, r0
+  3f6068:	481c      	ldr	r0, [pc, #112]	; (3f60dc <core::crypto::CryptEngine::encryptionKey()@@Base+0x7c>)
+  3f606a:	2200      	movs	r2, #0
+  3f606c:	4478      	add	r0, pc
+  3f606e:	6800      	ldr	r0, [r0, #0]
+  3f6070:	6800      	ldr	r0, [r0, #0]
+  3f6072:	9007      	str	r0, [sp, #28]
+  3f6074:	6808      	ldr	r0, [r1, #0]
+  3f6076:	f88d 2018 	strb.w	r2, [sp, #24]
+  3f607a:	f88d 200c 	strb.w	r2, [sp, #12]
+  3f607e:	68c3      	ldr	r3, [r0, #12]
+  3f6080:	aa03      	add	r2, sp, #12
+  3f6082:	4668      	mov	r0, sp
+  3f6084:	4798      	blx	r3
+  3f6086:	466a      	mov	r2, sp
+  3f6088:	4620      	mov	r0, r4
+  3f608a:	f0ce e19a 	blx	8c43c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3af0> // core::crypto::ICryptEngine::generateKey(STRING const&)
+  3f608e:	4668      	mov	r0, sp
+  3f6090:	f0ca e48e 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f6094:	f89d 0018 	ldrb.w	r0, [sp, #24]
+  3f6098:	2800      	cmp	r0, #0
+  3f609a:	bf1f      	itttt	ne
+  3f609c:	9803      	ldrne	r0, [sp, #12]
+  3f609e:	2800      	cmpne	r0, #0
+  3f60a0:	9004      	strne	r0, [sp, #16]
+  3f60a2:	f0ca e4a6 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f60a6:	9807      	ldr	r0, [sp, #28]
+  3f60a8:	490d      	ldr	r1, [pc, #52]	; (3f60e0 <core::crypto::CryptEngine::encryptionKey()@@Base+0x80>)
+  3f60aa:	4479      	add	r1, pc
+  3f60ac:	6809      	ldr	r1, [r1, #0]
+  3f60ae:	6809      	ldr	r1, [r1, #0]
+  3f60b0:	4281      	cmp	r1, r0
+  3f60b2:	bf04      	itt	eq
+  3f60b4:	b008      	addeq	sp, #32
+  3f60b6:	bdd0      	popeq	{r4, r6, r7, pc}
+  3f60b8:	f0ca e48a 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f60bc:	4668      	mov	r0, sp
+  3f60be:	f0ca e478 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f60c2:	e7ff      	b.n	3f60c4 <core::crypto::CryptEngine::encryptionKey()@@Base+0x64>
+  3f60c4:	f89d 0018 	ldrb.w	r0, [sp, #24]
+  3f60c8:	2800      	cmp	r0, #0
+  3f60ca:	bf1f      	itttt	ne
+  3f60cc:	9803      	ldrne	r0, [sp, #12]
+  3f60ce:	2800      	cmpne	r0, #0
+  3f60d0:	9004      	strne	r0, [sp, #16]
+  3f60d2:	f0ca e48e 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f60d6:	f0ca e484 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f60da:	bf00      	nop
+  3f60dc:	97ac      	str	r7, [sp, #688]	; 0x2b0
+  3f60de:	0054      	lsls	r4, r2, #1
+  3f60e0:	976e      	str	r7, [sp, #440]	; 0x1b8
+  3f60e2:	0054      	lsls	r4, r2, #1
+
+003f60e4 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base>:
+  3f60e4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f60e6:	af03      	add	r7, sp, #12
+  3f60e8:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3f60ec:	b08d      	sub	sp, #52	; 0x34
+  3f60ee:	9001      	str	r0, [sp, #4]
+  3f60f0:	2300      	movs	r3, #0
+  3f60f2:	4861      	ldr	r0, [pc, #388]	; (3f6278 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x194>)
+  3f60f4:	4478      	add	r0, pc
+  3f60f6:	6800      	ldr	r0, [r0, #0]
+  3f60f8:	6800      	ldr	r0, [r0, #0]
+  3f60fa:	900c      	str	r0, [sp, #48]	; 0x30
+  3f60fc:	7b10      	ldrb	r0, [r2, #12]
+  3f60fe:	9308      	str	r3, [sp, #32]
+  3f6100:	e9cd 3306 	strd	r3, r3, [sp, #24]
+  3f6104:	b158      	cbz	r0, 3f611e <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x3a>
+  3f6106:	a806      	add	r0, sp, #24
+  3f6108:	4290      	cmp	r0, r2
+  3f610a:	d05f      	beq.n	3f61cc <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0xe8>
+  3f610c:	e9d2 1200 	ldrd	r1, r2, [r2]
+  3f6110:	1a53      	subs	r3, r2, r1
+  3f6112:	a806      	add	r0, sp, #24
+  3f6114:	f0ce e16c 	blx	8c43f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3b20> // void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)
+  3f6118:	e9dd 5106 	ldrd	r5, r1, [sp, #24]
+  3f611c:	e00f      	b.n	3f613e <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x5a>
+  3f611e:	6808      	ldr	r0, [r1, #0]
+  3f6120:	6902      	ldr	r2, [r0, #16]
+  3f6122:	a809      	add	r0, sp, #36	; 0x24
+  3f6124:	4790      	blx	r2
+  3f6126:	9806      	ldr	r0, [sp, #24]
+  3f6128:	2800      	cmp	r0, #0
+  3f612a:	bf1c      	itt	ne
+  3f612c:	9007      	strne	r0, [sp, #28]
+  3f612e:	f0ca e460 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f6132:	e9dd 5109 	ldrd	r5, r1, [sp, #36]	; 0x24
+  3f6136:	980b      	ldr	r0, [sp, #44]	; 0x2c
+  3f6138:	e9cd 5106 	strd	r5, r1, [sp, #24]
+  3f613c:	9008      	str	r0, [sp, #32]
+  3f613e:	2000      	movs	r0, #0
+  3f6140:	428d      	cmp	r5, r1
+  3f6142:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f6144:	e9cd 0009 	strd	r0, r0, [sp, #36]	; 0x24
+  3f6148:	d044      	beq.n	3f61d4 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0xf0>
+  3f614a:	f04f 0800 	mov.w	r8, #0
+  3f614e:	9102      	str	r1, [sp, #8]
+  3f6150:	e006      	b.n	3f6160 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x7c>
+  3f6152:	f808 bb01 	strb.w	fp, [r8], #1
+  3f6156:	3501      	adds	r5, #1
+  3f6158:	f8cd 8028 	str.w	r8, [sp, #40]	; 0x28
+  3f615c:	428d      	cmp	r5, r1
+  3f615e:	d039      	beq.n	3f61d4 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0xf0>
+  3f6160:	980b      	ldr	r0, [sp, #44]	; 0x2c
+  3f6162:	f895 b000 	ldrb.w	fp, [r5]
+  3f6166:	4580      	cmp	r8, r0
+  3f6168:	d3f3      	bcc.n	3f6152 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x6e>
+  3f616a:	f8dd a024 	ldr.w	sl, [sp, #36]	; 0x24
+  3f616e:	eba8 090a 	sub.w	r9, r8, sl
+  3f6172:	f109 0601 	add.w	r6, r9, #1
+  3f6176:	f1b6 3fff 	cmp.w	r6, #4294967295	; 0xffffffff
+  3f617a:	dd64      	ble.n	3f6246 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x162>
+  3f617c:	eba0 000a 	sub.w	r0, r0, sl
+  3f6180:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f6184:	ebb6 0f40 	cmp.w	r6, r0, lsl #1
+  3f6188:	bf38      	it	cc
+  3f618a:	0046      	lslcc	r6, r0, #1
+  3f618c:	4288      	cmp	r0, r1
+  3f618e:	bf28      	it	cs
+  3f6190:	f06f 4600 	mvncs.w	r6, #2147483648	; 0x80000000
+  3f6194:	b126      	cbz	r6, 3f61a0 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0xbc>
+  3f6196:	4630      	mov	r0, r6
+  3f6198:	f0ca e3e2 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f619c:	4604      	mov	r4, r0
+  3f619e:	e000      	b.n	3f61a2 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0xbe>
+  3f61a0:	2400      	movs	r4, #0
+  3f61a2:	eb04 0809 	add.w	r8, r4, r9
+  3f61a6:	4620      	mov	r0, r4
+  3f61a8:	4651      	mov	r1, sl
+  3f61aa:	464a      	mov	r2, r9
+  3f61ac:	f808 bb01 	strb.w	fp, [r8], #1
+  3f61b0:	f0c2 e428 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f61b4:	f1ba 0f00 	cmp.w	sl, #0
+  3f61b8:	eb04 0006 	add.w	r0, r4, r6
+  3f61bc:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f61be:	9409      	str	r4, [sp, #36]	; 0x24
+  3f61c0:	bf1c      	itt	ne
+  3f61c2:	4650      	movne	r0, sl
+  3f61c4:	f0ca e414 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f61c8:	9902      	ldr	r1, [sp, #8]
+  3f61ca:	e7c4      	b.n	3f6156 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x72>
+  3f61cc:	2000      	movs	r0, #0
+  3f61ce:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f61d0:	e9cd 0009 	strd	r0, r0, [sp, #36]	; 0x24
+  3f61d4:	a909      	add	r1, sp, #36	; 0x24
+  3f61d6:	2000      	movs	r0, #0
+  3f61d8:	f000 f948 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f61dc:	a909      	add	r1, sp, #36	; 0x24
+  3f61de:	2001      	movs	r0, #1
+  3f61e0:	f000 f944 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f61e4:	a909      	add	r1, sp, #36	; 0x24
+  3f61e6:	2002      	movs	r0, #2
+  3f61e8:	f000 f940 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f61ec:	a909      	add	r1, sp, #36	; 0x24
+  3f61ee:	2003      	movs	r0, #3
+  3f61f0:	f000 f93c 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f61f4:	e9dd 1009 	ldrd	r1, r0, [sp, #36]	; 0x24
+  3f61f8:	1a42      	subs	r2, r0, r1
+  3f61fa:	a803      	add	r0, sp, #12
+  3f61fc:	f0cb e3e8 	blx	8c19d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1100> // core::crypto::sha256(unsigned char const*, unsigned int)
+  3f6200:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3f6202:	2800      	cmp	r0, #0
+  3f6204:	bf1c      	itt	ne
+  3f6206:	900a      	strne	r0, [sp, #40]	; 0x28
+  3f6208:	f0ca e3f2 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f620c:	9801      	ldr	r0, [sp, #4]
+  3f620e:	a903      	add	r1, sp, #12
+  3f6210:	f0cb e3e6 	blx	8c19e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1110> // core::crypto::digestToString(std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3f6214:	9803      	ldr	r0, [sp, #12]
+  3f6216:	2800      	cmp	r0, #0
+  3f6218:	bf1c      	itt	ne
+  3f621a:	9004      	strne	r0, [sp, #16]
+  3f621c:	f0ca e3e8 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f6220:	9806      	ldr	r0, [sp, #24]
+  3f6222:	2800      	cmp	r0, #0
+  3f6224:	bf1c      	itt	ne
+  3f6226:	9007      	strne	r0, [sp, #28]
+  3f6228:	f0ca e3e2 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f622c:	980c      	ldr	r0, [sp, #48]	; 0x30
+  3f622e:	4913      	ldr	r1, [pc, #76]	; (3f627c <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x198>)
+  3f6230:	4479      	add	r1, pc
+  3f6232:	6809      	ldr	r1, [r1, #0]
+  3f6234:	6809      	ldr	r1, [r1, #0]
+  3f6236:	4281      	cmp	r1, r0
+  3f6238:	bf02      	ittt	eq
+  3f623a:	b00d      	addeq	sp, #52	; 0x34
+  3f623c:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3f6240:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f6242:	f0ca e3c6 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f6246:	a809      	add	r0, sp, #36	; 0x24
+  3f6248:	f7fc f838 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f624c:	e00c      	b.n	3f6268 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x184>
+  3f624e:	e00b      	b.n	3f6268 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x184>
+  3f6250:	9803      	ldr	r0, [sp, #12]
+  3f6252:	b148      	cbz	r0, 3f6268 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x184>
+  3f6254:	9004      	str	r0, [sp, #16]
+  3f6256:	e005      	b.n	3f6264 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x180>
+  3f6258:	e001      	b.n	3f625e <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x17a>
+  3f625a:	e000      	b.n	3f625e <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x17a>
+  3f625c:	e7ff      	b.n	3f625e <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x17a>
+  3f625e:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3f6260:	b110      	cbz	r0, 3f6268 <core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)@@Base+0x184>
+  3f6262:	900a      	str	r0, [sp, #40]	; 0x28
+  3f6264:	f0ca e3c4 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f6268:	9806      	ldr	r0, [sp, #24]
+  3f626a:	2800      	cmp	r0, #0
+  3f626c:	bf1c      	itt	ne
+  3f626e:	9007      	strne	r0, [sp, #28]
+  3f6270:	f0ca e3be 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f6274:	f0ca e3b4 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f6278:	9724      	str	r7, [sp, #144]	; 0x90
+  3f627a:	0054      	lsls	r4, r2, #1
+  3f627c:	95e8      	str	r5, [sp, #928]	; 0x3a0
+  3f627e:	0054      	lsls	r4, r2, #1
+
+003f6280 <core::crypto::CryptEngine::hash(STRING const&)@@Base>:
+  3f6280:	b5b0      	push	{r4, r5, r7, lr}
+  3f6282:	af02      	add	r7, sp, #8
+  3f6284:	b08c      	sub	sp, #48	; 0x30
+  3f6286:	4604      	mov	r4, r0
+  3f6288:	4827      	ldr	r0, [pc, #156]	; (3f6328 <core::crypto::CryptEngine::hash(STRING const&)@@Base+0xa8>)
+  3f628a:	4615      	mov	r5, r2
+  3f628c:	2200      	movs	r2, #0
+  3f628e:	4478      	add	r0, pc
+  3f6290:	6800      	ldr	r0, [r0, #0]
+  3f6292:	6800      	ldr	r0, [r0, #0]
+  3f6294:	900b      	str	r0, [sp, #44]	; 0x2c
+  3f6296:	6808      	ldr	r0, [r1, #0]
+  3f6298:	f88d 2028 	strb.w	r2, [sp, #40]	; 0x28
+  3f629c:	f88d 201c 	strb.w	r2, [sp, #28]
+  3f62a0:	68c3      	ldr	r3, [r0, #12]
+  3f62a2:	a801      	add	r0, sp, #4
+  3f62a4:	aa07      	add	r2, sp, #28
+  3f62a6:	4798      	blx	r3
+  3f62a8:	a804      	add	r0, sp, #16
+  3f62aa:	a901      	add	r1, sp, #4
+  3f62ac:	462a      	mov	r2, r5
+  3f62ae:	f0cd e020 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  3f62b2:	a801      	add	r0, sp, #4
+  3f62b4:	f0ca e37c 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f62b8:	f89d 0028 	ldrb.w	r0, [sp, #40]	; 0x28
+  3f62bc:	2800      	cmp	r0, #0
+  3f62be:	bf1f      	itttt	ne
+  3f62c0:	9807      	ldrne	r0, [sp, #28]
+  3f62c2:	2800      	cmpne	r0, #0
+  3f62c4:	9008      	strne	r0, [sp, #32]
+  3f62c6:	f0ca e394 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f62ca:	a804      	add	r0, sp, #16
+  3f62cc:	f0cb e080 	blx	8c13d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xb00> // STRING::CharPtr() const
+  3f62d0:	4605      	mov	r5, r0
+  3f62d2:	a804      	add	r0, sp, #16
+  3f62d4:	f0cb e534 	blx	8c1d40 <operator new[](unsigned int, std::align_val_t)@@Base+0x1470> // STRING::Length() const
+  3f62d8:	4602      	mov	r2, r0
+  3f62da:	4620      	mov	r0, r4
+  3f62dc:	4629      	mov	r1, r5
+  3f62de:	f0cb e558 	blx	8c1d90 <operator new[](unsigned int, std::align_val_t)@@Base+0x14c0> // core::crypto::md5(char const*, unsigned int)
+  3f62e2:	a804      	add	r0, sp, #16
+  3f62e4:	f0ca e364 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f62e8:	980b      	ldr	r0, [sp, #44]	; 0x2c
+  3f62ea:	4910      	ldr	r1, [pc, #64]	; (3f632c <core::crypto::CryptEngine::hash(STRING const&)@@Base+0xac>)
+  3f62ec:	4479      	add	r1, pc
+  3f62ee:	6809      	ldr	r1, [r1, #0]
+  3f62f0:	6809      	ldr	r1, [r1, #0]
+  3f62f2:	4281      	cmp	r1, r0
+  3f62f4:	bf04      	itt	eq
+  3f62f6:	b00c      	addeq	sp, #48	; 0x30
+  3f62f8:	bdb0      	popeq	{r4, r5, r7, pc}
+  3f62fa:	f0ca e36a 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f62fe:	a801      	add	r0, sp, #4
+  3f6300:	f0ca e356 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f6304:	e7ff      	b.n	3f6306 <core::crypto::CryptEngine::hash(STRING const&)@@Base+0x86>
+  3f6306:	f89d 0028 	ldrb.w	r0, [sp, #40]	; 0x28
+  3f630a:	2800      	cmp	r0, #0
+  3f630c:	bf1c      	itt	ne
+  3f630e:	9807      	ldrne	r0, [sp, #28]
+  3f6310:	2800      	cmpne	r0, #0
+  3f6312:	d007      	beq.n	3f6324 <core::crypto::CryptEngine::hash(STRING const&)@@Base+0xa4>
+  3f6314:	9008      	str	r0, [sp, #32]
+  3f6316:	f0ca e36c 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f631a:	f0ca e362 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f631e:	a804      	add	r0, sp, #16
+  3f6320:	f0ca e346 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f6324:	f0ca e35c 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f6328:	958a      	str	r5, [sp, #552]	; 0x228
+  3f632a:	0054      	lsls	r4, r2, #1
+  3f632c:	952c      	str	r5, [sp, #176]	; 0xb0
+  3f632e:	0054      	lsls	r4, r2, #1
+
+003f6330 <core::crypto::CryptEngine::getRegistryKey() const@@Base>:
+  3f6330:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f6332:	af03      	add	r7, sp, #12
+  3f6334:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3f6338:	b089      	sub	sp, #36	; 0x24
+  3f633a:	9001      	str	r0, [sp, #4]
+  3f633c:	ac02      	add	r4, sp, #8
+  3f633e:	4849      	ldr	r0, [pc, #292]	; (3f6464 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x134>)
+  3f6340:	2500      	movs	r5, #0
+  3f6342:	4478      	add	r0, pc
+  3f6344:	6800      	ldr	r0, [r0, #0]
+  3f6346:	6800      	ldr	r0, [r0, #0]
+  3f6348:	9008      	str	r0, [sp, #32]
+  3f634a:	6808      	ldr	r0, [r1, #0]
+  3f634c:	9507      	str	r5, [sp, #28]
+  3f634e:	e9cd 5505 	strd	r5, r5, [sp, #20]
+  3f6352:	69c2      	ldr	r2, [r0, #28]
+  3f6354:	4620      	mov	r0, r4
+  3f6356:	4790      	blx	r2
+  3f6358:	e007      	b.n	3f636a <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x3a>
+  3f635a:	f809 6b01 	strb.w	r6, [r9], #1
+  3f635e:	4655      	mov	r5, sl
+  3f6360:	ac02      	add	r4, sp, #8
+  3f6362:	f8cd 9018 	str.w	r9, [sp, #24]
+  3f6366:	f10a 0501 	add.w	r5, sl, #1
+  3f636a:	4620      	mov	r0, r4
+  3f636c:	f0cb e4e8 	blx	8c1d40 <operator new[](unsigned int, std::align_val_t)@@Base+0x1470> // STRING::Length() const
+  3f6370:	4285      	cmp	r5, r0
+  3f6372:	d238      	bcs.n	3f63e6 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0xb6>
+  3f6374:	4620      	mov	r0, r4
+  3f6376:	4629      	mov	r1, r5
+  3f6378:	46aa      	mov	sl, r5
+  3f637a:	f0cd e51a 	blx	8c3db0 <operator new[](unsigned int, std::align_val_t)@@Base+0x34e0> // STRING::operator[](unsigned int) const
+  3f637e:	4606      	mov	r6, r0
+  3f6380:	e9dd 9006 	ldrd	r9, r0, [sp, #24]
+  3f6384:	4581      	cmp	r9, r0
+  3f6386:	d3e8      	bcc.n	3f635a <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x2a>
+  3f6388:	9c05      	ldr	r4, [sp, #20]
+  3f638a:	eba9 0b04 	sub.w	fp, r9, r4
+  3f638e:	f10b 0501 	add.w	r5, fp, #1
+  3f6392:	f1b5 3fff 	cmp.w	r5, #4294967295	; 0xffffffff
+  3f6396:	dd52      	ble.n	3f643e <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x10e>
+  3f6398:	1b00      	subs	r0, r0, r4
+  3f639a:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f639e:	ebb5 0f40 	cmp.w	r5, r0, lsl #1
+  3f63a2:	bf38      	it	cc
+  3f63a4:	0045      	lslcc	r5, r0, #1
+  3f63a6:	4288      	cmp	r0, r1
+  3f63a8:	bf28      	it	cs
+  3f63aa:	f06f 4500 	mvncs.w	r5, #2147483648	; 0x80000000
+  3f63ae:	b125      	cbz	r5, 3f63ba <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x8a>
+  3f63b0:	4628      	mov	r0, r5
+  3f63b2:	f0ca e2d6 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f63b6:	4680      	mov	r8, r0
+  3f63b8:	e001      	b.n	3f63be <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x8e>
+  3f63ba:	f04f 0800 	mov.w	r8, #0
+  3f63be:	eb08 090b 	add.w	r9, r8, fp
+  3f63c2:	4640      	mov	r0, r8
+  3f63c4:	4621      	mov	r1, r4
+  3f63c6:	465a      	mov	r2, fp
+  3f63c8:	f809 6b01 	strb.w	r6, [r9], #1
+  3f63cc:	f0c2 e31a 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f63d0:	2c00      	cmp	r4, #0
+  3f63d2:	eb08 0005 	add.w	r0, r8, r5
+  3f63d6:	9007      	str	r0, [sp, #28]
+  3f63d8:	e9cd 8905 	strd	r8, r9, [sp, #20]
+  3f63dc:	bf1c      	itt	ne
+  3f63de:	4620      	movne	r0, r4
+  3f63e0:	f0ca e306 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f63e4:	e7bb      	b.n	3f635e <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x2e>
+  3f63e6:	a905      	add	r1, sp, #20
+  3f63e8:	2000      	movs	r0, #0
+  3f63ea:	f000 f83f 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f63ee:	a905      	add	r1, sp, #20
+  3f63f0:	2001      	movs	r0, #1
+  3f63f2:	f000 f83b 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f63f6:	a905      	add	r1, sp, #20
+  3f63f8:	2002      	movs	r0, #2
+  3f63fa:	f000 f837 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f63fe:	a905      	add	r1, sp, #20
+  3f6400:	2003      	movs	r0, #3
+  3f6402:	f000 f833 	bl	3f646c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x13c>
+  3f6406:	e9dd 1005 	ldrd	r1, r0, [sp, #20]
+  3f640a:	1a42      	subs	r2, r0, r1
+  3f640c:	9801      	ldr	r0, [sp, #4]
+  3f640e:	f0cb e2e0 	blx	8c19d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1100> // core::crypto::sha256(unsigned char const*, unsigned int)
+  3f6412:	a802      	add	r0, sp, #8
+  3f6414:	f0ca e2cc 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f6418:	9805      	ldr	r0, [sp, #20]
+  3f641a:	2800      	cmp	r0, #0
+  3f641c:	bf1c      	itt	ne
+  3f641e:	9006      	strne	r0, [sp, #24]
+  3f6420:	f0ca e2e6 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f6424:	9808      	ldr	r0, [sp, #32]
+  3f6426:	4910      	ldr	r1, [pc, #64]	; (3f6468 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x138>)
+  3f6428:	4479      	add	r1, pc
+  3f642a:	6809      	ldr	r1, [r1, #0]
+  3f642c:	6809      	ldr	r1, [r1, #0]
+  3f642e:	4281      	cmp	r1, r0
+  3f6430:	bf02      	ittt	eq
+  3f6432:	b009      	addeq	sp, #36	; 0x24
+  3f6434:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3f6438:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f643a:	f0ca e2ca 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f643e:	a805      	add	r0, sp, #20
+  3f6440:	f7fb ff3c 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f6444:	e002      	b.n	3f644c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x11c>
+  3f6446:	e001      	b.n	3f644c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x11c>
+  3f6448:	e000      	b.n	3f644c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x11c>
+  3f644a:	e7ff      	b.n	3f644c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x11c>
+  3f644c:	a802      	add	r0, sp, #8
+  3f644e:	f0ca e2b0 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f6452:	9805      	ldr	r0, [sp, #20]
+  3f6454:	2800      	cmp	r0, #0
+  3f6456:	bf1c      	itt	ne
+  3f6458:	9006      	strne	r0, [sp, #24]
+  3f645a:	f0ca e2ca 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f645e:	f0ca e2c0 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f6462:	bf00      	nop
+  3f6464:	94d6      	str	r4, [sp, #856]	; 0x358
+  3f6466:	0054      	lsls	r4, r2, #1
+  3f6468:	93f0      	str	r3, [sp, #960]	; 0x3c0
+  3f646a:	0054      	lsls	r4, r2, #1
+  3f646c:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f646e:	af03      	add	r7, sp, #12
+  3f6470:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3f6474:	b085      	sub	sp, #20
+  3f6476:	4d33      	ldr	r5, [pc, #204]	; (3f6544 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x214>)
+  3f6478:	4689      	mov	r9, r1
+  3f647a:	447d      	add	r5, pc
+  3f647c:	f855 1020 	ldr.w	r1, [r5, r0, lsl #2]
+  3f6480:	2900      	cmp	r1, #0
+  3f6482:	d057      	beq.n	3f6534 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x204>
+  3f6484:	f8d9 b004 	ldr.w	fp, [r9, #4]
+  3f6488:	f100 0347 	add.w	r3, r0, #71	; 0x47
+  3f648c:	492e      	ldr	r1, [pc, #184]	; (3f6548 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x218>)
+  3f648e:	f04f 0800 	mov.w	r8, #0
+  3f6492:	9003      	str	r0, [sp, #12]
+  3f6494:	4479      	add	r1, pc
+  3f6496:	680c      	ldr	r4, [r1, #0]
+  3f6498:	e9cd 4501 	strd	r4, r5, [sp, #4]
+  3f649c:	e009      	b.n	3f64b2 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x182>
+  3f649e:	f80b 3b01 	strb.w	r3, [fp], #1
+  3f64a2:	f855 1020 	ldr.w	r1, [r5, r0, lsl #2]
+  3f64a6:	f108 0801 	add.w	r8, r8, #1
+  3f64aa:	f8c9 b004 	str.w	fp, [r9, #4]
+  3f64ae:	4588      	cmp	r8, r1
+  3f64b0:	d240      	bcs.n	3f6534 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x204>
+  3f64b2:	f854 1020 	ldr.w	r1, [r4, r0, lsl #2]
+  3f64b6:	f8d9 2008 	ldr.w	r2, [r9, #8]
+  3f64ba:	4593      	cmp	fp, r2
+  3f64bc:	f811 1008 	ldrb.w	r1, [r1, r8]
+  3f64c0:	ea83 0301 	eor.w	r3, r3, r1
+  3f64c4:	d3eb      	bcc.n	3f649e <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x16e>
+  3f64c6:	f8d9 6000 	ldr.w	r6, [r9]
+  3f64ca:	ebab 0a06 	sub.w	sl, fp, r6
+  3f64ce:	f10a 0501 	add.w	r5, sl, #1
+  3f64d2:	f1b5 3fff 	cmp.w	r5, #4294967295	; 0xffffffff
+  3f64d6:	dd31      	ble.n	3f653c <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x20c>
+  3f64d8:	1b90      	subs	r0, r2, r6
+  3f64da:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f64de:	ebb5 0f40 	cmp.w	r5, r0, lsl #1
+  3f64e2:	bf38      	it	cc
+  3f64e4:	0045      	lslcc	r5, r0, #1
+  3f64e6:	4288      	cmp	r0, r1
+  3f64e8:	bf28      	it	cs
+  3f64ea:	f06f 4500 	mvncs.w	r5, #2147483648	; 0x80000000
+  3f64ee:	b135      	cbz	r5, 3f64fe <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x1ce>
+  3f64f0:	4628      	mov	r0, r5
+  3f64f2:	461c      	mov	r4, r3
+  3f64f4:	f0ca e234 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f64f8:	4623      	mov	r3, r4
+  3f64fa:	4604      	mov	r4, r0
+  3f64fc:	e000      	b.n	3f6500 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x1d0>
+  3f64fe:	2400      	movs	r4, #0
+  3f6500:	eb04 0b0a 	add.w	fp, r4, sl
+  3f6504:	4620      	mov	r0, r4
+  3f6506:	4631      	mov	r1, r6
+  3f6508:	4652      	mov	r2, sl
+  3f650a:	9304      	str	r3, [sp, #16]
+  3f650c:	f80b 3b01 	strb.w	r3, [fp], #1
+  3f6510:	f0c2 e278 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f6514:	2e00      	cmp	r6, #0
+  3f6516:	eb04 0005 	add.w	r0, r4, r5
+  3f651a:	e9c9 4b00 	strd	r4, fp, [r9]
+  3f651e:	f8c9 0008 	str.w	r0, [r9, #8]
+  3f6522:	bf1c      	itt	ne
+  3f6524:	4630      	movne	r0, r6
+  3f6526:	f0ca e264 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3f652a:	e9dd 0303 	ldrd	r0, r3, [sp, #12]
+  3f652e:	e9dd 4501 	ldrd	r4, r5, [sp, #4]
+  3f6532:	e7b6      	b.n	3f64a2 <core::crypto::CryptEngine::getRegistryKey() const@@Base+0x172>
+  3f6534:	b005      	add	sp, #20
+  3f6536:	e8bd 0f00 	ldmia.w	sp!, {r8, r9, sl, fp}
+  3f653a:	bdf0      	pop	{r4, r5, r6, r7, pc}
+  3f653c:	4648      	mov	r0, r9
+  3f653e:	f7fb febd 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f6542:	bf00      	nop
+  3f6544:	d92e      	bls.n	3f65a4 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base>
+  3f6546:	0055      	lsls	r5, r2, #1
+  3f6548:	9398      	str	r3, [sp, #608]	; 0x260
+  3f654a:	0054      	lsls	r4, r2, #1
+
+003f654c <core::crypto::CryptEngine::baseKey() const@@Base>:
+  3f654c:	b580      	push	{r7, lr}
+  3f654e:	466f      	mov	r7, sp
+  3f6550:	4902      	ldr	r1, [pc, #8]	; (3f655c <core::crypto::CryptEngine::baseKey() const@@Base+0x10>)
+  3f6552:	4479      	add	r1, pc // literal @31989b Unnamed
+  3f6554:	f0ca e264 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  3f6558:	bd80      	pop	{r7, pc}
+  3f655a:	bf00      	nop
+  3f655c:	3345      	adds	r3, #69	; 0x45
+  3f655e:	Address 0x00000000003f655e is out of bounds.
+
+
+003f6560 <core::crypto::ICryptEngine::~ICryptEngine()@@Base>:
+  3f6560:	4770      	bx	lr
+
+003f6562 <core::crypto::CryptEngine::~CryptEngine()@@Base>:
+  3f6562:	f0c4 b75b 	b.w	8bb41c <__emutls_get_address@@Base+0x329c>
+
+003f6566 <std::__ndk1::__shared_ptr_pointer<core::crypto::CryptEngine*, std::__ndk1::shared_ptr<core::crypto::ICryptEngine>::__shared_ptr_default_delete<core::crypto::ICryptEngine, core::crypto::CryptEngine>, std::__ndk1::allocator<core::crypto::CryptEngine> >::~__shared_ptr_pointer()@@Base>:
+  3f6566:	b580      	push	{r7, lr}
+  3f6568:	466f      	mov	r7, sp
+  3f656a:	f0ca e2c2 	blx	8c0af0 <operator new[](unsigned int, std::align_val_t)@@Base+0x220> // std::__ndk1::__shared_weak_count::~__shared_weak_count()
+  3f656e:	e8bd 4080 	ldmia.w	sp!, {r7, lr}
+  3f6572:	f0c4 b753 	b.w	8bb41c <__emutls_get_address@@Base+0x329c>
+  3f6576:	68c0      	ldr	r0, [r0, #12]
+  3f6578:	2800      	cmp	r0, #0
+  3f657a:	bf08      	it	eq
+  3f657c:	4770      	bxeq	lr
+  3f657e:	6801      	ldr	r1, [r0, #0]
+  3f6580:	6849      	ldr	r1, [r1, #4]
+  3f6582:	4708      	bx	r1
+  3f6584:	4a05      	ldr	r2, [pc, #20]	; (3f659c <std::__ndk1::__shared_ptr_pointer<core::crypto::CryptEngine*, std::__ndk1::shared_ptr<core::crypto::ICryptEngine>::__shared_ptr_default_delete<core::crypto::ICryptEngine, core::crypto::CryptEngine>, std::__ndk1::allocator<core::crypto::CryptEngine> >::~__shared_ptr_pointer()@@Base+0x36>)
+  3f6586:	684b      	ldr	r3, [r1, #4]
+  3f6588:	2100      	movs	r1, #0
+  3f658a:	447a      	add	r2, pc
+  3f658c:	6812      	ldr	r2, [r2, #0]
+  3f658e:	4293      	cmp	r3, r2
+  3f6590:	bf08      	it	eq
+  3f6592:	f100 010c 	addeq.w	r1, r0, #12
+  3f6596:	4608      	mov	r0, r1
+  3f6598:	4770      	bx	lr
+  3f659a:	bf00      	nop
+  3f659c:	97ae      	str	r7, [sp, #696]	; 0x2b8
+  3f659e:	0054      	lsls	r4, r2, #1
+  3f65a0:	f0c4 b73c 	b.w	8bb41c <__emutls_get_address@@Base+0x329c>
+
+003f65a4 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base>:
+  3f65a4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f65a6:	af03      	add	r7, sp, #12
+  3f65a8:	e92d 0b00 	stmdb	sp!, {r8, r9, fp}
+  3f65ac:	4604      	mov	r4, r0
+  3f65ae:	6806      	ldr	r6, [r0, #0]
+  3f65b0:	6880      	ldr	r0, [r0, #8]
+  3f65b2:	4690      	mov	r8, r2
+  3f65b4:	461d      	mov	r5, r3
+  3f65b6:	1b82      	subs	r2, r0, r6
+  3f65b8:	429a      	cmp	r2, r3
+  3f65ba:	d227      	bcs.n	3f660c <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x68>
+  3f65bc:	4689      	mov	r9, r1
+  3f65be:	b13e      	cbz	r6, 3f65d0 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x2c>
+  3f65c0:	4630      	mov	r0, r6
+  3f65c2:	6066      	str	r6, [r4, #4]
+  3f65c4:	f0ca e214 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f65c8:	2000      	movs	r0, #0
+  3f65ca:	e9c4 0000 	strd	r0, r0, [r4]
+  3f65ce:	60a0      	str	r0, [r4, #8]
+  3f65d0:	f1b5 3fff 	cmp.w	r5, #4294967295	; 0xffffffff
+  3f65d4:	dd38      	ble.n	3f6648 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0xa4>
+  3f65d6:	ebb5 0f40 	cmp.w	r5, r0, lsl #1
+  3f65da:	bf38      	it	cc
+  3f65dc:	0045      	lslcc	r5, r0, #1
+  3f65de:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3f65e2:	4288      	cmp	r0, r1
+  3f65e4:	bf28      	it	cs
+  3f65e6:	f06f 4500 	mvncs.w	r5, #2147483648	; 0x80000000
+  3f65ea:	4628      	mov	r0, r5
+  3f65ec:	f0ca e1b8 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f65f0:	4606      	mov	r6, r0
+  3f65f2:	4428      	add	r0, r5
+  3f65f4:	ebb8 0509 	subs.w	r5, r8, r9
+  3f65f8:	e9c4 6600 	strd	r6, r6, [r4]
+  3f65fc:	60a0      	str	r0, [r4, #8]
+  3f65fe:	d01e      	beq.n	3f663e <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x9a>
+  3f6600:	4649      	mov	r1, r9
+  3f6602:	4630      	mov	r0, r6
+  3f6604:	462a      	mov	r2, r5
+  3f6606:	f0c2 e1fe 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3f660a:	e018      	b.n	3f663e <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x9a>
+  3f660c:	6860      	ldr	r0, [r4, #4]
+  3f660e:	1b82      	subs	r2, r0, r6
+  3f6610:	42aa      	cmp	r2, r5
+  3f6612:	d20d      	bcs.n	3f6630 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x8c>
+  3f6614:	eb01 0902 	add.w	r9, r1, r2
+  3f6618:	42b0      	cmp	r0, r6
+  3f661a:	d003      	beq.n	3f6624 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x80>
+  3f661c:	4630      	mov	r0, r6
+  3f661e:	f0c2 e1f4 	blx	8b8a08 <__emutls_get_address@@Base+0x888>
+  3f6622:	6866      	ldr	r6, [r4, #4]
+  3f6624:	ebb8 0509 	subs.w	r5, r8, r9
+  3f6628:	d009      	beq.n	3f663e <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x9a>
+  3f662a:	4630      	mov	r0, r6
+  3f662c:	4649      	mov	r1, r9
+  3f662e:	e003      	b.n	3f6638 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x94>
+  3f6630:	ebb8 0501 	subs.w	r5, r8, r1
+  3f6634:	d003      	beq.n	3f663e <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x9a>
+  3f6636:	4630      	mov	r0, r6
+  3f6638:	462a      	mov	r2, r5
+  3f663a:	f0c2 e1e6 	blx	8b8a08 <__emutls_get_address@@Base+0x888>
+  3f663e:	1970      	adds	r0, r6, r5
+  3f6640:	6060      	str	r0, [r4, #4]
+  3f6642:	e8bd 0b00 	ldmia.w	sp!, {r8, r9, fp}
+  3f6646:	bdf0      	pop	{r4, r5, r6, r7, pc}
+  3f6648:	4620      	mov	r0, r4
+  3f664a:	f7fb fe37 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3f664e:	d4d4      	bmi.n	3f65fa <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0x56>
+  3f6650:	4904      	ldr	r1, [pc, #16]	; (3f6664 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0xc0>)
+  3f6652:	4805      	ldr	r0, [pc, #20]	; (3f6668 <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0xc4>)
+  3f6654:	4479      	add	r1, pc
+  3f6656:	4a05      	ldr	r2, [pc, #20]	; (3f666c <void std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >::__assign_with_size[abi:ne190000]<unsigned char*, unsigned char*>(unsigned char*, unsigned char*, int)@@Base+0xc8>)
+  3f6658:	4478      	add	r0, pc
+  3f665a:	6809      	ldr	r1, [r1, #0]
+  3f665c:	447a      	add	r2, pc
+  3f665e:	f0c4 b74f 	b.w	8bb500 <__emutls_get_address@@Base+0x3380>
+  3f6662:	bf00      	nop
+  3f6664:	96d8      	str	r6, [sp, #864]	; 0x360
+  3f6666:	0054      	lsls	r4, r2, #1
+  3f6668:	f23d ffff 	bl	63466a <ossl_prov_cipher_hw_chacha20@@Base+0x696>
+  3f666c:	6670      	str	r0, [r6, #100]	; 0x64
+  3f666e:	004f      	lsls	r7, r1, #1
+
+003f6670 <core::crypto::encrypt_aes_128(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base>:
+  3f6670:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f6672:	af03      	add	r7, sp, #12
+  3f6674:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3f6678:	b082      	sub	sp, #8
+  3f667a:	4606      	mov	r6, r0
+  3f667c:	4815      	ldr	r0, [pc, #84]	; (3f66d4 <core::crypto::encrypt_aes_128(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x64>)
+  3f667e:	4614      	mov	r4, r2
+  3f6680:	460d      	mov	r5, r1
+  3f6682:	4478      	add	r0, pc
+  3f6684:	6800      	ldr	r0, [r0, #0]
+  3f6686:	6800      	ldr	r0, [r0, #0]
+  3f6688:	9001      	str	r0, [sp, #4]
+  3f668a:	f0ce e54a 	blx	8c5120 <operator new[](unsigned int, std::align_val_t)@@Base+0x4850> // EVP_CIPHER_CTX_new
+  3f668e:	9000      	str	r0, [sp, #0]
+  3f6690:	4668      	mov	r0, sp
+  3f6692:	4631      	mov	r1, r6
+  3f6694:	462a      	mov	r2, r5
+  3f6696:	4623      	mov	r3, r4
+  3f6698:	f0cd e60a 	blx	8c42b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x39e0> // core::crypto::Chipher<1, 128>::porcess(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3f669c:	4604      	mov	r4, r0
+  3f669e:	9800      	ldr	r0, [sp, #0]
+  3f66a0:	f0ce e546 	blx	8c5130 <operator new[](unsigned int, std::align_val_t)@@Base+0x4860> // EVP_CIPHER_CTX_free
+  3f66a4:	9801      	ldr	r0, [sp, #4]
+  3f66a6:	490c      	ldr	r1, [pc, #48]	; (3f66d8 <core::crypto::encrypt_aes_128(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x68>)
+  3f66a8:	4479      	add	r1, pc
+  3f66aa:	6809      	ldr	r1, [r1, #0]
+  3f66ac:	6809      	ldr	r1, [r1, #0]
+  3f66ae:	4281      	cmp	r1, r0
+  3f66b0:	bf01      	itttt	eq
+  3f66b2:	4620      	moveq	r0, r4
+  3f66b4:	b002      	addeq	sp, #8
+  3f66b6:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3f66ba:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f66bc:	f0ca e188 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f66c0:	f7ce ff5e 	bl	3c5580 <analytics::Analytics::~Analytics()@@Base+0x128>
+  3f66c4:	9800      	ldr	r0, [sp, #0]
+  3f66c6:	f0ce e534 	blx	8c5130 <operator new[](unsigned int, std::align_val_t)@@Base+0x4860> // EVP_CIPHER_CTX_free
+  3f66ca:	f0ca e18a 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f66ce:	f7ce ff57 	bl	3c5580 <analytics::Analytics::~Analytics()@@Base+0x128>
+  3f66d2:	bf00      	nop
+  3f66d4:	9196      	str	r1, [sp, #600]	; 0x258
+  3f66d6:	0054      	lsls	r4, r2, #1
+  3f66d8:	9170      	str	r1, [sp, #448]	; 0x1c0
+  3f66da:	0054      	lsls	r4, r2, #1
+
+003f66dc <core::crypto::Chipher<1, 128>::porcess(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base>:
+  3f66dc:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f66de:	af03      	add	r7, sp, #12
+  3f66e0:	e92d 0700 	stmdb	sp!, {r8, r9, sl}
+  3f66e4:	b0b0      	sub	sp, #192	; 0xc0
+  3f66e6:	4681      	mov	r9, r0
+  3f66e8:	f8df 0594 	ldr.w	r0, [pc, #1428]	; 3f6c80 <core::crypto::Chipher<1, 128>::porcess(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x5a4>
+  3f66ec:	460c      	mov	r4, r1
+  3f66ee:	461d      	mov	r5, r3
+  3f66f0:	4478      	add	r0, pc
+  3f66f2:	4616      	mov	r6, r2
+  3f66f4:	6800      	ldr	r0, [r0, #0]
+  3f66f6:	6800      	ldr	r0, [r0, #0]
+  3f66f8:	902f      	str	r0, [sp, #188]	; 0xbc
+  3f66fa:	6808      	ldr	r0, [r1, #0]
+  3f66fc:	6a41      	ldr	r1, [r0, #36]	; 0x24
+  3f66fe:	4620      	mov	r0, r4
+  3f6700:	4788      	blx	r1
+  3f6702:	2800      	cmp	r0, #0
+  3f6704:	d078      	beq.n	3f67f8 <core::crypto::Chipher<1, 128>::porcess(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x11c>
+  3f6706:	6830      	ldr	r0, [r6, #0]
+  3f6708:	6a41      	ldr	r1, [r0, #36]	; 0x24
+  3f670a:	4630      	mov	r0, r6
+  3f670c:	4788      	blx	r1
+  3f670e:	2800      	cmp	r0, #0
+  3f6710:	f000 809f 	beq.w	3f6852 <core::crypto::Chipher<1, 128>::porcess(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x176>
+  3f6714:	6830      	ldr	r0, [r6, #0]
+  3f6716:	6a81      	ldr	r1, [r0, #40]	; 0x28
+  3f6718:	4630      	mov	r0, r6
+  3f671a:	4788      	blx	r1
+  3f671c:	2800      	cmp	r0, #0
+  3f671e:	f000 80c5 	beq.w	3f68ac <core::crypto::Chipher<1, 128>::porcess(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x1d0>
+  3f6722:	e9d5 0100 	ldrd	r0, r1, [r5]
+  3f6726:	1a08      	subs	r0, r1, r0
+  3f6728:	2810      	cmp	r0, #16
+  3f672a:	f040 80eb 	bne.w	3f6904 <core::crypto::Chipher<1, 128>::porcess(BaseStream&, BaseStream&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)@@Base+0x228>
+  3f672e:	2010      	movs	r0, #16
+  3f6730:	f0ca e116 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f6734:	f8d9 a000 	ldr.w	sl, [r9]
+  3f6738:	4680      	mov	r8, r0
+  3f673a:	f04f 30a0 	mov.w	r0, #2694881440	; 0xa0a0a0a0
+  3f673e:	Address 0x00000000003f673e is out of bounds.

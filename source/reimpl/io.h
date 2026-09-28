@@ -93,6 +93,10 @@ int fcntl_soloader(int fd, int cmd, ...);
 int ioctl_soloader(int fd, int request, ... /* arg */);
 
 int fsync_soloader(int fd);
+size_t fwrite_soloader(const void *,size_t,size_t,FILE *);
+ssize_t write_soloader(int,const void *,size_t);
+int rename_soloader(const char *,const char *);
+int unlink_soloader(const char *);
 
 #ifdef __cplusplus
 };

@@ -9,6 +9,7 @@
 #include <psp2/ctrl.h>
 #include <falso_ndk/shim/fndk_controls.h>
 #include <falso_ndk/android/keycodes.h>
+#include <falso_ndk/android/AInput.h>
 
 #ifndef DATA_PATH
 #define DATA_PATH ""
@@ -304,6 +305,14 @@ uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handhe
     uint32_t logical = 0;
     for (unsigned i = 0; i < sizeof(bindings) / sizeof(bindings[0]); ++i) {
         uint32_t state = bindings[i].from_rear ? rear : buttons;
+#ifdef ZOMBIE_DEBUG_BUILD
+        static uint32_t last_physical[16];
+        uint32_t down=state & bindings[i].physical_mask;
+        if(down!=last_physical[i]) {
+            l_perf("[INPUT] physical=%s logical=%s action=%s",bindings[i].physical_name,xbox_name(bindings[i].xbox_mask),down?"DOWN":"UP");
+            last_physical[i]=down;
+        }
+#endif
         if (state & bindings[i].physical_mask)
             logical |= bindings[i].xbox_mask;
     }
@@ -327,3 +336,18 @@ uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handhe
 
     return logical;
 }
+#ifdef ZOMBIE_DEBUG_BUILD
+void zombie_input_event_trace(const inputEvent *e) {
+    static unsigned records;
+    if(e->type==AINPUT_EVENT_TYPE_KEY) {
+        if(__atomic_fetch_add(&records,1,__ATOMIC_RELAXED)>=512)return;
+        l_perf("[INPUT] emitted device=%d source=0x%X type=%d action=%d keycode=%d scancode=%d repeat=%d meta=0 branch=KeyboardControl",e->device_id,e->source,e->type,e->action,e->keycode,e->scancode,e->repeatcount);
+    } else if(e->type==AINPUT_EVENT_TYPE_MOTION && e->source==AINPUT_SOURCE_JOYSTICK) {
+        static float hx,hy,lt,rt;
+        if(hx==e->motion_hat_x[0]&&hy==e->motion_hat_y[0]&&lt==e->motion_lt[0]&&rt==e->motion_rt[0])return;
+        hx=e->motion_hat_x[0];hy=e->motion_hat_y[0];lt=e->motion_lt[0];rt=e->motion_rt[0];
+        if(__atomic_fetch_add(&records,1,__ATOMIC_RELAXED)>=512)return;
+        l_perf("[INPUT] emitted device=%d source=0x%X type=%d action=%d buttonState=0 hat=%g,%g triggers=%g,%g aliases=BRAKE,GAS branch=JoystickControl",e->device_id,e->source,e->type,e->motion_action,(double)hx,(double)hy,(double)lt,(double)rt);
+    }
+}
+#endif

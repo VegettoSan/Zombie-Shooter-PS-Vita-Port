@@ -17,16 +17,18 @@
 void gamepad_config_load(void) __attribute__((weak));
 
 int setting_asset_cache_mib;
+int setting_asset_negative_cache;
 int setting_audio_frames;
 int setting_software_width;
 int setting_music_mode;
 #ifdef ZOMBIE_RELEASE_BUILD
 int setting_log_mode = 1;
 #else
-int setting_log_mode = 3;
+int setting_log_mode = 2;
 #endif
 int setting_framebuffer_565;
 int setting_software_frameskip;
+int setting_render_diagnostics;
 int  setting_sampleSetting;
 bool setting_sampleSetting2;
 
@@ -51,16 +53,18 @@ void settings_reset() {
      * Debug logging is far too expensive to use as a performance baseline; PERF
      * telemetry is therefore opt-in with log_mode 2. */
     setting_asset_cache_mib = 8;
+    setting_asset_negative_cache = 1;
     setting_audio_frames = 1024;
     setting_software_width = 864;
     setting_music_mode = 2;
 #ifdef ZOMBIE_RELEASE_BUILD
     setting_log_mode = 1;
 #else
-    setting_log_mode = 3;
+    setting_log_mode = 2;
 #endif
     setting_framebuffer_565 = 0;
     setting_software_frameskip = 1;
+    setting_render_diagnostics = 0;
     setting_sampleSetting  = 1;
     setting_sampleSetting2 = true;
 }
@@ -81,8 +85,8 @@ void settings_save() {
         fprintf(config, "# log_mode modes:\n");
         fprintf(config, "#   0 = no persistent runtime log (maximum performance; fatal still prints to console)\n");
         fprintf(config, "#   1 = errors + fatal only (recommended Release default)\n");
-        fprintf(config, "#   2 = errors + fatal + PERF telemetry (A/B profiling)\n");
-        fprintf(config, "#   3 = verbose diagnostics where compiled (Debug default; very slow on Vita)\n");
+        fprintf(config, "#   2 = errors + fatal + PERF telemetry (Debug default; A/B profiling)\n");
+        fprintf(config, "#   3 = verbose diagnostics where compiled (explicit opt-in; very slow on Vita)\n");
         fprintf(config, "# framebuffer_565 modes:\n");
         fprintf(config, "#   0 = native RGBA8888 final upload (recommended; faster on real Vita)\n");
         fprintf(config, "#   2 = corrected RGBA8888->RGB565 diagnostic path; slower on Pass10 hardware test\n");
@@ -94,12 +98,16 @@ void settings_save() {
         fprintf(config, "# Restart the game after changing these values.\n");
         fprintf(config, "# asset_cache_mib: 0 (A/B off), 8, 16; audio_frames: 128 (baseline), 1024, 2048\n");
         fprintf(config, "asset_cache_mib %d\n", setting_asset_cache_mib);
+        fprintf(config, "# asset_negative_cache: 0=original fallback opens, 1=bounded exact ENOENT cache\n");
+        fprintf(config, "asset_negative_cache %d\n", setting_asset_negative_cache);
         fprintf(config, "audio_frames %d\n", setting_audio_frames);
         fprintf(config, "software_width %d\n", setting_software_width);
         fprintf(config, "music_mode %d\n", setting_music_mode);
         fprintf(config, "log_mode %d\n", setting_log_mode);
         fprintf(config, "framebuffer_565 %d\n", setting_framebuffer_565);
         fprintf(config, "software_frameskip %d\n", setting_software_frameskip);
+        fprintf(config, "# render_diagnostics mask: 1=GPU finish before updates, 2=full COW copy, 4=upload reused software frames\n");
+        fprintf(config, "render_diagnostics %d\n", setting_render_diagnostics);
         fprintf(config, "%s %d\n", "setting_sampleSetting", (int)(setting_sampleSetting));
         fprintf(config, "%s %d\n", "setting_sampleSetting2", (int)(setting_sampleSetting2));
         fclose(config);
@@ -125,6 +133,9 @@ void settings_load() {
 
     while (fgets(line, sizeof(line), config)) {
         if (sscanf(line, "%29s %d", buffer, &value) != 2) continue;
+        if (!strcmp("asset_negative_cache",buffer)) {
+            setting_asset_negative_cache=value==0?0:1;continue;
+        }
         if (!strcmp("asset_cache_mib",buffer)) {
             setting_asset_cache_mib=value==0 || value==8 || value==16?value:8;continue;
         }
@@ -154,6 +165,9 @@ void settings_load() {
              * The corrected 565 implementation requires explicit value 2. */
             setting_framebuffer_565 = value == 2 ? 2 : 0;
             continue;
+        }
+        if (!strcmp("render_diagnostics", buffer)) {
+            setting_render_diagnostics = value>=0 && value<=7 ? value : 0;continue;
         }
         if (strcmp("software_frameskip", buffer) == 0) {
             setting_software_frameskip = value==2?2:value!=0;

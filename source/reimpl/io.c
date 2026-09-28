@@ -23,6 +23,48 @@
 
 #include "utils/logger.h"
 #include "utils/utils.h"
+#include <errno.h>
+#ifdef NDK_PORT
+#include <falso_ndk/linux/fndk_unistd.h>
+#endif
+static void save_io_trace(unsigned group,const char *operation,const char *path,
+                          uintptr_t object,long result) {
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned counters[5];
+    int saved_errno=errno;
+    if(__atomic_fetch_add(&counters[group],1,__ATOMIC_RELAXED)<(group==0?48:128))
+        l_perf("[SAVE] %s path=%s object=%p result=%ld errno=%d",operation,path?path:"-",(void*)object,result,saved_errno);
+    errno=saved_errno;
+#else
+    (void)group;(void)operation;(void)path;(void)object;(void)result;
+#endif
+}
+size_t fwrite_soloader(const void *ptr,size_t size,size_t count,FILE *stream) {
+#ifdef USE_SCELIBC_IO
+    size_t result=sceLibcBridge_fwrite(ptr,size,count,stream);
+#else
+    size_t result=fwrite(ptr,size,count,stream);
+#endif
+    save_io_trace(1,"write",NULL,(uintptr_t)stream,(long)(result*size));return result;
+}
+ssize_t write_soloader(int fd,const void *buf,size_t count) {
+#ifdef NDK_PORT
+    ssize_t result=fndk_write(fd,buf,count);
+#else
+    ssize_t result=write(fd,buf,count);
+#endif
+    /* NativeActivity eventfd traffic is synthetic, not disk persistence. */
+    if(fd>=0 && fd<0x400)save_io_trace(1,"write",NULL,(uintptr_t)fd,(long)result);
+    return result;
+}
+int rename_soloader(const char *from,const char *to) {
+    int result=rename(from,to);save_io_trace(2,"rename",from,0,result);
+    save_io_trace(2,"rename-destination",to,0,result);return result;
+}
+int unlink_soloader(const char *path) {
+    int result=unlink(path);save_io_trace(2,"unlink",path,0,result);return result;
+}
+
 
 // Includes the following inline utilities:
 // int oflags_musl_to_newlib(int flags);
@@ -48,6 +90,7 @@ FILE * fopen_soloader(const char * filename, const char * mode) {
     else
         l_warn("fopen(%s, %s): %p", filename, mode, ret);
 
+    save_io_trace(strpbrk(mode,"wa+")?1:0,strpbrk(mode,"wa+")?"create/open":"open",filename,(uintptr_t)ret,ret!=NULL);
     return ret;
 }
 
@@ -69,12 +112,14 @@ int open_soloader(const char * path, int oflag, ...) {
         va_end(args);
     }
 
+    int creating=(oflag & BIONIC_O_CREAT)!=0;
     oflag = oflags_bionic_to_newlib(oflag);
     int ret = open(path, oflag, mode);
     if (ret >= 0)
         l_debug("open(%s, %x): %i", path, oflag, ret);
     else
         l_warn("open(%s, %x): %i", path, oflag, ret);
+    save_io_trace(creating?1:0,creating?"create/open":"open",path,(uintptr_t)ret,ret);
     return ret;
 }
 
@@ -101,6 +146,7 @@ int stat_soloader(const char * path, stat64_bionic * buf) {
     if (res == 0)
         stat_newlib_to_bionic(&st, buf);
 
+    save_io_trace(0,"stat",path,0,res);
     l_debug("stat(%s): %i", path, res);
     return res;
 }
@@ -180,6 +226,7 @@ int ioctl_soloader(int fd, int request, ...) {
 
 int fsync_soloader(int fd) {
     int ret = fsync(fd);
+    save_io_trace(4,"fsync",NULL,(uintptr_t)fd,ret);
     l_debug("fsync(%i): %i", fd, ret);
     return ret;
 }

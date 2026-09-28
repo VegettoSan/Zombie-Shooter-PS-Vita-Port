@@ -1,0 +1,1542 @@
+
+/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/demo/libzombie_shooter.so:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+003f4a00 <core::RegistryPrivate::RegistryPrivate()@@Base>:
+  3f4a00:	b5b0      	push	{r4, r5, r7, lr}
+  3f4a02:	af02      	add	r7, sp, #8
+  3f4a04:	4605      	mov	r5, r0
+  3f4a06:	480a      	ldr	r0, [pc, #40]	; (3f4a30 <core::RegistryPrivate::RegistryPrivate()@@Base+0x30>)
+  3f4a08:	4b0a      	ldr	r3, [pc, #40]	; (3f4a34 <core::RegistryPrivate::RegistryPrivate()@@Base+0x34>)
+  3f4a0a:	4478      	add	r0, pc
+  3f4a0c:	447b      	add	r3, pc
+  3f4a0e:	f8d0 c000 	ldr.w	ip, [r0]
+  3f4a12:	4809      	ldr	r0, [pc, #36]	; (3f4a38 <core::RegistryPrivate::RegistryPrivate()@@Base+0x38>)
+  3f4a14:	4909      	ldr	r1, [pc, #36]	; (3f4a3c <core::RegistryPrivate::RegistryPrivate()@@Base+0x3c>)
+  3f4a16:	f10c 0408 	add.w	r4, ip, #8
+  3f4a1a:	4a09      	ldr	r2, [pc, #36]	; (3f4a40 <core::RegistryPrivate::RegistryPrivate()@@Base+0x40>)
+  3f4a1c:	4478      	add	r0, pc // literal @2eeb26 com.sigmateam.sige.RegistryEnumerator
+  3f4a1e:	681b      	ldr	r3, [r3, #0]
+  3f4a20:	4479      	add	r1, pc // literal @2ce654 onKey
+  3f4a22:	447a      	add	r2, pc // literal @3082b0 (Ljava/lang/String;)V
+  3f4a24:	602c      	str	r4, [r5, #0]
+  3f4a26:	f0cc e404 	blx	8c1230 <operator new[](unsigned int, std::align_val_t)@@Base+0x960> // jnipp::NativeMethod::registerMethod(char const*, char const*, char const*, void*)
+  3f4a2a:	4628      	mov	r0, r5
+  3f4a2c:	bdb0      	pop	{r4, r5, r7, pc}
+  3f4a2e:	bf00      	nop
+  3f4a30:	af82      	add	r7, sp, #520	; 0x208
+  3f4a32:	0054      	lsls	r4, r2, #1
+  3f4a34:	af84      	add	r7, sp, #528	; 0x210
+  3f4a36:	0054      	lsls	r4, r2, #1
+  3f4a38:	a106      	add	r1, pc, #24	; (adr r1, 3f4a54 <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base+0x10>) // literal @2ce66c pty data
+  3f4a3a:	ffef 9c30 	vcvt.f16.u16	d25, d16, #17
+  3f4a3e:	ffed 388a 	vmlal.u32	<illegal reg q9.5>, d29, d10
+  3f4a42:	Address 0x00000000003f4a42 is out of bounds.
+
+
+003f4a44 <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base>:
+  3f4a44:	b5b0      	push	{r4, r5, r7, lr}
+  3f4a46:	af02      	add	r7, sp, #8
+  3f4a48:	b088      	sub	sp, #32
+  3f4a4a:	4824      	ldr	r0, [pc, #144]	; (3f4adc <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base+0x98>)
+  3f4a4c:	4478      	add	r0, pc
+  3f4a4e:	6805      	ldr	r5, [r0, #0]
+  3f4a50:	4823      	ldr	r0, [pc, #140]	; (3f4ae0 <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base+0x9c>)
+  3f4a52:	4478      	add	r0, pc
+  3f4a54:	6800      	ldr	r0, [r0, #0]
+  3f4a56:	6800      	ldr	r0, [r0, #0]
+  3f4a58:	9007      	str	r0, [sp, #28]
+  3f4a5a:	6828      	ldr	r0, [r5, #0]
+  3f4a5c:	9206      	str	r2, [sp, #24]
+  3f4a5e:	b320      	cbz	r0, 3f4aaa <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base+0x66>
+  3f4a60:	ac04      	add	r4, sp, #16
+  3f4a62:	2180      	movs	r1, #128	; 0x80
+  3f4a64:	4620      	mov	r0, r4
+  3f4a66:	f0cc e3bc 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f4a6a:	682d      	ldr	r5, [r5, #0]
+  3f4a6c:	a801      	add	r0, sp, #4
+  3f4a6e:	aa06      	add	r2, sp, #24
+  3f4a70:	4621      	mov	r1, r4
+  3f4a72:	f0cc e426 	blx	8c12c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9f0> // jnipp::Environment::string(_jstring* const&)
+  3f4a76:	2014      	movs	r0, #20
+  3f4a78:	f0cb e772 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3f4a7c:	4604      	mov	r4, r0
+  3f4a7e:	2000      	movs	r0, #0
+  3f4a80:	e9c4 0000 	strd	r0, r0, [r4]
+  3f4a84:	f104 0008 	add.w	r0, r4, #8
+  3f4a88:	a901      	add	r1, sp, #4
+  3f4a8a:	f0cb e7ea 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3f4a8e:	6828      	ldr	r0, [r5, #0]
+  3f4a90:	68a9      	ldr	r1, [r5, #8]
+  3f4a92:	e9c4 0500 	strd	r0, r5, [r4]
+  3f4a96:	6044      	str	r4, [r0, #4]
+  3f4a98:	a801      	add	r0, sp, #4
+  3f4a9a:	3101      	adds	r1, #1
+  3f4a9c:	602c      	str	r4, [r5, #0]
+  3f4a9e:	60a9      	str	r1, [r5, #8]
+  3f4aa0:	f0cb e786 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f4aa4:	a804      	add	r0, sp, #16
+  3f4aa6:	f0cc e3f4 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4aaa:	9807      	ldr	r0, [sp, #28]
+  3f4aac:	490d      	ldr	r1, [pc, #52]	; (3f4ae4 <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base+0xa0>)
+  3f4aae:	4479      	add	r1, pc
+  3f4ab0:	6809      	ldr	r1, [r1, #0]
+  3f4ab2:	6809      	ldr	r1, [r1, #0]
+  3f4ab4:	4281      	cmp	r1, r0
+  3f4ab6:	bf04      	itt	eq
+  3f4ab8:	b008      	addeq	sp, #32
+  3f4aba:	bdb0      	popeq	{r4, r5, r7, pc}
+  3f4abc:	f0cb e788 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f4ac0:	4620      	mov	r0, r4
+  3f4ac2:	f0cb e796 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f4ac6:	e7ff      	b.n	3f4ac8 <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base+0x84>
+  3f4ac8:	a801      	add	r0, sp, #4
+  3f4aca:	f0cb e772 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f4ace:	e7ff      	b.n	3f4ad0 <core::RegistryPrivate::onKey(_JNIEnv*, _jclass*, _jstring*)@@Base+0x8c>
+  3f4ad0:	a804      	add	r0, sp, #16
+  3f4ad2:	f0cc e3de 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4ad6:	f0cb e784 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f4ada:	bf00      	nop
+  3f4adc:	af48      	add	r7, sp, #288	; 0x120
+  3f4ade:	0054      	lsls	r4, r2, #1
+  3f4ae0:	adc6      	add	r5, sp, #792	; 0x318
+  3f4ae2:	0054      	lsls	r4, r2, #1
+  3f4ae4:	ad6a      	add	r5, sp, #424	; 0x1a8
+  3f4ae6:	0054      	lsls	r4, r2, #1
+
+003f4ae8 <core::RegistryPrivate::~RegistryPrivate()@@Base>:
+  3f4ae8:	b5d0      	push	{r4, r6, r7, lr}
+  3f4aea:	af02      	add	r7, sp, #8
+  3f4aec:	b0a4      	sub	sp, #144	; 0x90
+  3f4aee:	4604      	mov	r4, r0
+  3f4af0:	4815      	ldr	r0, [pc, #84]	; (3f4b48 <core::RegistryPrivate::~RegistryPrivate()@@Base+0x60>)
+  3f4af2:	4916      	ldr	r1, [pc, #88]	; (3f4b4c <core::RegistryPrivate::~RegistryPrivate()@@Base+0x64>)
+  3f4af4:	4478      	add	r0, pc
+  3f4af6:	4479      	add	r1, pc
+  3f4af8:	6800      	ldr	r0, [r0, #0]
+  3f4afa:	6809      	ldr	r1, [r1, #0]
+  3f4afc:	3008      	adds	r0, #8
+  3f4afe:	6809      	ldr	r1, [r1, #0]
+  3f4b00:	9123      	str	r1, [sp, #140]	; 0x8c
+  3f4b02:	6020      	str	r0, [r4, #0]
+  3f4b04:	f0cc e2dc 	blx	8c10c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x7f0> // core::Log::reportingLevel()
+  3f4b08:	2805      	cmp	r0, #5
+  3f4b0a:	d30e      	bcc.n	3f4b2a <core::RegistryPrivate::~RegistryPrivate()@@Base+0x42>
+  3f4b0c:	4668      	mov	r0, sp
+  3f4b0e:	2105      	movs	r1, #5
+  3f4b10:	f0cc e2de 	blx	8c10d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x800> // core::Log::Log(core::ILogger::Level)
+  3f4b14:	4668      	mov	r0, sp
+  3f4b16:	f0cc e2e4 	blx	8c10e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x810> // core::Log::get()
+  3f4b1a:	490d      	ldr	r1, [pc, #52]	; (3f4b50 <core::RegistryPrivate::~RegistryPrivate()@@Base+0x68>)
+  3f4b1c:	4479      	add	r1, pc // literal @2db4da RegistryPrivate::~RegistryPrivate()
+  3f4b1e:	2223      	movs	r2, #35	; 0x23
+  3f4b20:	f7d0 ffec 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  3f4b24:	4668      	mov	r0, sp
+  3f4b26:	f0cc e2ec 	blx	8c1100 <operator new[](unsigned int, std::align_val_t)@@Base+0x830> // core::Log::~Log()
+  3f4b2a:	9823      	ldr	r0, [sp, #140]	; 0x8c
+  3f4b2c:	4909      	ldr	r1, [pc, #36]	; (3f4b54 <core::RegistryPrivate::~RegistryPrivate()@@Base+0x6c>)
+  3f4b2e:	4479      	add	r1, pc
+  3f4b30:	6809      	ldr	r1, [r1, #0]
+  3f4b32:	6809      	ldr	r1, [r1, #0]
+  3f4b34:	4281      	cmp	r1, r0
+  3f4b36:	bf02      	ittt	eq
+  3f4b38:	4620      	moveq	r0, r4
+  3f4b3a:	b024      	addeq	sp, #144	; 0x90
+  3f4b3c:	bdd0      	popeq	{r4, r6, r7, pc}
+  3f4b3e:	f0cb e748 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f4b42:	f7d0 fd1d 	bl	3c5580 <analytics::Analytics::~Analytics()@@Base+0x128>
+  3f4b46:	bf00      	nop
+  3f4b48:	ae98      	add	r6, sp, #608	; 0x260
+  3f4b4a:	0054      	lsls	r4, r2, #1
+  3f4b4c:	ad22      	add	r5, sp, #136	; 0x88
+  3f4b4e:	0054      	lsls	r4, r2, #1
+  3f4b50:	69ba      	ldr	r2, [r7, #24]
+  3f4b52:	ffee acea 	vqdmulh.s32	q13, q15, d10[1]
+  3f4b56:	0054      	lsls	r4, r2, #1
+
+003f4b58 <core::RegistryPrivate::~RegistryPrivate()@@Base>:
+  3f4b58:	b5d0      	push	{r4, r6, r7, lr}
+  3f4b5a:	af02      	add	r7, sp, #8
+  3f4b5c:	4604      	mov	r4, r0
+  3f4b5e:	f0cd e050 	blx	8c1c00 <operator new[](unsigned int, std::align_val_t)@@Base+0x1330> // core::RegistryPrivate::~RegistryPrivate()
+  3f4b62:	4620      	mov	r0, r4
+  3f4b64:	e8bd 40d0 	ldmia.w	sp!, {r4, r6, r7, lr}
+  3f4b68:	f0c6 b458 	b.w	8bb41c <__emutls_get_address@@Base+0x329c>
+
+003f4b6c <core::RegistryPrivate::initialize(core::EngineDelegate const&)@@Base>:
+  3f4b6c:	4770      	bx	lr
+  3f4b6e:	d4d4      	bmi.n	3f4b1a <core::RegistryPrivate::~RegistryPrivate()@@Base+0x32>
+
+003f4b70 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base>:
+  3f4b70:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f4b72:	af03      	add	r7, sp, #12
+  3f4b74:	e92d 0700 	stmdb	sp!, {r8, r9, sl}
+  3f4b78:	b088      	sub	sp, #32
+  3f4b7a:	4681      	mov	r9, r0
+  3f4b7c:	4850      	ldr	r0, [pc, #320]	; (3f4cc0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x150>)
+  3f4b7e:	461d      	mov	r5, r3
+  3f4b80:	4616      	mov	r6, r2
+  3f4b82:	4478      	add	r0, pc
+  3f4b84:	6800      	ldr	r0, [r0, #0]
+  3f4b86:	6800      	ldr	r0, [r0, #0]
+  3f4b88:	9007      	str	r0, [sp, #28]
+  3f4b8a:	f000 f8a9 	bl	3f4ce0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x170>
+  3f4b8e:	484d      	ldr	r0, [pc, #308]	; (3f4cc4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x154>)
+  3f4b90:	4478      	add	r0, pc
+  3f4b92:	6800      	ldr	r0, [r0, #0]
+  3f4b94:	2800      	cmp	r0, #0
+  3f4b96:	d06b      	beq.n	3f4c70 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x100>
+  3f4b98:	a805      	add	r0, sp, #20
+  3f4b9a:	2180      	movs	r1, #128	; 0x80
+  3f4b9c:	f0cc e320 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f4ba0:	f0cd e5d6 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f4ba4:	2800      	cmp	r0, #0
+  3f4ba6:	d068      	beq.n	3f4c7a <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x10a>
+  3f4ba8:	4848      	ldr	r0, [pc, #288]	; (3f4ccc <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x15c>)
+  3f4baa:	4478      	add	r0, pc
+  3f4bac:	4682      	mov	sl, r0
+  3f4bae:	6800      	ldr	r0, [r0, #0]
+  3f4bb0:	bb00      	cbnz	r0, 3f4bf4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x84>
+  3f4bb2:	a805      	add	r0, sp, #20
+  3f4bb4:	f0cc e344 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4bb8:	4680      	mov	r8, r0
+  3f4bba:	a805      	add	r0, sp, #20
+  3f4bbc:	f0cc e340 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4bc0:	4604      	mov	r4, r0
+  3f4bc2:	4843      	ldr	r0, [pc, #268]	; (3f4cd0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x160>)
+  3f4bc4:	4478      	add	r0, pc
+  3f4bc6:	f0cc e36c 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f4bca:	4601      	mov	r1, r0
+  3f4bcc:	6820      	ldr	r0, [r4, #0]
+  3f4bce:	6fc2      	ldr	r2, [r0, #124]	; 0x7c
+  3f4bd0:	4620      	mov	r0, r4
+  3f4bd2:	4790      	blx	r2
+  3f4bd4:	4601      	mov	r1, r0
+  3f4bd6:	f8d8 0000 	ldr.w	r0, [r8]
+  3f4bda:	f8d0 4084 	ldr.w	r4, [r0, #132]	; 0x84
+  3f4bde:	4a3d      	ldr	r2, [pc, #244]	; (3f4cd4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x164>)
+  3f4be0:	4b3d      	ldr	r3, [pc, #244]	; (3f4cd8 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x168>)
+  3f4be2:	447a      	add	r2, pc // literal @2ce65a getString
+  3f4be4:	447b      	add	r3, pc // literal @2db4fe (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  3f4be6:	4640      	mov	r0, r8
+  3f4be8:	47a0      	blx	r4
+  3f4bea:	2800      	cmp	r0, #0
+  3f4bec:	4651      	mov	r1, sl
+  3f4bee:	f8ca 0000 	str.w	r0, [sl]
+  3f4bf2:	d042      	beq.n	3f4c7a <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x10a>
+  3f4bf4:	a805      	add	r0, sp, #20
+  3f4bf6:	4631      	mov	r1, r6
+  3f4bf8:	f0cc e382 	blx	8c1300 <operator new[](unsigned int, std::align_val_t)@@Base+0xa30> // jnipp::Environment::createString(STRING const&)
+  3f4bfc:	4606      	mov	r6, r0
+  3f4bfe:	a802      	add	r0, sp, #8
+  3f4c00:	4629      	mov	r1, r5
+  3f4c02:	f0cf e156 	blx	8c3eb0 <operator new[](unsigned int, std::align_val_t)@@Base+0x35e0> // toUtf8(STRING const&)
+  3f4c06:	a805      	add	r0, sp, #20
+  3f4c08:	a902      	add	r1, sp, #8
+  3f4c0a:	f0cc e37a 	blx	8c1300 <operator new[](unsigned int, std::align_val_t)@@Base+0xa30> // jnipp::Environment::createString(STRING const&)
+  3f4c0e:	4680      	mov	r8, r0
+  3f4c10:	a802      	add	r0, sp, #8
+  3f4c12:	f0cb e6ce 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f4c16:	a805      	add	r0, sp, #20
+  3f4c18:	f0cc e312 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4c1c:	4605      	mov	r5, r0
+  3f4c1e:	482f      	ldr	r0, [pc, #188]	; (3f4cdc <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x16c>)
+  3f4c20:	4478      	add	r0, pc
+  3f4c22:	f0cc e33e 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f4c26:	4601      	mov	r1, r0
+  3f4c28:	f8da 2000 	ldr.w	r2, [sl]
+  3f4c2c:	4628      	mov	r0, r5
+  3f4c2e:	4633      	mov	r3, r6
+  3f4c30:	f8cd 8000 	str.w	r8, [sp]
+  3f4c34:	f0cc e44c 	blx	8c14d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xc00> // _JNIEnv::CallObjectMethod(_jobject*, _jmethodID*, ...)
+  3f4c38:	9002      	str	r0, [sp, #8]
+  3f4c3a:	a905      	add	r1, sp, #20
+  3f4c3c:	aa02      	add	r2, sp, #8
+  3f4c3e:	4648      	mov	r0, r9
+  3f4c40:	f0cc e33e 	blx	8c12c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9f0> // jnipp::Environment::string(_jstring* const&)
+  3f4c44:	a805      	add	r0, sp, #20
+  3f4c46:	f0cc e2fc 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4c4a:	6801      	ldr	r1, [r0, #0]
+  3f4c4c:	6dca      	ldr	r2, [r1, #92]	; 0x5c
+  3f4c4e:	4631      	mov	r1, r6
+  3f4c50:	4790      	blx	r2
+  3f4c52:	a805      	add	r0, sp, #20
+  3f4c54:	f0cc e2f4 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4c58:	6801      	ldr	r1, [r0, #0]
+  3f4c5a:	6dca      	ldr	r2, [r1, #92]	; 0x5c
+  3f4c5c:	4641      	mov	r1, r8
+  3f4c5e:	4790      	blx	r2
+  3f4c60:	a805      	add	r0, sp, #20
+  3f4c62:	f0cc e2ee 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4c66:	6802      	ldr	r2, [r0, #0]
+  3f4c68:	9902      	ldr	r1, [sp, #8]
+  3f4c6a:	6dd2      	ldr	r2, [r2, #92]	; 0x5c
+  3f4c6c:	4790      	blx	r2
+  3f4c6e:	e008      	b.n	3f4c82 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x112>
+  3f4c70:	4648      	mov	r0, r9
+  3f4c72:	4629      	mov	r1, r5
+  3f4c74:	f0cb e6f4 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3f4c78:	e006      	b.n	3f4c88 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x118>
+  3f4c7a:	4648      	mov	r0, r9
+  3f4c7c:	4629      	mov	r1, r5
+  3f4c7e:	f0cb e6f0 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3f4c82:	a805      	add	r0, sp, #20
+  3f4c84:	f0cc e304 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4c88:	9807      	ldr	r0, [sp, #28]
+  3f4c8a:	490f      	ldr	r1, [pc, #60]	; (3f4cc8 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x158>)
+  3f4c8c:	4479      	add	r1, pc
+  3f4c8e:	6809      	ldr	r1, [r1, #0]
+  3f4c90:	6809      	ldr	r1, [r1, #0]
+  3f4c92:	4281      	cmp	r1, r0
+  3f4c94:	bf02      	ittt	eq
+  3f4c96:	b008      	addeq	sp, #32
+  3f4c98:	e8bd 0700 	ldmiaeq.w	sp!, {r8, r9, sl}
+  3f4c9c:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f4c9e:	f0cb e698 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f4ca2:	a802      	add	r0, sp, #8
+  3f4ca4:	e004      	b.n	3f4cb0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x140>
+  3f4ca6:	e005      	b.n	3f4cb4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x144>
+  3f4ca8:	e004      	b.n	3f4cb4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x144>
+  3f4caa:	e003      	b.n	3f4cb4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x144>
+  3f4cac:	e002      	b.n	3f4cb4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x144>
+  3f4cae:	4648      	mov	r0, r9
+  3f4cb0:	f0cb e67e 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f4cb4:	a805      	add	r0, sp, #20
+  3f4cb6:	f0cc e2ec 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4cba:	f0cb e692 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f4cbe:	bf00      	nop
+  3f4cc0:	ac96      	add	r4, sp, #600	; 0x258
+  3f4cc2:	0054      	lsls	r4, r2, #1
+  3f4cc4:	f1f4 0055 			; <UNDEFINED> instruction: 0xf1f40055
+  3f4cc8:	ab8c      	add	r3, sp, #560	; 0x230
+  3f4cca:	0054      	lsls	r4, r2, #1
+  3f4ccc:	f1c2 0055 	rsb	r0, r2, #85	; 0x55
+  3f4cd0:	f1c0 0055 	rsb	r0, r0, #85	; 0x55
+  3f4cd4:	9a74      	ldr	r2, [sp, #464]	; 0x1d0
+  3f4cd6:	ffed 6916 	vqshrn.u64	d22, q3, #19
+  3f4cda:	ffee f164 	vmla.f32	<illegal reg q15.5>, q7, d4[1]
+  3f4cde:	0055      	lsls	r5, r2, #1
+  3f4ce0:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f4ce2:	af03      	add	r7, sp, #12
+  3f4ce4:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3f4ce8:	b084      	sub	sp, #16
+  3f4cea:	4840      	ldr	r0, [pc, #256]	; (3f4dec <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x27c>)
+  3f4cec:	4940      	ldr	r1, [pc, #256]	; (3f4df0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x280>)
+  3f4cee:	4478      	add	r0, pc
+  3f4cf0:	4479      	add	r1, pc
+  3f4cf2:	6809      	ldr	r1, [r1, #0]
+  3f4cf4:	6809      	ldr	r1, [r1, #0]
+  3f4cf6:	9103      	str	r1, [sp, #12]
+  3f4cf8:	7800      	ldrb	r0, [r0, #0]
+  3f4cfa:	f3bf 8f5b 	dmb	ish
+  3f4cfe:	07c0      	lsls	r0, r0, #31
+  3f4d00:	d04e      	beq.n	3f4da0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x230>
+  3f4d02:	4842      	ldr	r0, [pc, #264]	; (3f4e0c <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x29c>)
+  3f4d04:	4478      	add	r0, pc
+  3f4d06:	6800      	ldr	r0, [r0, #0]
+  3f4d08:	bbe8      	cbnz	r0, 3f4d86 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x216>
+  3f4d0a:	a801      	add	r0, sp, #4
+  3f4d0c:	2180      	movs	r1, #128	; 0x80
+  3f4d0e:	f0cc e268 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f4d12:	9802      	ldr	r0, [sp, #8]
+  3f4d14:	b3a0      	cbz	r0, 3f4d80 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x210>
+  3f4d16:	f0cc e26c 	blx	8c11f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x920> // android::ApplicationNative::nativeApp()
+  3f4d1a:	f0cc e272 	blx	8c1200 <operator new[](unsigned int, std::align_val_t)@@Base+0x930> // android::ApplicationNative::getMainActivity() const
+  3f4d1e:	4606      	mov	r6, r0
+  3f4d20:	a801      	add	r0, sp, #4
+  3f4d22:	f0cc e28e 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4d26:	4605      	mov	r5, r0
+  3f4d28:	a801      	add	r0, sp, #4
+  3f4d2a:	f0cc e28a 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4d2e:	6801      	ldr	r1, [r0, #0]
+  3f4d30:	6fca      	ldr	r2, [r1, #124]	; 0x7c
+  3f4d32:	4631      	mov	r1, r6
+  3f4d34:	4790      	blx	r2
+  3f4d36:	4601      	mov	r1, r0
+  3f4d38:	6828      	ldr	r0, [r5, #0]
+  3f4d3a:	f8d0 4084 	ldr.w	r4, [r0, #132]	; 0x84
+  3f4d3e:	4a34      	ldr	r2, [pc, #208]	; (3f4e10 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x2a0>)
+  3f4d40:	4b34      	ldr	r3, [pc, #208]	; (3f4e14 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x2a4>)
+  3f4d42:	447a      	add	r2, pc // literal @2b41a1 getPreferences
+  3f4d44:	447b      	add	r3, pc // literal @2d4e13 (I)Landroid/content/SharedPreferences;
+  3f4d46:	4628      	mov	r0, r5
+  3f4d48:	47a0      	blx	r4
+  3f4d4a:	4605      	mov	r5, r0
+  3f4d4c:	a801      	add	r0, sp, #4
+  3f4d4e:	f0cc e280 	blx	8c1250 <operator new[](unsigned int, std::align_val_t)@@Base+0x980> // jnipp::Environment::checkException()
+  3f4d52:	b1ad      	cbz	r5, 3f4d80 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x210>
+  3f4d54:	a801      	add	r0, sp, #4
+  3f4d56:	f0cc e274 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4d5a:	4631      	mov	r1, r6
+  3f4d5c:	462a      	mov	r2, r5
+  3f4d5e:	2300      	movs	r3, #0
+  3f4d60:	f0cc e3b6 	blx	8c14d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xc00> // _JNIEnv::CallObjectMethod(_jobject*, _jmethodID*, ...)
+  3f4d64:	4604      	mov	r4, r0
+  3f4d66:	482c      	ldr	r0, [pc, #176]	; (3f4e18 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x2a8>)
+  3f4d68:	4478      	add	r0, pc
+  3f4d6a:	f0cc e27a 	blx	8c1260 <operator new[](unsigned int, std::align_val_t)@@Base+0x990> // jnipp::JObject::delete_global()
+  3f4d6e:	482b      	ldr	r0, [pc, #172]	; (3f4e1c <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x2ac>)
+  3f4d70:	4478      	add	r0, pc
+  3f4d72:	4621      	mov	r1, r4
+  3f4d74:	f0cc e27c 	blx	8c1270 <operator new[](unsigned int, std::align_val_t)@@Base+0x9a0> // jnipp::JObject::reset(_jobject*)
+  3f4d78:	4829      	ldr	r0, [pc, #164]	; (3f4e20 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x2b0>)
+  3f4d7a:	4478      	add	r0, pc
+  3f4d7c:	f0cc e280 	blx	8c1280 <operator new[](unsigned int, std::align_val_t)@@Base+0x9b0> // jnipp::JObject::create_global()
+  3f4d80:	a801      	add	r0, sp, #4
+  3f4d82:	f0cc e286 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4d86:	9803      	ldr	r0, [sp, #12]
+  3f4d88:	4926      	ldr	r1, [pc, #152]	; (3f4e24 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x2b4>)
+  3f4d8a:	4479      	add	r1, pc
+  3f4d8c:	6809      	ldr	r1, [r1, #0]
+  3f4d8e:	6809      	ldr	r1, [r1, #0]
+  3f4d90:	4281      	cmp	r1, r0
+  3f4d92:	bf02      	ittt	eq
+  3f4d94:	b004      	addeq	sp, #16
+  3f4d96:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3f4d9a:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f4d9c:	f0cb e618 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f4da0:	4814      	ldr	r0, [pc, #80]	; (3f4df4 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x284>)
+  3f4da2:	4478      	add	r0, pc
+  3f4da4:	f0cb e7b4 	blx	8c0d10 <operator new[](unsigned int, std::align_val_t)@@Base+0x440> // __cxa_guard_acquire
+  3f4da8:	2800      	cmp	r0, #0
+  3f4daa:	d0aa      	beq.n	3f4d02 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x192>
+  3f4dac:	4812      	ldr	r0, [pc, #72]	; (3f4df8 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x288>)
+  3f4dae:	4478      	add	r0, pc
+  3f4db0:	2100      	movs	r1, #0
+  3f4db2:	f0cc e20e 	blx	8c11d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x900> // jnipp::JObject::JObject(_jobject*)
+  3f4db6:	4811      	ldr	r0, [pc, #68]	; (3f4dfc <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x28c>)
+  3f4db8:	4911      	ldr	r1, [pc, #68]	; (3f4e00 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x290>)
+  3f4dba:	4478      	add	r0, pc
+  3f4dbc:	4a11      	ldr	r2, [pc, #68]	; (3f4e04 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x294>)
+  3f4dbe:	4479      	add	r1, pc
+  3f4dc0:	6800      	ldr	r0, [r0, #0]
+  3f4dc2:	447a      	add	r2, pc
+  3f4dc4:	f0cb e5a4 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40> // __cxa_atexit
+  3f4dc8:	480f      	ldr	r0, [pc, #60]	; (3f4e08 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x298>)
+  3f4dca:	4478      	add	r0, pc
+  3f4dcc:	f0cb e7a8 	blx	8c0d20 <operator new[](unsigned int, std::align_val_t)@@Base+0x450> // __cxa_guard_release
+  3f4dd0:	e797      	b.n	3f4d02 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x192>
+  3f4dd2:	4815      	ldr	r0, [pc, #84]	; (3f4e28 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x2b8>)
+  3f4dd4:	4478      	add	r0, pc
+  3f4dd6:	f0cb e7ac 	blx	8c0d30 <operator new[](unsigned int, std::align_val_t)@@Base+0x460> // __cxa_guard_abort
+  3f4dda:	f0cb e602 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f4dde:	e7ff      	b.n	3f4de0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x270>
+  3f4de0:	a801      	add	r0, sp, #4
+  3f4de2:	f0cc e256 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4de6:	f0cb e5fc 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f4dea:	bf00      	nop
+  3f4dec:	f09a 0055 	eors.w	r0, sl, #85	; 0x55
+  3f4df0:	ab28      	add	r3, sp, #160	; 0xa0
+  3f4df2:	0054      	lsls	r4, r2, #1
+  3f4df4:	efe6 0055 	vshr.s32	q8, <illegal reg q2.5>, #26
+  3f4df8:	efd6 0055 	vshr.s16	q8, <illegal reg q2.5>, #10
+  3f4dfc:	ab2e      	add	r3, sp, #184	; 0xb8
+  3f4dfe:	0054      	lsls	r4, r2, #1
+  3f4e00:	efc6 0055 	vmov.i32	q8, #101	; 0x00000065
+  3f4e04:	7f0a      	ldrb	r2, [r1, #28]
+  3f4e06:	004f      	lsls	r7, r1, #1
+  3f4e08:	efbe 0055 	vshr.s32	q0, <illegal reg q2.5>, #2
+  3f4e0c:	f080 0055 	eor.w	r0, r0, #85	; 0x55
+  3f4e10:	f45b ffeb 	bl	50dea <typeinfo name for ad::CASProvider@@Base-0x2cbeef>
+  3f4e14:	00cb      	lsls	r3, r1, #3
+  3f4e16:	ffee f01c 	vshr.u32	d31, d12, #18
+  3f4e1a:	0055      	lsls	r5, r2, #1
+  3f4e1c:	f014 0055 	ands.w	r0, r4, #85	; 0x55
+  3f4e20:	f00a 0055 	and.w	r0, sl, #85	; 0x55
+  3f4e24:	aa8e      	add	r2, sp, #568	; 0x238
+  3f4e26:	0054      	lsls	r4, r2, #1
+  3f4e28:	efb4 0055 	vshr.s32	q0, <illegal reg q2.5>, #12
+
+003f4e2c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base>:
+  3f4e2c:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f4e2e:	af03      	add	r7, sp, #12
+  3f4e30:	e92d 0b00 	stmdb	sp!, {r8, r9, fp}
+  3f4e34:	b088      	sub	sp, #32
+  3f4e36:	4847      	ldr	r0, [pc, #284]	; (3f4f54 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x128>)
+  3f4e38:	4614      	mov	r4, r2
+  3f4e3a:	460d      	mov	r5, r1
+  3f4e3c:	4478      	add	r0, pc
+  3f4e3e:	6800      	ldr	r0, [r0, #0]
+  3f4e40:	6800      	ldr	r0, [r0, #0]
+  3f4e42:	9007      	str	r0, [sp, #28]
+  3f4e44:	f000 f898 	bl	3f4f78 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x14c>
+  3f4e48:	4843      	ldr	r0, [pc, #268]	; (3f4f58 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x12c>)
+  3f4e4a:	4478      	add	r0, pc
+  3f4e4c:	6800      	ldr	r0, [r0, #0]
+  3f4e4e:	2800      	cmp	r0, #0
+  3f4e50:	d067      	beq.n	3f4f22 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0xf6>
+  3f4e52:	a805      	add	r0, sp, #20
+  3f4e54:	2180      	movs	r1, #128	; 0x80
+  3f4e56:	f0cc e1c4 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f4e5a:	f0cd e47a 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f4e5e:	2800      	cmp	r0, #0
+  3f4e60:	d05c      	beq.n	3f4f1c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0xf0>
+  3f4e62:	483e      	ldr	r0, [pc, #248]	; (3f4f5c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x130>)
+  3f4e64:	4478      	add	r0, pc
+  3f4e66:	4681      	mov	r9, r0
+  3f4e68:	6800      	ldr	r0, [r0, #0]
+  3f4e6a:	b9f8      	cbnz	r0, 3f4eac <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x80>
+  3f4e6c:	a805      	add	r0, sp, #20
+  3f4e6e:	f0cc e1e8 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4e72:	4680      	mov	r8, r0
+  3f4e74:	a805      	add	r0, sp, #20
+  3f4e76:	f0cc e1e4 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4e7a:	4606      	mov	r6, r0
+  3f4e7c:	4838      	ldr	r0, [pc, #224]	; (3f4f60 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x134>)
+  3f4e7e:	4478      	add	r0, pc
+  3f4e80:	f0cc e20e 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f4e84:	4601      	mov	r1, r0
+  3f4e86:	6830      	ldr	r0, [r6, #0]
+  3f4e88:	6fc2      	ldr	r2, [r0, #124]	; 0x7c
+  3f4e8a:	4630      	mov	r0, r6
+  3f4e8c:	4790      	blx	r2
+  3f4e8e:	4601      	mov	r1, r0
+  3f4e90:	f8d8 0000 	ldr.w	r0, [r8]
+  3f4e94:	f8d0 6084 	ldr.w	r6, [r0, #132]	; 0x84
+  3f4e98:	4a32      	ldr	r2, [pc, #200]	; (3f4f64 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x138>)
+  3f4e9a:	4b33      	ldr	r3, [pc, #204]	; (3f4f68 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x13c>)
+  3f4e9c:	447a      	add	r2, pc // literal @319891 putString
+  3f4e9e:	447b      	add	r3, pc // literal @2c4d9e (Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+  3f4ea0:	4640      	mov	r0, r8
+  3f4ea2:	47b0      	blx	r6
+  3f4ea4:	4649      	mov	r1, r9
+  3f4ea6:	f8c9 0000 	str.w	r0, [r9]
+  3f4eaa:	b3b8      	cbz	r0, 3f4f1c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0xf0>
+  3f4eac:	a805      	add	r0, sp, #20
+  3f4eae:	4629      	mov	r1, r5
+  3f4eb0:	f0cc e226 	blx	8c1300 <operator new[](unsigned int, std::align_val_t)@@Base+0xa30> // jnipp::Environment::createString(STRING const&)
+  3f4eb4:	4605      	mov	r5, r0
+  3f4eb6:	a802      	add	r0, sp, #8
+  3f4eb8:	4621      	mov	r1, r4
+  3f4eba:	f0ce e7fa 	blx	8c3eb0 <operator new[](unsigned int, std::align_val_t)@@Base+0x35e0> // toUtf8(STRING const&)
+  3f4ebe:	a805      	add	r0, sp, #20
+  3f4ec0:	a902      	add	r1, sp, #8
+  3f4ec2:	f0cc e21e 	blx	8c1300 <operator new[](unsigned int, std::align_val_t)@@Base+0xa30> // jnipp::Environment::createString(STRING const&)
+  3f4ec6:	4604      	mov	r4, r0
+  3f4ec8:	a802      	add	r0, sp, #8
+  3f4eca:	f0cb e572 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f4ece:	a805      	add	r0, sp, #20
+  3f4ed0:	f0cc e1b6 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4ed4:	4606      	mov	r6, r0
+  3f4ed6:	4825      	ldr	r0, [pc, #148]	; (3f4f6c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x140>)
+  3f4ed8:	4478      	add	r0, pc
+  3f4eda:	f0cc e1e2 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f4ede:	4601      	mov	r1, r0
+  3f4ee0:	f8d9 2000 	ldr.w	r2, [r9]
+  3f4ee4:	4630      	mov	r0, r6
+  3f4ee6:	462b      	mov	r3, r5
+  3f4ee8:	9400      	str	r4, [sp, #0]
+  3f4eea:	f0cc e2f2 	blx	8c14d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xc00> // _JNIEnv::CallObjectMethod(_jobject*, _jmethodID*, ...)
+  3f4eee:	4820      	ldr	r0, [pc, #128]	; (3f4f70 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x144>)
+  3f4ef0:	4478      	add	r0, pc
+  3f4ef2:	7800      	ldrb	r0, [r0, #0]
+  3f4ef4:	b110      	cbz	r0, 3f4efc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0xd0>
+  3f4ef6:	f000 f96f 	bl	3f51d8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x3ac>
+  3f4efa:	e001      	b.n	3f4f00 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0xd4>
+  3f4efc:	f000 f8fe 	bl	3f50fc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2d0>
+  3f4f00:	a805      	add	r0, sp, #20
+  3f4f02:	f0cc e19e 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4f06:	6801      	ldr	r1, [r0, #0]
+  3f4f08:	6dca      	ldr	r2, [r1, #92]	; 0x5c
+  3f4f0a:	4629      	mov	r1, r5
+  3f4f0c:	4790      	blx	r2
+  3f4f0e:	a805      	add	r0, sp, #20
+  3f4f10:	f0cc e196 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4f14:	6801      	ldr	r1, [r0, #0]
+  3f4f16:	6dca      	ldr	r2, [r1, #92]	; 0x5c
+  3f4f18:	4621      	mov	r1, r4
+  3f4f1a:	4790      	blx	r2
+  3f4f1c:	a805      	add	r0, sp, #20
+  3f4f1e:	f0cc e1b8 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4f22:	9807      	ldr	r0, [sp, #28]
+  3f4f24:	4913      	ldr	r1, [pc, #76]	; (3f4f74 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x148>)
+  3f4f26:	4479      	add	r1, pc
+  3f4f28:	6809      	ldr	r1, [r1, #0]
+  3f4f2a:	6809      	ldr	r1, [r1, #0]
+  3f4f2c:	4281      	cmp	r1, r0
+  3f4f2e:	bf02      	ittt	eq
+  3f4f30:	b008      	addeq	sp, #32
+  3f4f32:	e8bd 0b00 	ldmiaeq.w	sp!, {r8, r9, fp}
+  3f4f36:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f4f38:	f0cb e54a 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f4f3c:	a802      	add	r0, sp, #8
+  3f4f3e:	f0cb e538 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f4f42:	e002      	b.n	3f4f4a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x11e>
+  3f4f44:	e001      	b.n	3f4f4a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x11e>
+  3f4f46:	e000      	b.n	3f4f4a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x11e>
+  3f4f48:	e7ff      	b.n	3f4f4a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x11e>
+  3f4f4a:	a805      	add	r0, sp, #20
+  3f4f4c:	f0cc e1a0 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f4f50:	f0cb e546 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f4f54:	a9dc      	add	r1, sp, #880	; 0x370
+  3f4f56:	0054      	lsls	r4, r2, #1
+  3f4f58:	ef42 0055 	vqadd.s8	q8, q1, <illegal reg q2.5>
+  3f4f5c:	ef0c 0055 	vqadd.s8	q0, q6, <illegal reg q2.5>
+  3f4f60:	ef0e 0055 	vqadd.s8	q0, q7, <illegal reg q2.5>
+  3f4f64:	49f1      	ldr	r1, [pc, #964]	; (3f532c <core::RegistryPrivate::remove(STRING const&)@@Base+0x78>)
+  3f4f66:	fff2 fefc 			; <UNDEFINED> instruction: 0xfff2fefc
+  3f4f6a:	ffec eeb4 			; <UNDEFINED> instruction: 0xffeceeb4
+  3f4f6e:	0055      	lsls	r5, r2, #1
+  3f4f70:	ee84 0055 	mcr	0, 4, r0, cr4, cr5, {2}
+  3f4f74:	a8f2      	add	r0, sp, #968	; 0x3c8
+  3f4f76:	0054      	lsls	r4, r2, #1
+  3f4f78:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f4f7a:	af03      	add	r7, sp, #12
+  3f4f7c:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3f4f80:	b084      	sub	sp, #16
+  3f4f82:	484a      	ldr	r0, [pc, #296]	; (3f50ac <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x280>)
+  3f4f84:	494a      	ldr	r1, [pc, #296]	; (3f50b0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x284>)
+  3f4f86:	4478      	add	r0, pc
+  3f4f88:	4479      	add	r1, pc
+  3f4f8a:	6809      	ldr	r1, [r1, #0]
+  3f4f8c:	6809      	ldr	r1, [r1, #0]
+  3f4f8e:	9103      	str	r1, [sp, #12]
+  3f4f90:	7800      	ldrb	r0, [r0, #0]
+  3f4f92:	f3bf 8f5b 	dmb	ish
+  3f4f96:	07c0      	lsls	r0, r0, #31
+  3f4f98:	d064      	beq.n	3f5064 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x238>
+  3f4f9a:	484c      	ldr	r0, [pc, #304]	; (3f50cc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2a0>)
+  3f4f9c:	4478      	add	r0, pc
+  3f4f9e:	6800      	ldr	r0, [r0, #0]
+  3f4fa0:	2800      	cmp	r0, #0
+  3f4fa2:	d152      	bne.n	3f504a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x21e>
+  3f4fa4:	f7ff fe9c 	bl	3f4ce0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x170>
+  3f4fa8:	4849      	ldr	r0, [pc, #292]	; (3f50d0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2a4>)
+  3f4faa:	4478      	add	r0, pc
+  3f4fac:	6800      	ldr	r0, [r0, #0]
+  3f4fae:	2800      	cmp	r0, #0
+  3f4fb0:	d04b      	beq.n	3f504a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x21e>
+  3f4fb2:	a801      	add	r0, sp, #4
+  3f4fb4:	2180      	movs	r1, #128	; 0x80
+  3f4fb6:	f0cc e114 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f4fba:	4e46      	ldr	r6, [pc, #280]	; (3f50d4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2a8>)
+  3f4fbc:	447e      	add	r6, pc
+  3f4fbe:	6830      	ldr	r0, [r6, #0]
+  3f4fc0:	2800      	cmp	r0, #0
+  3f4fc2:	d13f      	bne.n	3f5044 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x218>
+  3f4fc4:	a801      	add	r0, sp, #4
+  3f4fc6:	f0cd e3c4 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f4fca:	b3d8      	cbz	r0, 3f5044 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x218>
+  3f4fcc:	a801      	add	r0, sp, #4
+  3f4fce:	f0cc e138 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4fd2:	4604      	mov	r4, r0
+  3f4fd4:	a801      	add	r0, sp, #4
+  3f4fd6:	f0cc e134 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f4fda:	4605      	mov	r5, r0
+  3f4fdc:	483e      	ldr	r0, [pc, #248]	; (3f50d8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2ac>)
+  3f4fde:	4478      	add	r0, pc
+  3f4fe0:	f0cc e15e 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f4fe4:	4601      	mov	r1, r0
+  3f4fe6:	6828      	ldr	r0, [r5, #0]
+  3f4fe8:	6fc2      	ldr	r2, [r0, #124]	; 0x7c
+  3f4fea:	4628      	mov	r0, r5
+  3f4fec:	4790      	blx	r2
+  3f4fee:	4601      	mov	r1, r0
+  3f4ff0:	6820      	ldr	r0, [r4, #0]
+  3f4ff2:	f8d0 5084 	ldr.w	r5, [r0, #132]	; 0x84
+  3f4ff6:	4a39      	ldr	r2, [pc, #228]	; (3f50dc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2b0>)
+  3f4ff8:	4b39      	ldr	r3, [pc, #228]	; (3f50e0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2b4>)
+  3f4ffa:	447a      	add	r2, pc // literal @2eeb4c edit
+  3f4ffc:	447b      	add	r3, pc // literal @2c83ca ()Landroid/content/SharedPreferences$Editor;
+  3f4ffe:	4620      	mov	r0, r4
+  3f5000:	47a8      	blx	r5
+  3f5002:	6030      	str	r0, [r6, #0]
+  3f5004:	a801      	add	r0, sp, #4
+  3f5006:	f0cc e124 	blx	8c1250 <operator new[](unsigned int, std::align_val_t)@@Base+0x980> // jnipp::Environment::checkException()
+  3f500a:	6830      	ldr	r0, [r6, #0]
+  3f500c:	b1d0      	cbz	r0, 3f5044 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x218>
+  3f500e:	a801      	add	r0, sp, #4
+  3f5010:	f0cc e116 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5014:	4604      	mov	r4, r0
+  3f5016:	4833      	ldr	r0, [pc, #204]	; (3f50e4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2b8>)
+  3f5018:	4478      	add	r0, pc
+  3f501a:	f0cc e142 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f501e:	4601      	mov	r1, r0
+  3f5020:	6832      	ldr	r2, [r6, #0]
+  3f5022:	4620      	mov	r0, r4
+  3f5024:	f0cc e254 	blx	8c14d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xc00> // _JNIEnv::CallObjectMethod(_jobject*, _jmethodID*, ...)
+  3f5028:	4604      	mov	r4, r0
+  3f502a:	482f      	ldr	r0, [pc, #188]	; (3f50e8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2bc>)
+  3f502c:	4478      	add	r0, pc
+  3f502e:	f0cc e118 	blx	8c1260 <operator new[](unsigned int, std::align_val_t)@@Base+0x990> // jnipp::JObject::delete_global()
+  3f5032:	482e      	ldr	r0, [pc, #184]	; (3f50ec <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2c0>)
+  3f5034:	4478      	add	r0, pc
+  3f5036:	4621      	mov	r1, r4
+  3f5038:	f0cc e11a 	blx	8c1270 <operator new[](unsigned int, std::align_val_t)@@Base+0x9a0> // jnipp::JObject::reset(_jobject*)
+  3f503c:	482c      	ldr	r0, [pc, #176]	; (3f50f0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2c4>)
+  3f503e:	4478      	add	r0, pc
+  3f5040:	f0cc e11e 	blx	8c1280 <operator new[](unsigned int, std::align_val_t)@@Base+0x9b0> // jnipp::JObject::create_global()
+  3f5044:	a801      	add	r0, sp, #4
+  3f5046:	f0cc e124 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f504a:	9803      	ldr	r0, [sp, #12]
+  3f504c:	4929      	ldr	r1, [pc, #164]	; (3f50f4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2c8>)
+  3f504e:	4479      	add	r1, pc
+  3f5050:	6809      	ldr	r1, [r1, #0]
+  3f5052:	6809      	ldr	r1, [r1, #0]
+  3f5054:	4281      	cmp	r1, r0
+  3f5056:	bf02      	ittt	eq
+  3f5058:	b004      	addeq	sp, #16
+  3f505a:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3f505e:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f5060:	f0cb e4b6 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5064:	4813      	ldr	r0, [pc, #76]	; (3f50b4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x288>)
+  3f5066:	4478      	add	r0, pc
+  3f5068:	f0cb e652 	blx	8c0d10 <operator new[](unsigned int, std::align_val_t)@@Base+0x440> // __cxa_guard_acquire
+  3f506c:	2800      	cmp	r0, #0
+  3f506e:	d094      	beq.n	3f4f9a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x16e>
+  3f5070:	4811      	ldr	r0, [pc, #68]	; (3f50b8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x28c>)
+  3f5072:	4478      	add	r0, pc
+  3f5074:	2100      	movs	r1, #0
+  3f5076:	f0cc e0ac 	blx	8c11d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x900> // jnipp::JObject::JObject(_jobject*)
+  3f507a:	4810      	ldr	r0, [pc, #64]	; (3f50bc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x290>)
+  3f507c:	4910      	ldr	r1, [pc, #64]	; (3f50c0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x294>)
+  3f507e:	4478      	add	r0, pc
+  3f5080:	4a10      	ldr	r2, [pc, #64]	; (3f50c4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x298>)
+  3f5082:	4479      	add	r1, pc
+  3f5084:	6800      	ldr	r0, [r0, #0]
+  3f5086:	447a      	add	r2, pc
+  3f5088:	f0cb e442 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40> // __cxa_atexit
+  3f508c:	480e      	ldr	r0, [pc, #56]	; (3f50c8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x29c>)
+  3f508e:	4478      	add	r0, pc
+  3f5090:	f0cb e646 	blx	8c0d20 <operator new[](unsigned int, std::align_val_t)@@Base+0x450> // __cxa_guard_release
+  3f5094:	e781      	b.n	3f4f9a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x16e>
+  3f5096:	4818      	ldr	r0, [pc, #96]	; (3f50f8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2cc>)
+  3f5098:	4478      	add	r0, pc
+  3f509a:	f0cb e64a 	blx	8c0d30 <operator new[](unsigned int, std::align_val_t)@@Base+0x460> // __cxa_guard_abort
+  3f509e:	f0cb e4a0 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f50a2:	a801      	add	r0, sp, #4
+  3f50a4:	f0cc e0f4 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f50a8:	f0cb e49a 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f50ac:	ee0a 0055 	mcr	0, 0, r0, cr10, cr5, {2}
+  3f50b0:	a890      	add	r0, sp, #576	; 0x240
+  3f50b2:	0054      	lsls	r4, r2, #1
+  3f50b4:	ed2a 0055 	stc	0, cr0, [sl, #-340]!	; 0xfffffeac
+  3f50b8:	ed1a 0055 	ldc	0, cr0, [sl, #-340]	; 0xfffffeac
+  3f50bc:	a86a      	add	r0, sp, #424	; 0x1a8
+  3f50be:	0054      	lsls	r4, r2, #1
+  3f50c0:	ed0a 0055 	stc	0, cr0, [sl, #-340]	; 0xfffffeac
+  3f50c4:	7c46      	ldrb	r6, [r0, #17]
+  3f50c6:	004f      	lsls	r7, r1, #1
+  3f50c8:	ed02 0055 	stc	0, cr0, [r2, #-340]	; 0xfffffeac
+  3f50cc:	edf0 0055 	ldcl	0, cr0, [r0, #340]!	; 0x154
+  3f50d0:	edda 0055 	ldcl	0, cr0, [sl, #340]	; 0x154
+  3f50d4:	edd8 0055 	ldcl	0, cr0, [r8, #340]	; 0x154
+  3f50d8:	eda6 0055 	stc	0, cr0, [r6, #340]!	; 0x154
+  3f50dc:	9b4e      	ldr	r3, [sp, #312]	; 0x138
+  3f50de:	ffef 33ca 			; <UNDEFINED> instruction: 0xffef33ca
+  3f50e2:	ffed ed6c 	vqrdmulh.s32	q15, <illegal reg q6.5>, d12[1]
+  3f50e6:	0055      	lsls	r5, r2, #1
+  3f50e8:	ed60 0055 	stcl	0, cr0, [r0, #-340]!	; 0xfffffeac
+  3f50ec:	ed58 0055 	ldcl	0, cr0, [r8, #-340]	; 0xfffffeac
+  3f50f0:	ed4e 0055 	stcl	0, cr0, [lr, #-340]	; 0xfffffeac
+  3f50f4:	a7ca      	add	r7, pc, #808	; (adr r7, 3f5420 <core::RegistryPrivate::contains(STRING const&)@@Base+0x60>)
+  3f50f6:	0054      	lsls	r4, r2, #1
+  3f50f8:	ecf8 0055 	ldcl	0, cr0, [r8], #340	; 0x154
+  3f50fc:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f50fe:	af03      	add	r7, sp, #12
+  3f5100:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3f5104:	b084      	sub	sp, #16
+  3f5106:	482b      	ldr	r0, [pc, #172]	; (3f51b4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x388>)
+  3f5108:	492b      	ldr	r1, [pc, #172]	; (3f51b8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x38c>)
+  3f510a:	4478      	add	r0, pc
+  3f510c:	4479      	add	r1, pc
+  3f510e:	6800      	ldr	r0, [r0, #0]
+  3f5110:	7809      	ldrb	r1, [r1, #0]
+  3f5112:	4a2a      	ldr	r2, [pc, #168]	; (3f51bc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x390>)
+  3f5114:	447a      	add	r2, pc
+  3f5116:	6812      	ldr	r2, [r2, #0]
+  3f5118:	6812      	ldr	r2, [r2, #0]
+  3f511a:	9203      	str	r2, [sp, #12]
+  3f511c:	bbc1      	cbnz	r1, 3f5190 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x364>
+  3f511e:	b3b8      	cbz	r0, 3f5190 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x364>
+  3f5120:	a801      	add	r0, sp, #4
+  3f5122:	2180      	movs	r1, #128	; 0x80
+  3f5124:	f0cc e05c 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f5128:	f0cd e312 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f512c:	b368      	cbz	r0, 3f518a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x35e>
+  3f512e:	4e24      	ldr	r6, [pc, #144]	; (3f51c0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x394>)
+  3f5130:	447e      	add	r6, pc
+  3f5132:	6830      	ldr	r0, [r6, #0]
+  3f5134:	b9e0      	cbnz	r0, 3f5170 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x344>
+  3f5136:	a801      	add	r0, sp, #4
+  3f5138:	f0cc e082 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f513c:	4604      	mov	r4, r0
+  3f513e:	a801      	add	r0, sp, #4
+  3f5140:	f0cc e07e 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5144:	4605      	mov	r5, r0
+  3f5146:	481f      	ldr	r0, [pc, #124]	; (3f51c4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x398>)
+  3f5148:	4478      	add	r0, pc
+  3f514a:	f0cc e0aa 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f514e:	4601      	mov	r1, r0
+  3f5150:	6828      	ldr	r0, [r5, #0]
+  3f5152:	6fc2      	ldr	r2, [r0, #124]	; 0x7c
+  3f5154:	4628      	mov	r0, r5
+  3f5156:	4790      	blx	r2
+  3f5158:	4601      	mov	r1, r0
+  3f515a:	6820      	ldr	r0, [r4, #0]
+  3f515c:	f8d0 5084 	ldr.w	r5, [r0, #132]	; 0x84
+  3f5160:	4a19      	ldr	r2, [pc, #100]	; (3f51c8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x39c>)
+  3f5162:	4b1a      	ldr	r3, [pc, #104]	; (3f51cc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x3a0>)
+  3f5164:	447a      	add	r2, pc // literal @2e4ca5 apply
+  3f5166:	447b      	add	r3, pc // literal @2c1843 ()V
+  3f5168:	4620      	mov	r0, r4
+  3f516a:	47a8      	blx	r5
+  3f516c:	6030      	str	r0, [r6, #0]
+  3f516e:	b160      	cbz	r0, 3f518a <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x35e>
+  3f5170:	a801      	add	r0, sp, #4
+  3f5172:	f0cc e066 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5176:	4604      	mov	r4, r0
+  3f5178:	4815      	ldr	r0, [pc, #84]	; (3f51d0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x3a4>)
+  3f517a:	4478      	add	r0, pc
+  3f517c:	f0cc e090 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f5180:	4601      	mov	r1, r0
+  3f5182:	6832      	ldr	r2, [r6, #0]
+  3f5184:	4620      	mov	r0, r4
+  3f5186:	f0cc e014 	blx	8c11b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x8e0> // _JNIEnv::CallVoidMethod(_jobject*, _jmethodID*, ...)
+  3f518a:	a801      	add	r0, sp, #4
+  3f518c:	f0cc e080 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f5190:	9803      	ldr	r0, [sp, #12]
+  3f5192:	4910      	ldr	r1, [pc, #64]	; (3f51d4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x3a8>)
+  3f5194:	4479      	add	r1, pc
+  3f5196:	6809      	ldr	r1, [r1, #0]
+  3f5198:	6809      	ldr	r1, [r1, #0]
+  3f519a:	4281      	cmp	r1, r0
+  3f519c:	bf02      	ittt	eq
+  3f519e:	b004      	addeq	sp, #16
+  3f51a0:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3f51a4:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f51a6:	f0cb e414 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f51aa:	a801      	add	r0, sp, #4
+  3f51ac:	f0cc e070 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f51b0:	f0cb e416 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f51b4:	ec82 0055 	stc	0, cr0, [r2], {85}	; 0x55
+  3f51b8:	ec74 0055 	ldcl	0, cr0, [r4], #-340	; 0xfffffeac
+  3f51bc:	a704      	add	r7, pc, #16	; (adr r7, 3f51d0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x3a4>)
+  3f51be:	0054      	lsls	r4, r2, #1
+  3f51c0:	ec68 0055 	stcl	0, cr0, [r8], #-340	; 0xfffffeac
+  3f51c4:	ec44 0055 	mcrr	0, 5, r0, r4, cr5
+  3f51c8:	fb3d ffee 			; <UNDEFINED> instruction: 0xfb3dffee
+  3f51cc:	c6d9      	stmia	r6!, {r0, r3, r4, r6, r7}
+  3f51ce:	ffec ec12 	vcvt.f16.u16	d30, d2, #20
+  3f51d2:	0055      	lsls	r5, r2, #1
+  3f51d4:	a684      	add	r6, pc, #528	; (adr r6, 3f53e8 <core::RegistryPrivate::contains(STRING const&)@@Base+0x28>)
+  3f51d6:	0054      	lsls	r4, r2, #1
+  3f51d8:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f51da:	af03      	add	r7, sp, #12
+  3f51dc:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3f51e0:	b084      	sub	sp, #16
+  3f51e2:	482b      	ldr	r0, [pc, #172]	; (3f5290 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x464>)
+  3f51e4:	492b      	ldr	r1, [pc, #172]	; (3f5294 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x468>)
+  3f51e6:	4478      	add	r0, pc
+  3f51e8:	4479      	add	r1, pc
+  3f51ea:	6800      	ldr	r0, [r0, #0]
+  3f51ec:	7809      	ldrb	r1, [r1, #0]
+  3f51ee:	4a2a      	ldr	r2, [pc, #168]	; (3f5298 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x46c>)
+  3f51f0:	447a      	add	r2, pc
+  3f51f2:	6812      	ldr	r2, [r2, #0]
+  3f51f4:	6812      	ldr	r2, [r2, #0]
+  3f51f6:	9203      	str	r2, [sp, #12]
+  3f51f8:	bbc1      	cbnz	r1, 3f526c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x440>
+  3f51fa:	b3b8      	cbz	r0, 3f526c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x440>
+  3f51fc:	a801      	add	r0, sp, #4
+  3f51fe:	2180      	movs	r1, #128	; 0x80
+  3f5200:	f0cb e7ee 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f5204:	f0cd e2a4 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f5208:	b368      	cbz	r0, 3f5266 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x43a>
+  3f520a:	4e24      	ldr	r6, [pc, #144]	; (3f529c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x470>)
+  3f520c:	447e      	add	r6, pc
+  3f520e:	6830      	ldr	r0, [r6, #0]
+  3f5210:	b9e0      	cbnz	r0, 3f524c <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x420>
+  3f5212:	a801      	add	r0, sp, #4
+  3f5214:	f0cc e014 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5218:	4604      	mov	r4, r0
+  3f521a:	a801      	add	r0, sp, #4
+  3f521c:	f0cc e010 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5220:	4605      	mov	r5, r0
+  3f5222:	481f      	ldr	r0, [pc, #124]	; (3f52a0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x474>)
+  3f5224:	4478      	add	r0, pc
+  3f5226:	f0cc e03c 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f522a:	4601      	mov	r1, r0
+  3f522c:	6828      	ldr	r0, [r5, #0]
+  3f522e:	6fc2      	ldr	r2, [r0, #124]	; 0x7c
+  3f5230:	4628      	mov	r0, r5
+  3f5232:	4790      	blx	r2
+  3f5234:	4601      	mov	r1, r0
+  3f5236:	6820      	ldr	r0, [r4, #0]
+  3f5238:	f8d0 5084 	ldr.w	r5, [r0, #132]	; 0x84
+  3f523c:	4a19      	ldr	r2, [pc, #100]	; (3f52a4 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x478>)
+  3f523e:	4b1a      	ldr	r3, [pc, #104]	; (3f52a8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x47c>)
+  3f5240:	447a      	add	r2, pc // literal @2db541 commit
+  3f5242:	447b      	add	r3, pc // literal @2e156f ()Z
+  3f5244:	4620      	mov	r0, r4
+  3f5246:	47a8      	blx	r5
+  3f5248:	6030      	str	r0, [r6, #0]
+  3f524a:	b160      	cbz	r0, 3f5266 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x43a>
+  3f524c:	a801      	add	r0, sp, #4
+  3f524e:	f0cb e7f8 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5252:	4604      	mov	r4, r0
+  3f5254:	4815      	ldr	r0, [pc, #84]	; (3f52ac <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x480>)
+  3f5256:	4478      	add	r0, pc
+  3f5258:	f0cc e022 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f525c:	4601      	mov	r1, r0
+  3f525e:	6832      	ldr	r2, [r6, #0]
+  3f5260:	4620      	mov	r0, r4
+  3f5262:	f0cc e056 	blx	8c1310 <operator new[](unsigned int, std::align_val_t)@@Base+0xa40> // _JNIEnv::CallBooleanMethod(_jobject*, _jmethodID*, ...)
+  3f5266:	a801      	add	r0, sp, #4
+  3f5268:	f0cc e012 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f526c:	9803      	ldr	r0, [sp, #12]
+  3f526e:	4910      	ldr	r1, [pc, #64]	; (3f52b0 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x484>)
+  3f5270:	4479      	add	r1, pc
+  3f5272:	6809      	ldr	r1, [r1, #0]
+  3f5274:	6809      	ldr	r1, [r1, #0]
+  3f5276:	4281      	cmp	r1, r0
+  3f5278:	bf02      	ittt	eq
+  3f527a:	b004      	addeq	sp, #16
+  3f527c:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3f5280:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f5282:	f0cb e3a6 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5286:	a801      	add	r0, sp, #4
+  3f5288:	f0cc e002 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f528c:	f0cb e3a8 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f5290:	eba6 0055 	sub.w	r0, r6, r5, lsr #1
+  3f5294:	eb98 0055 			; <UNDEFINED> instruction: 0xeb980055
+  3f5298:	a628      	add	r6, pc, #160	; (adr r6, 3f533c <core::RegistryPrivate::remove(STRING const&)@@Base+0x88>)
+  3f529a:	0054      	lsls	r4, r2, #1
+  3f529c:	eb90 0055 			; <UNDEFINED> instruction: 0xeb900055
+  3f52a0:	eb68 0055 	sbc.w	r0, r8, r5, lsr #1
+  3f52a4:	62fd      	str	r5, [r7, #44]	; 0x2c
+  3f52a6:	ffee c329 	vsubw.u32	q14, q7, d25
+  3f52aa:	ffee eb36 			; <UNDEFINED> instruction: 0xffeeeb36
+  3f52ae:	0055      	lsls	r5, r2, #1
+  3f52b0:	a5a8      	add	r5, pc, #672	; (adr r5, 3f5554 <core::RegistryPrivate::migrate(int)@@Base+0x80>)
+  3f52b2:	0054      	lsls	r4, r2, #1
+
+003f52b4 <core::RegistryPrivate::remove(STRING const&)@@Base>:
+  3f52b4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f52b6:	af03      	add	r7, sp, #12
+  3f52b8:	f84d 8d04 	str.w	r8, [sp, #-4]!
+  3f52bc:	b084      	sub	sp, #16
+  3f52be:	4837      	ldr	r0, [pc, #220]	; (3f539c <core::RegistryPrivate::remove(STRING const&)@@Base+0xe8>)
+  3f52c0:	460c      	mov	r4, r1
+  3f52c2:	4478      	add	r0, pc
+  3f52c4:	6800      	ldr	r0, [r0, #0]
+  3f52c6:	6800      	ldr	r0, [r0, #0]
+  3f52c8:	9003      	str	r0, [sp, #12]
+  3f52ca:	f7ff fe55 	bl	3f4f78 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x14c>
+  3f52ce:	4834      	ldr	r0, [pc, #208]	; (3f53a0 <core::RegistryPrivate::remove(STRING const&)@@Base+0xec>)
+  3f52d0:	4478      	add	r0, pc
+  3f52d2:	6800      	ldr	r0, [r0, #0]
+  3f52d4:	2800      	cmp	r0, #0
+  3f52d6:	d04e      	beq.n	3f5376 <core::RegistryPrivate::remove(STRING const&)@@Base+0xc2>
+  3f52d8:	a801      	add	r0, sp, #4
+  3f52da:	2180      	movs	r1, #128	; 0x80
+  3f52dc:	f0cb e780 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f52e0:	f0cd e236 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f52e4:	2800      	cmp	r0, #0
+  3f52e6:	d043      	beq.n	3f5370 <core::RegistryPrivate::remove(STRING const&)@@Base+0xbc>
+  3f52e8:	a801      	add	r0, sp, #4
+  3f52ea:	4621      	mov	r1, r4
+  3f52ec:	f0cc e008 	blx	8c1300 <operator new[](unsigned int, std::align_val_t)@@Base+0xa30> // jnipp::Environment::createString(STRING const&)
+  3f52f0:	4c2c      	ldr	r4, [pc, #176]	; (3f53a4 <core::RegistryPrivate::remove(STRING const&)@@Base+0xf0>)
+  3f52f2:	4680      	mov	r8, r0
+  3f52f4:	447c      	add	r4, pc
+  3f52f6:	6820      	ldr	r0, [r4, #0]
+  3f52f8:	b9e0      	cbnz	r0, 3f5334 <core::RegistryPrivate::remove(STRING const&)@@Base+0x80>
+  3f52fa:	a801      	add	r0, sp, #4
+  3f52fc:	f0cb e7a0 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5300:	4605      	mov	r5, r0
+  3f5302:	a801      	add	r0, sp, #4
+  3f5304:	f0cb e79c 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5308:	4606      	mov	r6, r0
+  3f530a:	4827      	ldr	r0, [pc, #156]	; (3f53a8 <core::RegistryPrivate::remove(STRING const&)@@Base+0xf4>)
+  3f530c:	4478      	add	r0, pc
+  3f530e:	f0cb e7c8 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f5312:	4601      	mov	r1, r0
+  3f5314:	6830      	ldr	r0, [r6, #0]
+  3f5316:	6fc2      	ldr	r2, [r0, #124]	; 0x7c
+  3f5318:	4630      	mov	r0, r6
+  3f531a:	4790      	blx	r2
+  3f531c:	4601      	mov	r1, r0
+  3f531e:	6828      	ldr	r0, [r5, #0]
+  3f5320:	f8d0 6084 	ldr.w	r6, [r0, #132]	; 0x84
+  3f5324:	4a21      	ldr	r2, [pc, #132]	; (3f53ac <core::RegistryPrivate::remove(STRING const&)@@Base+0xf8>)
+  3f5326:	4b22      	ldr	r3, [pc, #136]	; (3f53b0 <core::RegistryPrivate::remove(STRING const&)@@Base+0xfc>)
+  3f5328:	447a      	add	r2, pc // literal @2f851c remove
+  3f532a:	447b      	add	r3, pc // literal @316678 (Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+  3f532c:	4628      	mov	r0, r5
+  3f532e:	47b0      	blx	r6
+  3f5330:	6020      	str	r0, [r4, #0]
+  3f5332:	b1e8      	cbz	r0, 3f5370 <core::RegistryPrivate::remove(STRING const&)@@Base+0xbc>
+  3f5334:	a801      	add	r0, sp, #4
+  3f5336:	f0cb e784 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f533a:	4605      	mov	r5, r0
+  3f533c:	481d      	ldr	r0, [pc, #116]	; (3f53b4 <core::RegistryPrivate::remove(STRING const&)@@Base+0x100>)
+  3f533e:	4478      	add	r0, pc
+  3f5340:	f0cb e7ae 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f5344:	4601      	mov	r1, r0
+  3f5346:	6822      	ldr	r2, [r4, #0]
+  3f5348:	4628      	mov	r0, r5
+  3f534a:	4643      	mov	r3, r8
+  3f534c:	f0cc e0c0 	blx	8c14d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xc00> // _JNIEnv::CallObjectMethod(_jobject*, _jmethodID*, ...)
+  3f5350:	4819      	ldr	r0, [pc, #100]	; (3f53b8 <core::RegistryPrivate::remove(STRING const&)@@Base+0x104>)
+  3f5352:	4478      	add	r0, pc
+  3f5354:	7800      	ldrb	r0, [r0, #0]
+  3f5356:	b110      	cbz	r0, 3f535e <core::RegistryPrivate::remove(STRING const&)@@Base+0xaa>
+  3f5358:	f7ff ff3e 	bl	3f51d8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x3ac>
+  3f535c:	e001      	b.n	3f5362 <core::RegistryPrivate::remove(STRING const&)@@Base+0xae>
+  3f535e:	f7ff fecd 	bl	3f50fc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2d0>
+  3f5362:	a801      	add	r0, sp, #4
+  3f5364:	f0cb e76c 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5368:	6801      	ldr	r1, [r0, #0]
+  3f536a:	6dca      	ldr	r2, [r1, #92]	; 0x5c
+  3f536c:	4641      	mov	r1, r8
+  3f536e:	4790      	blx	r2
+  3f5370:	a801      	add	r0, sp, #4
+  3f5372:	f0cb e78e 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f5376:	9803      	ldr	r0, [sp, #12]
+  3f5378:	4910      	ldr	r1, [pc, #64]	; (3f53bc <core::RegistryPrivate::remove(STRING const&)@@Base+0x108>)
+  3f537a:	4479      	add	r1, pc
+  3f537c:	6809      	ldr	r1, [r1, #0]
+  3f537e:	6809      	ldr	r1, [r1, #0]
+  3f5380:	4281      	cmp	r1, r0
+  3f5382:	bf02      	ittt	eq
+  3f5384:	b004      	addeq	sp, #16
+  3f5386:	f85d 8b04 	ldreq.w	r8, [sp], #4
+  3f538a:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f538c:	f0cb e320 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5390:	e7ff      	b.n	3f5392 <core::RegistryPrivate::remove(STRING const&)@@Base+0xde>
+  3f5392:	a801      	add	r0, sp, #4
+  3f5394:	f0cb e77c 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f5398:	f0cb e322 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f539c:	a556      	add	r5, pc, #344	; (adr r5, 3f54f8 <core::RegistryPrivate::migrate(int)@@Base+0x24>)
+  3f539e:	0054      	lsls	r4, r2, #1
+  3f53a0:	eabc 0055 			; <UNDEFINED> instruction: 0xeabc0055
+  3f53a4:	ea84 0055 	eor.w	r0, r4, r5, lsr #1
+  3f53a8:	ea80 0055 	eor.w	r0, r0, r5, lsr #1
+  3f53ac:	31f0      	adds	r1, #240	; 0xf0
+  3f53ae:	fff0 134a 	aesd.8	<illegal reg q8.5>, q5
+  3f53b2:	fff2 ea4e 	vtbx.8	d30, {d2-d4}, d14
+  3f53b6:	0055      	lsls	r5, r2, #1
+  3f53b8:	ea22 0055 	bic.w	r0, r2, r5, lsr #1
+  3f53bc:	a49e      	add	r4, pc, #632	; (adr r4, 3f5638 <core::RegistryPrivate::migrate(int)@@Base+0x164>)
+  3f53be:	0054      	lsls	r4, r2, #1
+
+003f53c0 <core::RegistryPrivate::contains(STRING const&)@@Base>:
+  3f53c0:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f53c2:	af03      	add	r7, sp, #12
+  3f53c4:	f84d 8d04 	str.w	r8, [sp, #-4]!
+  3f53c8:	b084      	sub	sp, #16
+  3f53ca:	483a      	ldr	r0, [pc, #232]	; (3f54b4 <core::RegistryPrivate::contains(STRING const&)@@Base+0xf4>)
+  3f53cc:	460c      	mov	r4, r1
+  3f53ce:	4478      	add	r0, pc
+  3f53d0:	6800      	ldr	r0, [r0, #0]
+  3f53d2:	6800      	ldr	r0, [r0, #0]
+  3f53d4:	9003      	str	r0, [sp, #12]
+  3f53d6:	f7ff fc83 	bl	3f4ce0 <core::RegistryPrivate::getString(STRING const&, STRING const&)@@Base+0x170>
+  3f53da:	4837      	ldr	r0, [pc, #220]	; (3f54b8 <core::RegistryPrivate::contains(STRING const&)@@Base+0xf8>)
+  3f53dc:	4478      	add	r0, pc
+  3f53de:	6800      	ldr	r0, [r0, #0]
+  3f53e0:	2800      	cmp	r0, #0
+  3f53e2:	d04c      	beq.n	3f547e <core::RegistryPrivate::contains(STRING const&)@@Base+0xbe>
+  3f53e4:	a801      	add	r0, sp, #4
+  3f53e6:	2180      	movs	r1, #128	; 0x80
+  3f53e8:	f0cb e6fa 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f53ec:	f0cd e1b0 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f53f0:	2800      	cmp	r0, #0
+  3f53f2:	d046      	beq.n	3f5482 <core::RegistryPrivate::contains(STRING const&)@@Base+0xc2>
+  3f53f4:	4831      	ldr	r0, [pc, #196]	; (3f54bc <core::RegistryPrivate::contains(STRING const&)@@Base+0xfc>)
+  3f53f6:	4478      	add	r0, pc
+  3f53f8:	4680      	mov	r8, r0
+  3f53fa:	6800      	ldr	r0, [r0, #0]
+  3f53fc:	b9f0      	cbnz	r0, 3f543c <core::RegistryPrivate::contains(STRING const&)@@Base+0x7c>
+  3f53fe:	a801      	add	r0, sp, #4
+  3f5400:	f0cb e71e 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5404:	4605      	mov	r5, r0
+  3f5406:	a801      	add	r0, sp, #4
+  3f5408:	f0cb e71a 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f540c:	4606      	mov	r6, r0
+  3f540e:	482c      	ldr	r0, [pc, #176]	; (3f54c0 <core::RegistryPrivate::contains(STRING const&)@@Base+0x100>)
+  3f5410:	4478      	add	r0, pc
+  3f5412:	f0cb e746 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f5416:	4601      	mov	r1, r0
+  3f5418:	6830      	ldr	r0, [r6, #0]
+  3f541a:	6fc2      	ldr	r2, [r0, #124]	; 0x7c
+  3f541c:	4630      	mov	r0, r6
+  3f541e:	4790      	blx	r2
+  3f5420:	4601      	mov	r1, r0
+  3f5422:	6828      	ldr	r0, [r5, #0]
+  3f5424:	f8d0 6084 	ldr.w	r6, [r0, #132]	; 0x84
+  3f5428:	4a26      	ldr	r2, [pc, #152]	; (3f54c4 <core::RegistryPrivate::contains(STRING const&)@@Base+0x104>)
+  3f542a:	4b27      	ldr	r3, [pc, #156]	; (3f54c8 <core::RegistryPrivate::contains(STRING const&)@@Base+0x108>)
+  3f542c:	447a      	add	r2, pc // literal @2f1ff2 contains
+  3f542e:	447b      	add	r3, pc // literal @2f1ccb (Ljava/lang/String;)Z
+  3f5430:	4628      	mov	r0, r5
+  3f5432:	47b0      	blx	r6
+  3f5434:	4641      	mov	r1, r8
+  3f5436:	f8c8 0000 	str.w	r0, [r8]
+  3f543a:	b310      	cbz	r0, 3f5482 <core::RegistryPrivate::contains(STRING const&)@@Base+0xc2>
+  3f543c:	a801      	add	r0, sp, #4
+  3f543e:	4621      	mov	r1, r4
+  3f5440:	f0cb e75e 	blx	8c1300 <operator new[](unsigned int, std::align_val_t)@@Base+0xa30> // jnipp::Environment::createString(STRING const&)
+  3f5444:	4604      	mov	r4, r0
+  3f5446:	a801      	add	r0, sp, #4
+  3f5448:	f0cb e6fa 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f544c:	4605      	mov	r5, r0
+  3f544e:	481f      	ldr	r0, [pc, #124]	; (3f54cc <core::RegistryPrivate::contains(STRING const&)@@Base+0x10c>)
+  3f5450:	4478      	add	r0, pc
+  3f5452:	f0cb e726 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0> // jnipp::JObject::get() const
+  3f5456:	4601      	mov	r1, r0
+  3f5458:	f8d8 2000 	ldr.w	r2, [r8]
+  3f545c:	4628      	mov	r0, r5
+  3f545e:	4623      	mov	r3, r4
+  3f5460:	f0cb e756 	blx	8c1310 <operator new[](unsigned int, std::align_val_t)@@Base+0xa40> // _JNIEnv::CallBooleanMethod(_jobject*, _jmethodID*, ...)
+  3f5464:	4605      	mov	r5, r0
+  3f5466:	a801      	add	r0, sp, #4
+  3f5468:	f0cb e6ea 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f546c:	6801      	ldr	r1, [r0, #0]
+  3f546e:	6dca      	ldr	r2, [r1, #92]	; 0x5c
+  3f5470:	4621      	mov	r1, r4
+  3f5472:	4790      	blx	r2
+  3f5474:	1e68      	subs	r0, r5, #1
+  3f5476:	fab0 f080 	clz	r0, r0
+  3f547a:	0944      	lsrs	r4, r0, #5
+  3f547c:	e002      	b.n	3f5484 <core::RegistryPrivate::contains(STRING const&)@@Base+0xc4>
+  3f547e:	2400      	movs	r4, #0
+  3f5480:	e003      	b.n	3f548a <core::RegistryPrivate::contains(STRING const&)@@Base+0xca>
+  3f5482:	2400      	movs	r4, #0
+  3f5484:	a801      	add	r0, sp, #4
+  3f5486:	f0cb e704 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f548a:	9803      	ldr	r0, [sp, #12]
+  3f548c:	4910      	ldr	r1, [pc, #64]	; (3f54d0 <core::RegistryPrivate::contains(STRING const&)@@Base+0x110>)
+  3f548e:	4479      	add	r1, pc
+  3f5490:	6809      	ldr	r1, [r1, #0]
+  3f5492:	6809      	ldr	r1, [r1, #0]
+  3f5494:	4281      	cmp	r1, r0
+  3f5496:	bf01      	itttt	eq
+  3f5498:	4620      	moveq	r0, r4
+  3f549a:	b004      	addeq	sp, #16
+  3f549c:	f85d 8b04 	ldreq.w	r8, [sp], #4
+  3f54a0:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f54a2:	f0cb e296 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f54a6:	e000      	b.n	3f54aa <core::RegistryPrivate::contains(STRING const&)@@Base+0xea>
+  3f54a8:	e7ff      	b.n	3f54aa <core::RegistryPrivate::contains(STRING const&)@@Base+0xea>
+  3f54aa:	a801      	add	r0, sp, #4
+  3f54ac:	f0cb e6f0 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f54b0:	f0cb e296 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f54b4:	a44a      	add	r4, pc, #296	; (adr r4, 3f55e0 <core::RegistryPrivate::migrate(int)@@Base+0x10c>)
+  3f54b6:	0054      	lsls	r4, r2, #1
+  3f54b8:	e9a8 0055 			; <UNDEFINED> instruction: 0xe9a80055
+  3f54bc:	e986 0055 			; <UNDEFINED> instruction: 0xe9860055
+  3f54c0:	e974 0055 	ldrd	r0, r0, [r4, #-340]!	; 0x154
+  3f54c4:	cbc2      	ldmia	r3!, {r1, r6, r7}
+  3f54c6:	ffef c899 			; <UNDEFINED> instruction: 0xffefc899
+  3f54ca:	ffef e934 	vqshrn.u64	d30, q10, #17
+  3f54ce:	0055      	lsls	r5, r2, #1
+  3f54d0:	a38a      	add	r3, pc, #552	; (adr r3, 3f56fc <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0x60>) // literal @2f1d6d gmateam.sige.logger.NativeLoggerAdapter
+  3f54d2:	0054      	lsls	r4, r2, #1
+
+003f54d4 <core::RegistryPrivate::migrate(int)@@Base>:
+  3f54d4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f54d6:	af03      	add	r7, sp, #12
+  3f54d8:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3f54dc:	b095      	sub	sp, #84	; 0x54
+  3f54de:	4688      	mov	r8, r1
+  3f54e0:	4968      	ldr	r1, [pc, #416]	; (3f5684 <core::RegistryPrivate::migrate(int)@@Base+0x1b0>)
+  3f54e2:	ad11      	add	r5, sp, #68	; 0x44
+  3f54e4:	4479      	add	r1, pc
+  3f54e6:	6809      	ldr	r1, [r1, #0]
+  3f54e8:	6809      	ldr	r1, [r1, #0]
+  3f54ea:	9114      	str	r1, [sp, #80]	; 0x50
+  3f54ec:	9004      	str	r0, [sp, #16]
+  3f54ee:	6844      	ldr	r4, [r0, #4]
+  3f54f0:	4628      	mov	r0, r5
+  3f54f2:	4965      	ldr	r1, [pc, #404]	; (3f5688 <core::RegistryPrivate::migrate(int)@@Base+0x1b4>)
+  3f54f4:	4479      	add	r1, pc // literal @2d4e01 migration.version
+  3f54f6:	f0cb e294 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  3f54fa:	6820      	ldr	r0, [r4, #0]
+  3f54fc:	6b03      	ldr	r3, [r0, #48]	; 0x30
+  3f54fe:	4620      	mov	r0, r4
+  3f5500:	4629      	mov	r1, r5
+  3f5502:	f04f 32ff 	mov.w	r2, #4294967295	; 0xffffffff
+  3f5506:	4798      	blx	r3
+  3f5508:	ad11      	add	r5, sp, #68	; 0x44
+  3f550a:	4604      	mov	r4, r0
+  3f550c:	4628      	mov	r0, r5
+  3f550e:	f0cb e250 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5512:	2c00      	cmp	r4, #0
+  3f5514:	dd0d      	ble.n	3f5532 <core::RegistryPrivate::migrate(int)@@Base+0x5e>
+  3f5516:	9814      	ldr	r0, [sp, #80]	; 0x50
+  3f5518:	495f      	ldr	r1, [pc, #380]	; (3f5698 <core::RegistryPrivate::migrate(int)@@Base+0x1c4>)
+  3f551a:	4479      	add	r1, pc
+  3f551c:	6809      	ldr	r1, [r1, #0]
+  3f551e:	6809      	ldr	r1, [r1, #0]
+  3f5520:	4281      	cmp	r1, r0
+  3f5522:	bf01      	itttt	eq
+  3f5524:	4640      	moveq	r0, r8
+  3f5526:	b015      	addeq	sp, #84	; 0x54
+  3f5528:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3f552c:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f552e:	f0cb e250 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5532:	2000      	movs	r0, #0
+  3f5534:	f8cd 8004 	str.w	r8, [sp, #4]
+  3f5538:	9013      	str	r0, [sp, #76]	; 0x4c
+  3f553a:	e9cd 5511 	strd	r5, r5, [sp, #68]	; 0x44
+  3f553e:	4629      	mov	r1, r5
+  3f5540:	f0cc e366 	blx	8c1c10 <operator new[](unsigned int, std::align_val_t)@@Base+0x1340> // core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const
+  3f5544:	f8dd 8048 	ldr.w	r8, [sp, #72]	; 0x48
+  3f5548:	45a8      	cmp	r8, r5
+  3f554a:	d05f      	beq.n	3f560c <core::RegistryPrivate::migrate(int)@@Base+0x138>
+  3f554c:	484f      	ldr	r0, [pc, #316]	; (3f568c <core::RegistryPrivate::migrate(int)@@Base+0x1b8>)
+  3f554e:	ad0e      	add	r5, sp, #56	; 0x38
+  3f5550:	ae0b      	add	r6, sp, #44	; 0x2c
+  3f5552:	ac08      	add	r4, sp, #32
+  3f5554:	4478      	add	r0, pc // literal @30f749 Unnamed.
+  3f5556:	4682      	mov	sl, r0
+  3f5558:	484d      	ldr	r0, [pc, #308]	; (3f5690 <core::RegistryPrivate::migrate(int)@@Base+0x1bc>)
+  3f555a:	4478      	add	r0, pc // literal @30505a _DEFAULT_
+  3f555c:	9003      	str	r0, [sp, #12]
+  3f555e:	484d      	ldr	r0, [pc, #308]	; (3f5694 <core::RegistryPrivate::migrate(int)@@Base+0x1c0>)
+  3f5560:	4478      	add	r0, pc // literal @2db537 .Unnamed.
+  3f5562:	9002      	str	r0, [sp, #8]
+  3f5564:	e00a      	b.n	3f557c <core::RegistryPrivate::migrate(int)@@Base+0xa8>
+  3f5566:	4630      	mov	r0, r6
+  3f5568:	f0cb e222 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f556c:	4628      	mov	r0, r5
+  3f556e:	f0cb e220 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5572:	f8d8 8004 	ldr.w	r8, [r8, #4]
+  3f5576:	a811      	add	r0, sp, #68	; 0x44
+  3f5578:	4580      	cmp	r8, r0
+  3f557a:	d047      	beq.n	3f560c <core::RegistryPrivate::migrate(int)@@Base+0x138>
+  3f557c:	f108 0108 	add.w	r1, r8, #8
+  3f5580:	4628      	mov	r0, r5
+  3f5582:	f0cb e26e 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3f5586:	4630      	mov	r0, r6
+  3f5588:	4629      	mov	r1, r5
+  3f558a:	f0cb e26a 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3f558e:	4628      	mov	r0, r5
+  3f5590:	4651      	mov	r1, sl
+  3f5592:	f0cc e3e6 	blx	8c1d60 <operator new[](unsigned int, std::align_val_t)@@Base+0x1490> // STRING::HaveFirst(char const*) const
+  3f5596:	b928      	cbnz	r0, 3f55a4 <core::RegistryPrivate::migrate(int)@@Base+0xd0>
+  3f5598:	9902      	ldr	r1, [sp, #8]
+  3f559a:	4628      	mov	r0, r5
+  3f559c:	f0cc e3e0 	blx	8c1d60 <operator new[](unsigned int, std::align_val_t)@@Base+0x1490> // STRING::HaveFirst(char const*) const
+  3f55a0:	2800      	cmp	r0, #0
+  3f55a2:	d0e0      	beq.n	3f5566 <core::RegistryPrivate::migrate(int)@@Base+0x92>
+  3f55a4:	4620      	mov	r0, r4
+  3f55a6:	4629      	mov	r1, r5
+  3f55a8:	4652      	mov	r2, sl
+  3f55aa:	f0cc e3e2 	blx	8c1d70 <operator new[](unsigned int, std::align_val_t)@@Base+0x14a0> // STRING::After(char const*) const
+  3f55ae:	4630      	mov	r0, r6
+  3f55b0:	4621      	mov	r1, r4
+  3f55b2:	46b1      	mov	r9, r6
+  3f55b4:	f0cb e42c 	blx	8c0e10 <operator new[](unsigned int, std::align_val_t)@@Base+0x540> // STRING::operator=(STRING const&)
+  3f55b8:	4620      	mov	r0, r4
+  3f55ba:	f0cb e1fa 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f55be:	f10d 0b14 	add.w	fp, sp, #20
+  3f55c2:	9903      	ldr	r1, [sp, #12]
+  3f55c4:	4658      	mov	r0, fp
+  3f55c6:	460e      	mov	r6, r1
+  3f55c8:	f0cb e22a 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  3f55cc:	9904      	ldr	r1, [sp, #16]
+  3f55ce:	6808      	ldr	r0, [r1, #0]
+  3f55d0:	f8d0 c010 	ldr.w	ip, [r0, #16]
+  3f55d4:	4620      	mov	r0, r4
+  3f55d6:	462a      	mov	r2, r5
+  3f55d8:	465b      	mov	r3, fp
+  3f55da:	47e0      	blx	ip
+  3f55dc:	4658      	mov	r0, fp
+  3f55de:	f0cb e1e8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f55e2:	4620      	mov	r0, r4
+  3f55e4:	4631      	mov	r1, r6
+  3f55e6:	f0ce e3fc 	blx	8c3de0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3510> // STRING::operator!=(char const*) const
+  3f55ea:	464e      	mov	r6, r9
+  3f55ec:	b128      	cbz	r0, 3f55fa <core::RegistryPrivate::migrate(int)@@Base+0x126>
+  3f55ee:	9804      	ldr	r0, [sp, #16]
+  3f55f0:	6801      	ldr	r1, [r0, #0]
+  3f55f2:	68cb      	ldr	r3, [r1, #12]
+  3f55f4:	4631      	mov	r1, r6
+  3f55f6:	4622      	mov	r2, r4
+  3f55f8:	4798      	blx	r3
+  3f55fa:	9804      	ldr	r0, [sp, #16]
+  3f55fc:	6801      	ldr	r1, [r0, #0]
+  3f55fe:	6a0a      	ldr	r2, [r1, #32]
+  3f5600:	4629      	mov	r1, r5
+  3f5602:	4790      	blx	r2
+  3f5604:	4620      	mov	r0, r4
+  3f5606:	f0cb e1d4 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f560a:	e7ac      	b.n	3f5566 <core::RegistryPrivate::migrate(int)@@Base+0x92>
+  3f560c:	9813      	ldr	r0, [sp, #76]	; 0x4c
+  3f560e:	ae11      	add	r6, sp, #68	; 0x44
+  3f5610:	f8dd 8004 	ldr.w	r8, [sp, #4]
+  3f5614:	2800      	cmp	r0, #0
+  3f5616:	f43f af7e 	beq.w	3f5516 <core::RegistryPrivate::migrate(int)@@Base+0x42>
+  3f561a:	e9dd 0411 	ldrd	r0, r4, [sp, #68]	; 0x44
+  3f561e:	42b4      	cmp	r4, r6
+  3f5620:	6821      	ldr	r1, [r4, #0]
+  3f5622:	6840      	ldr	r0, [r0, #4]
+  3f5624:	6048      	str	r0, [r1, #4]
+  3f5626:	6001      	str	r1, [r0, #0]
+  3f5628:	f04f 0000 	mov.w	r0, #0
+  3f562c:	9013      	str	r0, [sp, #76]	; 0x4c
+  3f562e:	f43f af72 	beq.w	3f5516 <core::RegistryPrivate::migrate(int)@@Base+0x42>
+  3f5632:	f104 0008 	add.w	r0, r4, #8
+  3f5636:	6865      	ldr	r5, [r4, #4]
+  3f5638:	f0cb e1ba 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f563c:	4620      	mov	r0, r4
+  3f563e:	f0cb e1d8 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f5642:	42b5      	cmp	r5, r6
+  3f5644:	462c      	mov	r4, r5
+  3f5646:	d1f4      	bne.n	3f5632 <core::RegistryPrivate::migrate(int)@@Base+0x15e>
+  3f5648:	e765      	b.n	3f5516 <core::RegistryPrivate::migrate(int)@@Base+0x42>
+  3f564a:	e015      	b.n	3f5678 <core::RegistryPrivate::migrate(int)@@Base+0x1a4>
+  3f564c:	a811      	add	r0, sp, #68	; 0x44
+  3f564e:	f0cb e1b0 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5652:	f0cb e1c6 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f5656:	a805      	add	r0, sp, #20
+  3f5658:	e006      	b.n	3f5668 <core::RegistryPrivate::migrate(int)@@Base+0x194>
+  3f565a:	e007      	b.n	3f566c <core::RegistryPrivate::migrate(int)@@Base+0x198>
+  3f565c:	e003      	b.n	3f5666 <core::RegistryPrivate::migrate(int)@@Base+0x192>
+  3f565e:	e005      	b.n	3f566c <core::RegistryPrivate::migrate(int)@@Base+0x198>
+  3f5660:	e00a      	b.n	3f5678 <core::RegistryPrivate::migrate(int)@@Base+0x1a4>
+  3f5662:	e006      	b.n	3f5672 <core::RegistryPrivate::migrate(int)@@Base+0x19e>
+  3f5664:	e002      	b.n	3f566c <core::RegistryPrivate::migrate(int)@@Base+0x198>
+  3f5666:	a808      	add	r0, sp, #32
+  3f5668:	f0cb e1a2 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f566c:	a80b      	add	r0, sp, #44	; 0x2c
+  3f566e:	f0cb e1a0 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5672:	a80e      	add	r0, sp, #56	; 0x38
+  3f5674:	f0cb e19c 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5678:	a811      	add	r0, sp, #68	; 0x44
+  3f567a:	f7d7 f813 	bl	3cc6a4 <android::fillCpuInfo(core::IKVStore&)@@Base+0x448>
+  3f567e:	f0cb e1b0 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f5682:	bf00      	nop
+  3f5684:	a334      	add	r3, pc, #208	; (adr r3, 3f5758 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xbc>) // literal @2f1f21 Manager] Removal failed: 
+  3f5686:	0054      	lsls	r4, r2, #1
+  3f5688:	f909 ffed 			; <UNDEFINED> instruction: 0xf909ffed
+  3f568c:	a1f1      	add	r1, pc, #964	; (adr r1, 3f5a54 <core::crypto::ICryptEngine::instance()@@Base+0xc0>)
+  3f568e:	fff1 fafc 			; <UNDEFINED> instruction: 0xfff1fafc
+  3f5692:	fff0 5fd3 			; <UNDEFINED> instruction: 0xfff05fd3
+  3f5696:	ffee a2fe 	vrshr.u64	q13, q15, #18
+  3f569a:	0054      	lsls	r4, r2, #1
+
+003f569c <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base>:
+  3f569c:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f569e:	af03      	add	r7, sp, #12
+  3f56a0:	f84d 8d04 	str.w	r8, [sp, #-4]!
+  3f56a4:	b086      	sub	sp, #24
+  3f56a6:	482e      	ldr	r0, [pc, #184]	; (3f5760 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xc4>)
+  3f56a8:	4478      	add	r0, pc
+  3f56aa:	6804      	ldr	r4, [r0, #0]
+  3f56ac:	6021      	str	r1, [r4, #0]
+  3f56ae:	2180      	movs	r1, #128	; 0x80
+  3f56b0:	482c      	ldr	r0, [pc, #176]	; (3f5764 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xc8>)
+  3f56b2:	4478      	add	r0, pc
+  3f56b4:	6800      	ldr	r0, [r0, #0]
+  3f56b6:	6800      	ldr	r0, [r0, #0]
+  3f56b8:	9005      	str	r0, [sp, #20]
+  3f56ba:	a803      	add	r0, sp, #12
+  3f56bc:	f0cb e590 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910> // jnipp::Environment::Environment(unsigned int)
+  3f56c0:	f0cd e046 	blx	8c2750 <operator new[](unsigned int, std::align_val_t)@@Base+0x1e80> // jnipp::Environment::isValid() const
+  3f56c4:	b378      	cbz	r0, 3f5726 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0x8a>
+  3f56c6:	f0cb e594 	blx	8c11f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x920> // android::ApplicationNative::nativeApp()
+  3f56ca:	f0cb e59a 	blx	8c1200 <operator new[](unsigned int, std::align_val_t)@@Base+0x930> // android::ApplicationNative::getMainActivity() const
+  3f56ce:	4926      	ldr	r1, [pc, #152]	; (3f5768 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xcc>)
+  3f56d0:	4680      	mov	r8, r0
+  3f56d2:	4479      	add	r1, pc // literal @2eeb26 com.sigmateam.sige.RegistryEnumerator
+  3f56d4:	4668      	mov	r0, sp
+  3f56d6:	f0cb e1a4 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  3f56da:	a803      	add	r0, sp, #12
+  3f56dc:	466a      	mov	r2, sp
+  3f56de:	4641      	mov	r1, r8
+  3f56e0:	f0cb e596 	blx	8c1210 <operator new[](unsigned int, std::align_val_t)@@Base+0x940> // jnipp::Environment::findClass(_jobject*, STRING const&)
+  3f56e4:	4605      	mov	r5, r0
+  3f56e6:	4668      	mov	r0, sp
+  3f56e8:	f0cb e162 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f56ec:	a803      	add	r0, sp, #12
+  3f56ee:	f0cb e5b0 	blx	8c1250 <operator new[](unsigned int, std::align_val_t)@@Base+0x980> // jnipp::Environment::checkException()
+  3f56f2:	a803      	add	r0, sp, #12
+  3f56f4:	f0cb e5a4 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f56f8:	6801      	ldr	r1, [r0, #0]
+  3f56fa:	f8d1 61c4 	ldr.w	r6, [r1, #452]	; 0x1c4
+  3f56fe:	4a1b      	ldr	r2, [pc, #108]	; (3f576c <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xd0>)
+  3f5700:	4b1b      	ldr	r3, [pc, #108]	; (3f5770 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xd4>)
+  3f5702:	447a      	add	r2, pc // literal @3166b7 enumerateKeys
+  3f5704:	447b      	add	r3, pc // literal @2eb4b3 (Landroid/app/Activity;)V
+  3f5706:	4629      	mov	r1, r5
+  3f5708:	47b0      	blx	r6
+  3f570a:	4606      	mov	r6, r0
+  3f570c:	a803      	add	r0, sp, #12
+  3f570e:	f0cb e5a0 	blx	8c1250 <operator new[](unsigned int, std::align_val_t)@@Base+0x980> // jnipp::Environment::checkException()
+  3f5712:	a803      	add	r0, sp, #12
+  3f5714:	f0cb e594 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970> // jnipp::Environment::operator->()
+  3f5718:	4629      	mov	r1, r5
+  3f571a:	4632      	mov	r2, r6
+  3f571c:	4643      	mov	r3, r8
+  3f571e:	f0cc e280 	blx	8c1c20 <operator new[](unsigned int, std::align_val_t)@@Base+0x1350> // _JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)
+  3f5722:	2000      	movs	r0, #0
+  3f5724:	6020      	str	r0, [r4, #0]
+  3f5726:	a803      	add	r0, sp, #12
+  3f5728:	f0cb e5b2 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f572c:	9805      	ldr	r0, [sp, #20]
+  3f572e:	4911      	ldr	r1, [pc, #68]	; (3f5774 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xd8>)
+  3f5730:	4479      	add	r1, pc
+  3f5732:	6809      	ldr	r1, [r1, #0]
+  3f5734:	6809      	ldr	r1, [r1, #0]
+  3f5736:	4281      	cmp	r1, r0
+  3f5738:	bf02      	ittt	eq
+  3f573a:	b006      	addeq	sp, #24
+  3f573c:	f85d 8b04 	ldreq.w	r8, [sp], #4
+  3f5740:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f5742:	f0cb e146 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5746:	e006      	b.n	3f5756 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xba>
+  3f5748:	4668      	mov	r0, sp
+  3f574a:	f0cb e132 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f574e:	e002      	b.n	3f5756 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xba>
+  3f5750:	e001      	b.n	3f5756 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xba>
+  3f5752:	e000      	b.n	3f5756 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xba>
+  3f5754:	e7ff      	b.n	3f5756 <core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base+0xba>
+  3f5756:	a803      	add	r0, sp, #12
+  3f5758:	f0cb e59a 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0> // jnipp::Environment::~Environment()
+  3f575c:	f0cb e140 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f5760:	a2ec      	add	r2, pc, #944	; (adr r2, 3f5b14 <core::crypto::ICryptEngine::generateKey(STRING const&)@@Base+0x64>) // literal @316715 uscatedControlledInt<ObfuscatedInt> > test, time: 
+  3f5762:	0054      	lsls	r4, r2, #1
+  3f5764:	a166      	add	r1, pc, #408	; (adr r1, 3f5900 <core::crypto::ICryptEngine::ICryptEngine()@@Base+0x2c>)
+  3f5766:	0054      	lsls	r4, r2, #1
+  3f5768:	9450      	str	r4, [sp, #320]	; 0x140
+  3f576a:	ffef 0fb1 			; <UNDEFINED> instruction: 0xffef0fb1
+  3f576e:	fff2 5dab 			; <UNDEFINED> instruction: 0xfff25dab
+  3f5772:	ffef a0e8 	vmla.i32	q13, <illegal reg q15.5>, d8[1]
+  3f5776:	0054      	lsls	r4, r2, #1
+
+003f5778 <core::RegistryPrivate::beginBatchUpdate()@@Base>:
+  3f5778:	4802      	ldr	r0, [pc, #8]	; (3f5784 <core::RegistryPrivate::beginBatchUpdate()@@Base+0xc>)
+  3f577a:	2101      	movs	r1, #1
+  3f577c:	4478      	add	r0, pc
+  3f577e:	7001      	strb	r1, [r0, #0]
+  3f5780:	4770      	bx	lr
+  3f5782:	bf00      	nop
+  3f5784:	e604      	b.n	3f5390 <core::RegistryPrivate::remove(STRING const&)@@Base+0xdc>
+  3f5786:	0055      	lsls	r5, r2, #1
+
+003f5788 <core::RegistryPrivate::endBatchUpdate()@@Base>:
+  3f5788:	b5d0      	push	{r4, r6, r7, lr}
+  3f578a:	af02      	add	r7, sp, #8
+  3f578c:	4808      	ldr	r0, [pc, #32]	; (3f57b0 <core::RegistryPrivate::endBatchUpdate()@@Base+0x28>)
+  3f578e:	4909      	ldr	r1, [pc, #36]	; (3f57b4 <core::RegistryPrivate::endBatchUpdate()@@Base+0x2c>)
+  3f5790:	4478      	add	r0, pc
+  3f5792:	4479      	add	r1, pc
+  3f5794:	7804      	ldrb	r4, [r0, #0]
+  3f5796:	2000      	movs	r0, #0
+  3f5798:	7008      	strb	r0, [r1, #0]
+  3f579a:	f7ff fbed 	bl	3f4f78 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x14c>
+  3f579e:	b11c      	cbz	r4, 3f57a8 <core::RegistryPrivate::endBatchUpdate()@@Base+0x20>
+  3f57a0:	e8bd 40d0 	ldmia.w	sp!, {r4, r6, r7, lr}
+  3f57a4:	f7ff bd18 	b.w	3f51d8 <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x3ac>
+  3f57a8:	e8bd 40d0 	ldmia.w	sp!, {r4, r6, r7, lr}
+  3f57ac:	f7ff bca6 	b.w	3f50fc <core::RegistryPrivate::setString(STRING const&, STRING const&)@@Base+0x2d0>
+  3f57b0:	e5e4      	b.n	3f537c <core::RegistryPrivate::remove(STRING const&)@@Base+0xc8>
+  3f57b2:	0055      	lsls	r5, r2, #1
+  3f57b4:	e5ee      	b.n	3f5394 <core::RegistryPrivate::remove(STRING const&)@@Base+0xe0>
+  3f57b6:	0055      	lsls	r5, r2, #1
+
+003f57b8 <core::RegistryPrivate::setRegSync()@@Base>:
+  3f57b8:	4802      	ldr	r0, [pc, #8]	; (3f57c4 <core::RegistryPrivate::setRegSync()@@Base+0xc>)
+  3f57ba:	2101      	movs	r1, #1
+  3f57bc:	4478      	add	r0, pc
+  3f57be:	7001      	strb	r1, [r0, #0]
+  3f57c0:	4770      	bx	lr
+  3f57c2:	bf00      	nop
+  3f57c4:	e5b8      	b.n	3f5338 <core::RegistryPrivate::remove(STRING const&)@@Base+0x84>
+  3f57c6:	0055      	lsls	r5, r2, #1
+
+003f57c8 <core::RegistryPrivate::setRegAsync()@@Base>:
+  3f57c8:	4802      	ldr	r0, [pc, #8]	; (3f57d4 <core::RegistryPrivate::setRegAsync()@@Base+0xc>)
+  3f57ca:	2100      	movs	r1, #0
+  3f57cc:	4478      	add	r0, pc
+  3f57ce:	7001      	strb	r1, [r0, #0]
+  3f57d0:	4770      	bx	lr
+  3f57d2:	bf00      	nop
+  3f57d4:	e5a8      	b.n	3f5328 <core::RegistryPrivate::remove(STRING const&)@@Base+0x74>
+  3f57d6:	0055      	lsls	r5, r2, #1
+
+003f57d8 <core::RegistryPrivate::enumerateKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const@@Base>:
+  3f57d8:	f0c6 b090 	b.w	8bb8fc <__emutls_get_address@@Base+0x377c>
+
+003f57dc <core::RegistryPrivate::clear()@@Base>:
+  3f57dc:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3f57de:	af03      	add	r7, sp, #12
+  3f57e0:	f84d 8d04 	str.w	r8, [sp, #-4]!
+  3f57e4:	b088      	sub	sp, #32
+  3f57e6:	4605      	mov	r5, r0
+  3f57e8:	4828      	ldr	r0, [pc, #160]	; (3f588c <core::RegistryPrivate::clear()@@Base+0xb0>)
+  3f57ea:	f10d 0810 	add.w	r8, sp, #16
+  3f57ee:	4478      	add	r0, pc
+  3f57f0:	6800      	ldr	r0, [r0, #0]
+  3f57f2:	6800      	ldr	r0, [r0, #0]
+  3f57f4:	9007      	str	r0, [sp, #28]
+  3f57f6:	2000      	movs	r0, #0
+  3f57f8:	9006      	str	r0, [sp, #24]
+  3f57fa:	e9cd 8804 	strd	r8, r8, [sp, #16]
+  3f57fe:	4641      	mov	r1, r8
+  3f5800:	f0cc e206 	blx	8c1c10 <operator new[](unsigned int, std::align_val_t)@@Base+0x1340> // core::RegistryPrivate::getAllKeys(std::__ndk1::list<STRING, std::__ndk1::allocator<STRING> >&) const
+  3f5804:	9c05      	ldr	r4, [sp, #20]
+  3f5806:	4544      	cmp	r4, r8
+  3f5808:	d010      	beq.n	3f582c <core::RegistryPrivate::clear()@@Base+0x50>
+  3f580a:	ae01      	add	r6, sp, #4
+  3f580c:	f104 0108 	add.w	r1, r4, #8
+  3f5810:	4630      	mov	r0, r6
+  3f5812:	f0cb e126 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3f5816:	6828      	ldr	r0, [r5, #0]
+  3f5818:	6a02      	ldr	r2, [r0, #32]
+  3f581a:	4628      	mov	r0, r5
+  3f581c:	4631      	mov	r1, r6
+  3f581e:	4790      	blx	r2
+  3f5820:	4630      	mov	r0, r6
+  3f5822:	f0cb e0c6 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5826:	6864      	ldr	r4, [r4, #4]
+  3f5828:	4544      	cmp	r4, r8
+  3f582a:	d1ef      	bne.n	3f580c <core::RegistryPrivate::clear()@@Base+0x30>
+  3f582c:	9806      	ldr	r0, [sp, #24]
+  3f582e:	b1a8      	cbz	r0, 3f585c <core::RegistryPrivate::clear()@@Base+0x80>
+  3f5830:	e9dd 0504 	ldrd	r0, r5, [sp, #16]
+  3f5834:	4545      	cmp	r5, r8
+  3f5836:	6829      	ldr	r1, [r5, #0]
+  3f5838:	6840      	ldr	r0, [r0, #4]
+  3f583a:	6048      	str	r0, [r1, #4]
+  3f583c:	6001      	str	r1, [r0, #0]
+  3f583e:	f04f 0000 	mov.w	r0, #0
+  3f5842:	9006      	str	r0, [sp, #24]
+  3f5844:	d00a      	beq.n	3f585c <core::RegistryPrivate::clear()@@Base+0x80>
+  3f5846:	f105 0008 	add.w	r0, r5, #8
+  3f584a:	686c      	ldr	r4, [r5, #4]
+  3f584c:	f0cb e0b0 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5850:	4628      	mov	r0, r5
+  3f5852:	f0cb e0ce 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3f5856:	4544      	cmp	r4, r8
+  3f5858:	4625      	mov	r5, r4
+  3f585a:	d1f4      	bne.n	3f5846 <core::RegistryPrivate::clear()@@Base+0x6a>
+  3f585c:	9807      	ldr	r0, [sp, #28]
+  3f585e:	490c      	ldr	r1, [pc, #48]	; (3f5890 <core::RegistryPrivate::clear()@@Base+0xb4>)
+  3f5860:	4479      	add	r1, pc
+  3f5862:	6809      	ldr	r1, [r1, #0]
+  3f5864:	6809      	ldr	r1, [r1, #0]
+  3f5866:	4281      	cmp	r1, r0
+  3f5868:	bf02      	ittt	eq
+  3f586a:	b008      	addeq	sp, #32
+  3f586c:	f85d 8b04 	ldreq.w	r8, [sp], #4
+  3f5870:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3f5872:	f0cb e0ae 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3f5876:	e003      	b.n	3f5880 <core::RegistryPrivate::clear()@@Base+0xa4>
+  3f5878:	e002      	b.n	3f5880 <core::RegistryPrivate::clear()@@Base+0xa4>
+  3f587a:	a801      	add	r0, sp, #4
+  3f587c:	f0cb e098 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3f5880:	a804      	add	r0, sp, #16
+  3f5882:	f7d6 ff0f 	bl	3cc6a4 <android::fillCpuInfo(core::IKVStore&)@@Base+0x448>
+  3f5886:	f0cb e0ac 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3f588a:	bf00      	nop
+  3f588c:	a02a      	add	r0, pc, #168	; (adr r0, 3f5938 <core::crypto::ICryptEngine::init(std::__ndk1::shared_ptr<core::crypto::ICryptEngine> const&)@@Base+0x4>)
+  3f588e:	0054      	lsls	r4, r2, #1
+  3f5890:	9fb8      	ldr	r7, [sp, #736]	; 0x2e0
+  3f5892:	0054      	lsls	r4, r2, #1

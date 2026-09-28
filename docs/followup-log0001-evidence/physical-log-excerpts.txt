@@ -1,0 +1,35 @@
+2: === BUILD variant=Debug id=local-5f67eec-5e3402a4c9 ===
+1105: [error] [ALOG][SiGE] 02:07:11.719 [thread_0]: [AES] Wrong AES key length in 'bool core::crypto::Chipher<1, 256>::porcess(const Bytes &, Bytes &, const Bytes &) [EncryptOrDecrypt = 1, KEY_LEN = 256]' <D:/repository/sources/core/crypto/aes256.cpp> at 156
+1106: [PERF] [SAVE] engine=crypto.encrypt result=0
+1663: [error] [ALOG][SiGE] 02:07:25.495 [thread_0]: [AES] Wrong AES key length in 'bool core::crypto::Chipher<1, 256>::porcess(const Bytes &, Bytes &, const Bytes &) [EncryptOrDecrypt = 1, KEY_LEN = 256]' <D:/repository/sources/core/crypto/aes256.cpp> at 156
+1664: [PERF] [SAVE] engine=crypto.encrypt result=0
+1728: [error] [ALOG][SiGE] 02:07:27.178 [thread_0]: [AES] Wrong AES key length in 'bool core::crypto::Chipher<1, 256>::porcess(const Bytes &, Bytes &, const Bytes &) [EncryptOrDecrypt = 1, KEY_LEN = 256]' <D:/repository/sources/core/crypto/aes256.cpp> at 156
+1729: [PERF] [SAVE] engine=crypto.encrypt result=0
+4047: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=109 action=0 accepted=1 source=0x401 device=1
+4108: [PERF] [INPUT] engine=KeyBinder.setKey keycode=109 state=1 binder=0x83786224
+4124: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=109 action=1 accepted=1 source=0x401 device=1
+4129: [PERF] [INPUT] engine=KeyBinder.setKey keycode=109 state=0 binder=0x83786224
+4196: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=109 action=0 accepted=1 source=0x401 device=1
+4207: [PERF] [INPUT] engine=KeyBinder.setKey keycode=109 state=1 binder=0x83786224
+4265: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=109 action=1 accepted=1 source=0x401 device=1
+4278: [PERF] [INPUT] engine=KeyBinder.setKey keycode=109 state=0 binder=0x83786224
+25208: [PERF] [SAVE] engine=crypto.encrypt result=0
+35813: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=103 action=0 accepted=1 source=0x401 device=1
+35820: [PERF] [INPUT] engine=KeyBinder.setKey keycode=103 state=1 binder=0x83786224
+35822: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=103 action=1 accepted=1 source=0x401 device=1
+35952: [PERF] [INPUT] engine=KeyBinder.setKey keycode=103 state=0 binder=0x83786224
+35969: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=96 action=0 accepted=1 source=0x401 device=1
+35970: [PERF] [INPUT] engine=KeyBinder.setKey keycode=96 state=1 binder=0x83786224
+35984: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=96 action=1 accepted=1 source=0x401 device=1
+35988: [PERF] [INPUT] engine=KeyBinder.setKey keycode=96 state=0 binder=0x83786224
+36066: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=96 action=0 accepted=1 source=0x401 device=1
+36073: [PERF] [INPUT] engine=KeyBinder.setKey keycode=96 state=1 binder=0x83786224
+36094: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=96 action=1 accepted=1 source=0x401 device=1
+36097: [PERF] [INPUT] engine=KeyBinder.setKey keycode=96 state=0 binder=0x83786224
+36114: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=97 action=0 accepted=1 source=0x401 device=1
+36115: [PERF] [INPUT] engine=KeyBinder.setKey keycode=97 state=1 binder=0x83786224
+36138: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=97 action=1 accepted=1 source=0x401 device=1
+36145: [PERF] [INPUT] engine=KeyBinder.setKey keycode=97 state=0 binder=0x83786224
+36165: [PERF] [INPUT] engine=AndroidKeyboardControl keycode=99 action=0 accepted=1 source=0x401 device=1
+51835: [error] Android abort message: terminating due to uncaught exception of type std::bad_alloc: std::bad_alloc
+51836: [info] syslog[2]: terminating due to uncaught exception of type std::bad_alloc: std::bad_alloc

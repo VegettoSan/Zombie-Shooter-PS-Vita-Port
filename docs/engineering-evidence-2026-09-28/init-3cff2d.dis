@@ -1,0 +1,679 @@
+
+/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/demo/libzombie_shooter.so:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+003cff2c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x10e>:
+  3cff2c:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3cff2e:	af03      	add	r7, sp, #12
+  3cff30:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3cff34:	487c      	ldr	r0, [pc, #496]	; (3d0128 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x30a>)
+  3cff36:	2260      	movs	r2, #96	; 0x60
+  3cff38:	497c      	ldr	r1, [pc, #496]	; (3d012c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x30e>)
+  3cff3a:	2302      	movs	r3, #2
+  3cff3c:	4478      	add	r0, pc
+  3cff3e:	4479      	add	r1, pc
+  3cff40:	6806      	ldr	r6, [r0, #0]
+  3cff42:	4630      	mov	r0, r6
+  3cff44:	f0f2 e2d4 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3cff48:	4879      	ldr	r0, [pc, #484]	; (3d0130 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x312>)
+  3cff4a:	4631      	mov	r1, r6
+  3cff4c:	4c79      	ldr	r4, [pc, #484]	; (3d0134 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x316>)
+  3cff4e:	4478      	add	r0, pc
+  3cff50:	447c      	add	r4, pc
+  3cff52:	6805      	ldr	r5, [r0, #0]
+  3cff54:	4622      	mov	r2, r4
+  3cff56:	4628      	mov	r0, r5
+  3cff58:	f0f0 e4da 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3cff5c:	4876      	ldr	r0, [pc, #472]	; (3d0138 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x31a>)
+  3cff5e:	2261      	movs	r2, #97	; 0x61
+  3cff60:	4976      	ldr	r1, [pc, #472]	; (3d013c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x31e>)
+  3cff62:	2302      	movs	r3, #2
+  3cff64:	4478      	add	r0, pc
+  3cff66:	4479      	add	r1, pc
+  3cff68:	6806      	ldr	r6, [r0, #0]
+  3cff6a:	4630      	mov	r0, r6
+  3cff6c:	f0f2 e2c0 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3cff70:	4628      	mov	r0, r5
+  3cff72:	4631      	mov	r1, r6
+  3cff74:	4622      	mov	r2, r4
+  3cff76:	f0f0 e4cc 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3cff7a:	4871      	ldr	r0, [pc, #452]	; (3d0140 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x322>)
+  3cff7c:	2263      	movs	r2, #99	; 0x63
+  3cff7e:	4971      	ldr	r1, [pc, #452]	; (3d0144 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x326>)
+  3cff80:	2302      	movs	r3, #2
+  3cff82:	4478      	add	r0, pc
+  3cff84:	4479      	add	r1, pc
+  3cff86:	6806      	ldr	r6, [r0, #0]
+  3cff88:	4630      	mov	r0, r6
+  3cff8a:	f0f2 e2b2 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3cff8e:	4628      	mov	r0, r5
+  3cff90:	4631      	mov	r1, r6
+  3cff92:	4622      	mov	r2, r4
+  3cff94:	f0f0 e4bc 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3cff98:	486b      	ldr	r0, [pc, #428]	; (3d0148 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x32a>)
+  3cff9a:	2264      	movs	r2, #100	; 0x64
+  3cff9c:	496b      	ldr	r1, [pc, #428]	; (3d014c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x32e>)
+  3cff9e:	2302      	movs	r3, #2
+  3cffa0:	4478      	add	r0, pc
+  3cffa2:	4479      	add	r1, pc
+  3cffa4:	6806      	ldr	r6, [r0, #0]
+  3cffa6:	4630      	mov	r0, r6
+  3cffa8:	f0f2 e2a2 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3cffac:	4628      	mov	r0, r5
+  3cffae:	4631      	mov	r1, r6
+  3cffb0:	4622      	mov	r2, r4
+  3cffb2:	f0f0 e4ae 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3cffb6:	4866      	ldr	r0, [pc, #408]	; (3d0150 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x332>)
+  3cffb8:	2266      	movs	r2, #102	; 0x66
+  3cffba:	4966      	ldr	r1, [pc, #408]	; (3d0154 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x336>)
+  3cffbc:	2302      	movs	r3, #2
+  3cffbe:	4478      	add	r0, pc
+  3cffc0:	4479      	add	r1, pc
+  3cffc2:	6806      	ldr	r6, [r0, #0]
+  3cffc4:	4630      	mov	r0, r6
+  3cffc6:	f0f2 e294 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3cffca:	4628      	mov	r0, r5
+  3cffcc:	4631      	mov	r1, r6
+  3cffce:	4622      	mov	r2, r4
+  3cffd0:	f0f0 e49e 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3cffd4:	4860      	ldr	r0, [pc, #384]	; (3d0158 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x33a>)
+  3cffd6:	2267      	movs	r2, #103	; 0x67
+  3cffd8:	4960      	ldr	r1, [pc, #384]	; (3d015c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x33e>)
+  3cffda:	2302      	movs	r3, #2
+  3cffdc:	4478      	add	r0, pc
+  3cffde:	4479      	add	r1, pc
+  3cffe0:	6806      	ldr	r6, [r0, #0]
+  3cffe2:	4630      	mov	r0, r6
+  3cffe4:	f0f2 e284 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3cffe8:	4628      	mov	r0, r5
+  3cffea:	4631      	mov	r1, r6
+  3cffec:	4622      	mov	r2, r4
+  3cffee:	f0f0 e490 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3cfff2:	485b      	ldr	r0, [pc, #364]	; (3d0160 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x342>)
+  3cfff4:	2268      	movs	r2, #104	; 0x68
+  3cfff6:	495b      	ldr	r1, [pc, #364]	; (3d0164 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x346>)
+  3cfff8:	2302      	movs	r3, #2
+  3cfffa:	4478      	add	r0, pc
+  3cfffc:	4479      	add	r1, pc
+  3cfffe:	6806      	ldr	r6, [r0, #0]
+  3d0000:	4630      	mov	r0, r6
+  3d0002:	f0f2 e276 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d0006:	4628      	mov	r0, r5
+  3d0008:	4631      	mov	r1, r6
+  3d000a:	4622      	mov	r2, r4
+  3d000c:	f0f0 e480 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d0010:	4855      	ldr	r0, [pc, #340]	; (3d0168 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x34a>)
+  3d0012:	2269      	movs	r2, #105	; 0x69
+  3d0014:	4955      	ldr	r1, [pc, #340]	; (3d016c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x34e>)
+  3d0016:	2302      	movs	r3, #2
+  3d0018:	4478      	add	r0, pc
+  3d001a:	4479      	add	r1, pc
+  3d001c:	6806      	ldr	r6, [r0, #0]
+  3d001e:	4630      	mov	r0, r6
+  3d0020:	f0f2 e266 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d0024:	4628      	mov	r0, r5
+  3d0026:	4631      	mov	r1, r6
+  3d0028:	4622      	mov	r2, r4
+  3d002a:	f0f0 e472 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d002e:	4850      	ldr	r0, [pc, #320]	; (3d0170 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x352>)
+  3d0030:	226c      	movs	r2, #108	; 0x6c
+  3d0032:	4950      	ldr	r1, [pc, #320]	; (3d0174 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x356>)
+  3d0034:	2302      	movs	r3, #2
+  3d0036:	4478      	add	r0, pc
+  3d0038:	4479      	add	r1, pc
+  3d003a:	6806      	ldr	r6, [r0, #0]
+  3d003c:	4630      	mov	r0, r6
+  3d003e:	f0f2 e258 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d0042:	4628      	mov	r0, r5
+  3d0044:	4631      	mov	r1, r6
+  3d0046:	4622      	mov	r2, r4
+  3d0048:	f0f0 e462 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d004c:	484a      	ldr	r0, [pc, #296]	; (3d0178 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x35a>)
+  3d004e:	226d      	movs	r2, #109	; 0x6d
+  3d0050:	494a      	ldr	r1, [pc, #296]	; (3d017c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x35e>)
+  3d0052:	2302      	movs	r3, #2
+  3d0054:	4478      	add	r0, pc
+  3d0056:	4479      	add	r1, pc
+  3d0058:	6806      	ldr	r6, [r0, #0]
+  3d005a:	4630      	mov	r0, r6
+  3d005c:	f0f2 e248 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d0060:	4628      	mov	r0, r5
+  3d0062:	4631      	mov	r1, r6
+  3d0064:	4622      	mov	r2, r4
+  3d0066:	f0f0 e454 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d006a:	4845      	ldr	r0, [pc, #276]	; (3d0180 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x362>)
+  3d006c:	226b      	movs	r2, #107	; 0x6b
+  3d006e:	4945      	ldr	r1, [pc, #276]	; (3d0184 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x366>)
+  3d0070:	2302      	movs	r3, #2
+  3d0072:	4478      	add	r0, pc
+  3d0074:	4479      	add	r1, pc
+  3d0076:	6806      	ldr	r6, [r0, #0]
+  3d0078:	4630      	mov	r0, r6
+  3d007a:	f0f2 e23a 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d007e:	4628      	mov	r0, r5
+  3d0080:	4631      	mov	r1, r6
+  3d0082:	4622      	mov	r2, r4
+  3d0084:	f0f0 e444 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d0088:	483f      	ldr	r0, [pc, #252]	; (3d0188 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x36a>)
+  3d008a:	226a      	movs	r2, #106	; 0x6a
+  3d008c:	493f      	ldr	r1, [pc, #252]	; (3d018c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x36e>)
+  3d008e:	2302      	movs	r3, #2
+  3d0090:	4478      	add	r0, pc
+  3d0092:	4479      	add	r1, pc
+  3d0094:	6806      	ldr	r6, [r0, #0]
+  3d0096:	4630      	mov	r0, r6
+  3d0098:	f0f2 e22a 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d009c:	4628      	mov	r0, r5
+  3d009e:	4631      	mov	r1, r6
+  3d00a0:	4622      	mov	r2, r4
+  3d00a2:	f0f0 e436 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d00a6:	483a      	ldr	r0, [pc, #232]	; (3d0190 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x372>)
+  3d00a8:	2215      	movs	r2, #21
+  3d00aa:	493a      	ldr	r1, [pc, #232]	; (3d0194 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x376>)
+  3d00ac:	2302      	movs	r3, #2
+  3d00ae:	4478      	add	r0, pc
+  3d00b0:	4479      	add	r1, pc
+  3d00b2:	6806      	ldr	r6, [r0, #0]
+  3d00b4:	4630      	mov	r0, r6
+  3d00b6:	f0f2 e21c 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d00ba:	4628      	mov	r0, r5
+  3d00bc:	4631      	mov	r1, r6
+  3d00be:	4622      	mov	r2, r4
+  3d00c0:	f0f0 e426 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d00c4:	4834      	ldr	r0, [pc, #208]	; (3d0198 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x37a>)
+  3d00c6:	2216      	movs	r2, #22
+  3d00c8:	4934      	ldr	r1, [pc, #208]	; (3d019c <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x37e>)
+  3d00ca:	2302      	movs	r3, #2
+  3d00cc:	4478      	add	r0, pc
+  3d00ce:	4479      	add	r1, pc
+  3d00d0:	6806      	ldr	r6, [r0, #0]
+  3d00d2:	4630      	mov	r0, r6
+  3d00d4:	f0f2 e20c 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d00d8:	4628      	mov	r0, r5
+  3d00da:	4631      	mov	r1, r6
+  3d00dc:	4622      	mov	r2, r4
+  3d00de:	f0f0 e418 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d00e2:	482f      	ldr	r0, [pc, #188]	; (3d01a0 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x382>)
+  3d00e4:	2213      	movs	r2, #19
+  3d00e6:	492f      	ldr	r1, [pc, #188]	; (3d01a4 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x386>)
+  3d00e8:	2302      	movs	r3, #2
+  3d00ea:	4478      	add	r0, pc
+  3d00ec:	4479      	add	r1, pc
+  3d00ee:	6806      	ldr	r6, [r0, #0]
+  3d00f0:	4630      	mov	r0, r6
+  3d00f2:	f0f2 e1fe 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d00f6:	4628      	mov	r0, r5
+  3d00f8:	4631      	mov	r1, r6
+  3d00fa:	4622      	mov	r2, r4
+  3d00fc:	f0f0 e408 	blx	8c0910 <operator new[](unsigned int, std::align_val_t)@@Base+0x40>
+  3d0100:	4829      	ldr	r0, [pc, #164]	; (3d01a8 <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x38a>)
+  3d0102:	2214      	movs	r2, #20
+  3d0104:	4929      	ldr	r1, [pc, #164]	; (3d01ac <void std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, input::AxisesHolder>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, input::AxisesHolder> > >::__do_rehash<true>(unsigned int)@@Base+0x38e>)
+  3d0106:	2302      	movs	r3, #2
+  3d0108:	4478      	add	r0, pc
+  3d010a:	4479      	add	r1, pc
+  3d010c:	6806      	ldr	r6, [r0, #0]
+  3d010e:	4630      	mov	r0, r6
+  3d0110:	f0f2 e1ee 	blx	8c24f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c20>
+  3d0114:	4628      	mov	r0, r5
+  3d0116:	4631      	mov	r1, r6
+  3d0118:	4622      	mov	r2, r4
+  3d011a:	f85d bb04 	ldr.w	fp, [sp], #4
+  3d011e:	e8bd 40f0 	ldmia.w	sp!, {r4, r5, r6, r7, lr}
+  3d0122:	f0eb b1ed 	b.w	8bb500 <__emutls_get_address@@Base+0x3380>
+  3d0126:	bf00      	nop
+  3d0128:	fb38 0056 			; <UNDEFINED> instruction: 0xfb380056
+  3d012c:	8491      	strh	r1, [r2, #36]	; 0x24
+  3d012e:	fff2 fb1e 			; <UNDEFINED> instruction: 0xfff2fb1e
+  3d0132:	0056      	lsls	r6, r2, #1
+  3d0134:	cd7c      	ldmia	r5, {r2, r3, r4, r5, r6}
+  3d0136:	0051      	lsls	r1, r2, #1
+  3d0138:	fb14 0056 			; <UNDEFINED> instruction: 0xfb140056
+  3d013c:	ec6c fff2 	stcl	15, cr15, [ip], #-968	; 0xfffffc38
+  3d0140:	fafa 0056 			; <UNDEFINED> instruction: 0xfafa0056
+  3d0144:	7391      	strb	r1, [r2, #14]
+  3d0146:	ffee fae0 	vmull.u32	<illegal reg q15.5>, d30, d0[1]
+  3d014a:	0056      	lsls	r6, r2, #1
+  3d014c:	4cbb      	ldr	r4, [pc, #748]	; (3d043c <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x6c>)
+  3d014e:	ffef fac6 	vmull.u32	<illegal reg q15.5>, d31, d6[0]
+  3d0152:	0056      	lsls	r6, r2, #1
+  3d0154:	824d      	strh	r5, [r1, #18]
+  3d0156:	ffef faac 	vmlsl.u32	<illegal reg q15.5>, d31, d28
+  3d015a:	0056      	lsls	r6, r2, #1
+  3d015c:	7c72      	ldrb	r2, [r6, #17]
+  3d015e:	fff1 fa92 			; <UNDEFINED> instruction: 0xfff1fa92
+  3d0162:	0056      	lsls	r6, r2, #1
+  3d0164:	833b      	strh	r3, [r7, #24]
+  3d0166:	fff3 fa78 			; <UNDEFINED> instruction: 0xfff3fa78
+  3d016a:	0056      	lsls	r6, r2, #1
+  3d016c:	4093      	lsls	r3, r2
+  3d016e:	ffee fa5e 			; <UNDEFINED> instruction: 0xffeefa5e
+  3d0172:	0056      	lsls	r6, r2, #1
+  3d0174:	b2ac      	uxth	r4, r5
+  3d0176:	fff0 fa44 	vtbx.8	d31, {d0-d2}, d4
+  3d017a:	0056      	lsls	r6, r2, #1
+  3d017c:	f666 fff3 	bl	237166 <typeinfo name for ad::CASProvider@@Base-0xe5b73>
+  3d0180:	fa2a 0056 			; <UNDEFINED> instruction: 0xfa2a0056
+  3d0184:	2df1      	cmp	r5, #241	; 0xf1
+  3d0186:	fff4 fa10 	vshll.u32	<illegal reg q15.5>, d0, #20
+  3d018a:	0056      	lsls	r6, r2, #1
+  3d018c:	17dd      	asrs	r5, r3, #31
+  3d018e:	fff0 f9f6 			; <UNDEFINED> instruction: 0xfff0f9f6
+  3d0192:	0056      	lsls	r6, r2, #1
+  3d0194:	2dc8      	cmp	r5, #200	; 0xc8
+  3d0196:	fff4 f9dc 			; <UNDEFINED> instruction: 0xfff4f9dc
+  3d019a:	0056      	lsls	r6, r2, #1
+  3d019c:	b803      			; <UNDEFINED> instruction: 0xb803
+  3d019e:	fff2 f9c2 	vtbx.8	d31, {d18-d19}, d2
+  3d01a2:	0056      	lsls	r6, r2, #1
+  3d01a4:	13fa      	asrs	r2, r7, #15
+  3d01a6:	fff1 f9a8 	vtbl.8	d31, {d17-d18}, d24
+  3d01aa:	0056      	lsls	r6, r2, #1
+  3d01ac:	dee6      	udf	#230	; 0xe6
+  3d01ae:	Address 0x00000000003d01ae is out of bounds.
+
+
+003d01b0 <input::InputDevice::registerCallback()@@Base>:
+  3d01b0:	4b05      	ldr	r3, [pc, #20]	; (3d01c8 <input::InputDevice::registerCallback()@@Base+0x18>)
+  3d01b2:	4806      	ldr	r0, [pc, #24]	; (3d01cc <input::InputDevice::registerCallback()@@Base+0x1c>)
+  3d01b4:	447b      	add	r3, pc
+  3d01b6:	4906      	ldr	r1, [pc, #24]	; (3d01d0 <input::InputDevice::registerCallback()@@Base+0x20>)
+  3d01b8:	4a06      	ldr	r2, [pc, #24]	; (3d01d4 <input::InputDevice::registerCallback()@@Base+0x24>)
+  3d01ba:	4478      	add	r0, pc
+  3d01bc:	681b      	ldr	r3, [r3, #0]
+  3d01be:	4479      	add	r1, pc
+  3d01c0:	447a      	add	r2, pc
+  3d01c2:	f0eb b21b 	b.w	8bb5fc <__emutls_get_address@@Base+0x347c>
+  3d01c6:	bf00      	nop
+  3d01c8:	f87c 0056 	ldr??.w	r0, [ip, r6, lsl #1]
+  3d01cc:	7136      	strb	r6, [r6, #4]
+  3d01ce:	ffee 1330 	vrsra.u32	d17, d16, #18
+  3d01d2:	fff1 def4 			; <UNDEFINED> instruction: 0xfff1def4
+  3d01d6:	Address 0x00000000003d01d6 is out of bounds.
+
+
+003d01d8 <input::InputDevice::onAxisInfo(_JNIEnv*, _jclass*, int, float, float, float)@@Base>:
+  3d01d8:	b5b0      	push	{r4, r5, r7, lr}
+  3d01da:	af02      	add	r7, sp, #8
+  3d01dc:	ed2d 8b06 	vpush	{d8-d10}
+  3d01e0:	4810      	ldr	r0, [pc, #64]	; (3d0224 <input::InputDevice::onAxisInfo(_JNIEnv*, _jclass*, int, float, float, float)@@Base+0x4c>)
+  3d01e2:	4478      	add	r0, pc
+  3d01e4:	6800      	ldr	r0, [r0, #0]
+  3d01e6:	6805      	ldr	r5, [r0, #0]
+  3d01e8:	b1c5      	cbz	r5, 3d021c <input::InputDevice::onAxisInfo(_JNIEnv*, _jclass*, int, float, float, float)@@Base+0x44>
+  3d01ea:	2018      	movs	r0, #24
+  3d01ec:	4614      	mov	r4, r2
+  3d01ee:	ed97 8a03 	vldr	s16, [r7, #12]
+  3d01f2:	ee0a 3a10 	vmov	s20, r3
+  3d01f6:	ed97 9a02 	vldr	s18, [r7, #8]
+  3d01fa:	f0f0 e3b2 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90>
+  3d01fe:	6829      	ldr	r1, [r5, #0]
+  3d0200:	6084      	str	r4, [r0, #8]
+  3d0202:	68aa      	ldr	r2, [r5, #8]
+  3d0204:	e9c0 1500 	strd	r1, r5, [r0]
+  3d0208:	3201      	adds	r2, #1
+  3d020a:	ed80 aa03 	vstr	s20, [r0, #12]
+  3d020e:	ed80 9a04 	vstr	s18, [r0, #16]
+  3d0212:	ed80 8a05 	vstr	s16, [r0, #20]
+  3d0216:	6028      	str	r0, [r5, #0]
+  3d0218:	60aa      	str	r2, [r5, #8]
+  3d021a:	6048      	str	r0, [r1, #4]
+  3d021c:	ecbd 8b06 	vpop	{d8-d10}
+  3d0220:	bdb0      	pop	{r4, r5, r7, pc}
+  3d0222:	bf00      	nop
+  3d0224:	f852 0056 	ldr.w	r0, [r2, r6, lsl #1]
+
+003d0228 <input::InputDevice::InputDevice(int)@@Base>:
+  3d0228:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3d022a:	af03      	add	r7, sp, #12
+  3d022c:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3d0230:	b086      	sub	sp, #24
+  3d0232:	4604      	mov	r4, r0
+  3d0234:	4846      	ldr	r0, [pc, #280]	; (3d0350 <input::InputDevice::InputDevice(int)@@Base+0x128>)
+  3d0236:	460d      	mov	r5, r1
+  3d0238:	2100      	movs	r1, #0
+  3d023a:	4478      	add	r0, pc
+  3d023c:	6800      	ldr	r0, [r0, #0]
+  3d023e:	6800      	ldr	r0, [r0, #0]
+  3d0240:	9005      	str	r0, [sp, #20]
+  3d0242:	4620      	mov	r0, r4
+  3d0244:	f0f0 e7c4 	blx	8c11d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x900>
+  3d0248:	a803      	add	r0, sp, #12
+  3d024a:	2180      	movs	r1, #128	; 0x80
+  3d024c:	f0f0 e7c8 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910>
+  3d0250:	9804      	ldr	r0, [sp, #16]
+  3d0252:	b3c8      	cbz	r0, 3d02c8 <input::InputDevice::InputDevice(int)@@Base+0xa0>
+  3d0254:	493f      	ldr	r1, [pc, #252]	; (3d0354 <input::InputDevice::InputDevice(int)@@Base+0x12c>)
+  3d0256:	4479      	add	r1, pc
+  3d0258:	4668      	mov	r0, sp
+  3d025a:	f0f0 e3e2 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150>
+  3d025e:	a803      	add	r0, sp, #12
+  3d0260:	4669      	mov	r1, sp
+  3d0262:	2201      	movs	r2, #1
+  3d0264:	f0f1 e1c4 	blx	8c15f0 <operator new[](unsigned int, std::align_val_t)@@Base+0xd20>
+  3d0268:	4606      	mov	r6, r0
+  3d026a:	4668      	mov	r0, sp
+  3d026c:	f0f0 e3a0 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0>
+  3d0270:	b356      	cbz	r6, 3d02c8 <input::InputDevice::InputDevice(int)@@Base+0xa0>
+  3d0272:	4839      	ldr	r0, [pc, #228]	; (3d0358 <input::InputDevice::InputDevice(int)@@Base+0x130>)
+  3d0274:	4478      	add	r0, pc
+  3d0276:	7800      	ldrb	r0, [r0, #0]
+  3d0278:	f3bf 8f5b 	dmb	ish
+  3d027c:	07c0      	lsls	r0, r0, #31
+  3d027e:	d034      	beq.n	3d02ea <input::InputDevice::InputDevice(int)@@Base+0xc2>
+  3d0280:	a803      	add	r0, sp, #12
+  3d0282:	f0f0 e7e6 	blx	8c1250 <operator new[](unsigned int, std::align_val_t)@@Base+0x980>
+  3d0286:	a803      	add	r0, sp, #12
+  3d0288:	f0f0 e7da 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970>
+  3d028c:	4938      	ldr	r1, [pc, #224]	; (3d0370 <input::InputDevice::InputDevice(int)@@Base+0x148>)
+  3d028e:	4479      	add	r1, pc
+  3d0290:	680a      	ldr	r2, [r1, #0]
+  3d0292:	4631      	mov	r1, r6
+  3d0294:	462b      	mov	r3, r5
+  3d0296:	f0f1 e40c 	blx	8c1ab0 <operator new[](unsigned int, std::align_val_t)@@Base+0x11e0>
+  3d029a:	4601      	mov	r1, r0
+  3d029c:	4668      	mov	r0, sp
+  3d029e:	f0f2 e130 	blx	8c2500 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c30>
+  3d02a2:	9800      	ldr	r0, [sp, #0]
+  3d02a4:	b168      	cbz	r0, 3d02c2 <input::InputDevice::InputDevice(int)@@Base+0x9a>
+  3d02a6:	4668      	mov	r0, sp
+  3d02a8:	f0f0 e7fa 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0>
+  3d02ac:	4605      	mov	r5, r0
+  3d02ae:	4620      	mov	r0, r4
+  3d02b0:	f0f0 e7d6 	blx	8c1260 <operator new[](unsigned int, std::align_val_t)@@Base+0x990>
+  3d02b4:	4620      	mov	r0, r4
+  3d02b6:	4629      	mov	r1, r5
+  3d02b8:	f0f0 e7da 	blx	8c1270 <operator new[](unsigned int, std::align_val_t)@@Base+0x9a0>
+  3d02bc:	4620      	mov	r0, r4
+  3d02be:	f0f0 e7e0 	blx	8c1280 <operator new[](unsigned int, std::align_val_t)@@Base+0x9b0>
+  3d02c2:	4668      	mov	r0, sp
+  3d02c4:	f0f2 e124 	blx	8c2510 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c40>
+  3d02c8:	a803      	add	r0, sp, #12
+  3d02ca:	f0f0 e7e2 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0>
+  3d02ce:	9805      	ldr	r0, [sp, #20]
+  3d02d0:	4928      	ldr	r1, [pc, #160]	; (3d0374 <input::InputDevice::InputDevice(int)@@Base+0x14c>)
+  3d02d2:	4479      	add	r1, pc
+  3d02d4:	6809      	ldr	r1, [r1, #0]
+  3d02d6:	6809      	ldr	r1, [r1, #0]
+  3d02d8:	4281      	cmp	r1, r0
+  3d02da:	bf01      	itttt	eq
+  3d02dc:	4620      	moveq	r0, r4
+  3d02de:	b006      	addeq	sp, #24
+  3d02e0:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3d02e4:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3d02e6:	f0f0 e374 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100>
+  3d02ea:	481c      	ldr	r0, [pc, #112]	; (3d035c <input::InputDevice::InputDevice(int)@@Base+0x134>)
+  3d02ec:	4478      	add	r0, pc
+  3d02ee:	f0f0 e510 	blx	8c0d10 <operator new[](unsigned int, std::align_val_t)@@Base+0x440>
+  3d02f2:	2800      	cmp	r0, #0
+  3d02f4:	d0c4      	beq.n	3d0280 <input::InputDevice::InputDevice(int)@@Base+0x58>
+  3d02f6:	a803      	add	r0, sp, #12
+  3d02f8:	f0f0 e7a2 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970>
+  3d02fc:	6801      	ldr	r1, [r0, #0]
+  3d02fe:	f8d1 c1c4 	ldr.w	ip, [r1, #452]	; 0x1c4
+  3d0302:	4a17      	ldr	r2, [pc, #92]	; (3d0360 <input::InputDevice::InputDevice(int)@@Base+0x138>)
+  3d0304:	4b17      	ldr	r3, [pc, #92]	; (3d0364 <input::InputDevice::InputDevice(int)@@Base+0x13c>)
+  3d0306:	447a      	add	r2, pc
+  3d0308:	447b      	add	r3, pc
+  3d030a:	4631      	mov	r1, r6
+  3d030c:	47e0      	blx	ip
+  3d030e:	4a16      	ldr	r2, [pc, #88]	; (3d0368 <input::InputDevice::InputDevice(int)@@Base+0x140>)
+  3d0310:	4916      	ldr	r1, [pc, #88]	; (3d036c <input::InputDevice::InputDevice(int)@@Base+0x144>)
+  3d0312:	447a      	add	r2, pc
+  3d0314:	4479      	add	r1, pc
+  3d0316:	6010      	str	r0, [r2, #0]
+  3d0318:	4608      	mov	r0, r1
+  3d031a:	f0f0 e502 	blx	8c0d20 <operator new[](unsigned int, std::align_val_t)@@Base+0x450>
+  3d031e:	e7af      	b.n	3d0280 <input::InputDevice::InputDevice(int)@@Base+0x58>
+  3d0320:	4815      	ldr	r0, [pc, #84]	; (3d0378 <input::InputDevice::InputDevice(int)@@Base+0x150>)
+  3d0322:	4478      	add	r0, pc
+  3d0324:	f0f0 e504 	blx	8c0d30 <operator new[](unsigned int, std::align_val_t)@@Base+0x460>
+  3d0328:	e00a      	b.n	3d0340 <input::InputDevice::InputDevice(int)@@Base+0x118>
+  3d032a:	e009      	b.n	3d0340 <input::InputDevice::InputDevice(int)@@Base+0x118>
+  3d032c:	4668      	mov	r0, sp
+  3d032e:	f0f0 e340 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0>
+  3d0332:	e005      	b.n	3d0340 <input::InputDevice::InputDevice(int)@@Base+0x118>
+  3d0334:	e004      	b.n	3d0340 <input::InputDevice::InputDevice(int)@@Base+0x118>
+  3d0336:	4668      	mov	r0, sp
+  3d0338:	f0f2 e0ea 	blx	8c2510 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c40>
+  3d033c:	e000      	b.n	3d0340 <input::InputDevice::InputDevice(int)@@Base+0x118>
+  3d033e:	e002      	b.n	3d0346 <input::InputDevice::InputDevice(int)@@Base+0x11e>
+  3d0340:	a803      	add	r0, sp, #12
+  3d0342:	f0f0 e7a6 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0>
+  3d0346:	4620      	mov	r0, r4
+  3d0348:	f0f0 e72a 	blx	8c11a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x8d0>
+  3d034c:	f0f0 e348 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110>
+  3d0350:	f5de 0056 	rsbs	r0, lr, #14024704	; 0xd60000
+  3d0354:	e2d8      	b.n	3d0908 <input::AndroidKeyboardControl::~AndroidKeyboardControl()@@Base+0x2c>
+  3d0356:	ffef 3958 	vqrshrn.u64	d19, q4, #17
+  3d035a:	0058      	lsls	r0, r3, #1
+  3d035c:	38e0      	subs	r0, #224	; 0xe0
+  3d035e:	0058      	lsls	r0, r3, #1
+  3d0360:	157b      	asrs	r3, r7, #21
+  3d0362:	fff0 18cb 	vtbx.8	d17, {d16}, d11
+  3d0366:	fff3 38b6 			; <UNDEFINED> instruction: 0xfff338b6
+  3d036a:	0058      	lsls	r0, r3, #1
+  3d036c:	38b8      	subs	r0, #184	; 0xb8
+  3d036e:	0058      	lsls	r0, r3, #1
+  3d0370:	393a      	subs	r1, #58	; 0x3a
+  3d0372:	0058      	lsls	r0, r3, #1
+  3d0374:	f546 0056 	adc.w	r0, r6, #14024704	; 0xd60000
+  3d0378:	38aa      	subs	r0, #170	; 0xaa
+  3d037a:	0058      	lsls	r0, r3, #1
+
+003d037c <_JNIEnv::CallStaticObjectMethod(_jclass*, _jmethodID*, ...)@@Base>:
+  3d037c:	b081      	sub	sp, #4
+  3d037e:	b580      	push	{r7, lr}
+  3d0380:	466f      	mov	r7, sp
+  3d0382:	b083      	sub	sp, #12
+  3d0384:	60bb      	str	r3, [r7, #8]
+  3d0386:	4b0d      	ldr	r3, [pc, #52]	; (3d03bc <_JNIEnv::CallStaticObjectMethod(_jclass*, _jmethodID*, ...)@@Base+0x40>)
+  3d0388:	447b      	add	r3, pc
+  3d038a:	681b      	ldr	r3, [r3, #0]
+  3d038c:	681b      	ldr	r3, [r3, #0]
+  3d038e:	9302      	str	r3, [sp, #8]
+  3d0390:	6803      	ldr	r3, [r0, #0]
+  3d0392:	f8d3 c1cc 	ldr.w	ip, [r3, #460]	; 0x1cc
+  3d0396:	f107 0308 	add.w	r3, r7, #8
+  3d039a:	9301      	str	r3, [sp, #4]
+  3d039c:	47e0      	blx	ip
+  3d039e:	9902      	ldr	r1, [sp, #8]
+  3d03a0:	4a07      	ldr	r2, [pc, #28]	; (3d03c0 <_JNIEnv::CallStaticObjectMethod(_jclass*, _jmethodID*, ...)@@Base+0x44>)
+  3d03a2:	447a      	add	r2, pc
+  3d03a4:	6812      	ldr	r2, [r2, #0]
+  3d03a6:	6812      	ldr	r2, [r2, #0]
+  3d03a8:	428a      	cmp	r2, r1
+  3d03aa:	bf01      	itttt	eq
+  3d03ac:	b003      	addeq	sp, #12
+  3d03ae:	e8bd 4080 	ldmiaeq.w	sp!, {r7, lr}
+  3d03b2:	b001      	addeq	sp, #4
+  3d03b4:	4770      	bxeq	lr
+  3d03b6:	f0f0 e30c 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100>
+  3d03ba:	bf00      	nop
+  3d03bc:	f490 0056 	eors.w	r0, r0, #14024704	; 0xd60000
+  3d03c0:	f476 0056 	orns	r0, r6, #14024704	; 0xd60000
+
+003d03c4 <input::InputDevice::isValid() const@@Base>:
+  3d03c4:	6800      	ldr	r0, [r0, #0]
+  3d03c6:	2800      	cmp	r0, #0
+  3d03c8:	bf18      	it	ne
+  3d03ca:	2001      	movne	r0, #1
+  3d03cc:	4770      	bx	lr
+  3d03ce:	d4d4      	bmi.n	3d037a <input::InputDevice::InputDevice(int)@@Base+0x152>
+
+003d03d0 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base>:
+  3d03d0:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3d03d2:	af03      	add	r7, sp, #12
+  3d03d4:	e92d 0b00 	stmdb	sp!, {r8, r9, fp}
+  3d03d8:	b086      	sub	sp, #24
+  3d03da:	4604      	mov	r4, r0
+  3d03dc:	483e      	ldr	r0, [pc, #248]	; (3d04d8 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x108>)
+  3d03de:	2900      	cmp	r1, #0
+  3d03e0:	4478      	add	r0, pc
+  3d03e2:	6806      	ldr	r6, [r0, #0]
+  3d03e4:	6031      	str	r1, [r6, #0]
+  3d03e6:	483d      	ldr	r0, [pc, #244]	; (3d04dc <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x10c>)
+  3d03e8:	4478      	add	r0, pc
+  3d03ea:	6800      	ldr	r0, [r0, #0]
+  3d03ec:	6800      	ldr	r0, [r0, #0]
+  3d03ee:	9005      	str	r0, [sp, #20]
+  3d03f0:	bf1c      	itt	ne
+  3d03f2:	6820      	ldrne	r0, [r4, #0]
+  3d03f4:	2800      	cmpne	r0, #0
+  3d03f6:	d038      	beq.n	3d046a <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x9a>
+  3d03f8:	a803      	add	r0, sp, #12
+  3d03fa:	2180      	movs	r1, #128	; 0x80
+  3d03fc:	f0f0 e6f0 	blx	8c11e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x910>
+  3d0400:	9804      	ldr	r0, [sp, #16]
+  3d0402:	b378      	cbz	r0, 3d0464 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x94>
+  3d0404:	4936      	ldr	r1, [pc, #216]	; (3d04e0 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x110>)
+  3d0406:	4479      	add	r1, pc
+  3d0408:	4668      	mov	r0, sp
+  3d040a:	f0f0 e30a 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150>
+  3d040e:	a803      	add	r0, sp, #12
+  3d0410:	4669      	mov	r1, sp
+  3d0412:	2201      	movs	r2, #1
+  3d0414:	f0f1 e0ec 	blx	8c15f0 <operator new[](unsigned int, std::align_val_t)@@Base+0xd20>
+  3d0418:	4680      	mov	r8, r0
+  3d041a:	4668      	mov	r0, sp
+  3d041c:	f0f0 e2c8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0>
+  3d0420:	f1b8 0f00 	cmp.w	r8, #0
+  3d0424:	d01e      	beq.n	3d0464 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x94>
+  3d0426:	482f      	ldr	r0, [pc, #188]	; (3d04e4 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x114>)
+  3d0428:	4478      	add	r0, pc
+  3d042a:	7800      	ldrb	r0, [r0, #0]
+  3d042c:	f3bf 8f5b 	dmb	ish
+  3d0430:	07c0      	lsls	r0, r0, #31
+  3d0432:	d027      	beq.n	3d0484 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0xb4>
+  3d0434:	a803      	add	r0, sp, #12
+  3d0436:	f0f0 e70c 	blx	8c1250 <operator new[](unsigned int, std::align_val_t)@@Base+0x980>
+  3d043a:	a803      	add	r0, sp, #12
+  3d043c:	f0f0 e700 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970>
+  3d0440:	4681      	mov	r9, r0
+  3d0442:	482e      	ldr	r0, [pc, #184]	; (3d04fc <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x12c>)
+  3d0444:	4478      	add	r0, pc
+  3d0446:	6805      	ldr	r5, [r0, #0]
+  3d0448:	4620      	mov	r0, r4
+  3d044a:	f0f0 e72a 	blx	8c12a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x9d0>
+  3d044e:	4603      	mov	r3, r0
+  3d0450:	4648      	mov	r0, r9
+  3d0452:	4641      	mov	r1, r8
+  3d0454:	462a      	mov	r2, r5
+  3d0456:	f0f1 e3e4 	blx	8c1c20 <operator new[](unsigned int, std::align_val_t)@@Base+0x1350>
+  3d045a:	a803      	add	r0, sp, #12
+  3d045c:	f0f0 e6f8 	blx	8c1250 <operator new[](unsigned int, std::align_val_t)@@Base+0x980>
+  3d0460:	2000      	movs	r0, #0
+  3d0462:	6030      	str	r0, [r6, #0]
+  3d0464:	a803      	add	r0, sp, #12
+  3d0466:	f0f0 e714 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0>
+  3d046a:	9805      	ldr	r0, [sp, #20]
+  3d046c:	4924      	ldr	r1, [pc, #144]	; (3d0500 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x130>)
+  3d046e:	4479      	add	r1, pc
+  3d0470:	6809      	ldr	r1, [r1, #0]
+  3d0472:	6809      	ldr	r1, [r1, #0]
+  3d0474:	4281      	cmp	r1, r0
+  3d0476:	bf02      	ittt	eq
+  3d0478:	b006      	addeq	sp, #24
+  3d047a:	e8bd 0b00 	ldmiaeq.w	sp!, {r8, r9, fp}
+  3d047e:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3d0480:	f0f0 e2a6 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100>
+  3d0484:	4818      	ldr	r0, [pc, #96]	; (3d04e8 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x118>)
+  3d0486:	4478      	add	r0, pc
+  3d0488:	f0f0 e442 	blx	8c0d10 <operator new[](unsigned int, std::align_val_t)@@Base+0x440>
+  3d048c:	2800      	cmp	r0, #0
+  3d048e:	d0d1      	beq.n	3d0434 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x64>
+  3d0490:	a803      	add	r0, sp, #12
+  3d0492:	f0f0 e6d6 	blx	8c1240 <operator new[](unsigned int, std::align_val_t)@@Base+0x970>
+  3d0496:	6801      	ldr	r1, [r0, #0]
+  3d0498:	f8d1 51c4 	ldr.w	r5, [r1, #452]	; 0x1c4
+  3d049c:	4a13      	ldr	r2, [pc, #76]	; (3d04ec <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x11c>)
+  3d049e:	4b14      	ldr	r3, [pc, #80]	; (3d04f0 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x120>)
+  3d04a0:	447a      	add	r2, pc
+  3d04a2:	447b      	add	r3, pc
+  3d04a4:	4641      	mov	r1, r8
+  3d04a6:	47a8      	blx	r5
+  3d04a8:	4a12      	ldr	r2, [pc, #72]	; (3d04f4 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x124>)
+  3d04aa:	4913      	ldr	r1, [pc, #76]	; (3d04f8 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x128>)
+  3d04ac:	447a      	add	r2, pc
+  3d04ae:	4479      	add	r1, pc
+  3d04b0:	6010      	str	r0, [r2, #0]
+  3d04b2:	4608      	mov	r0, r1
+  3d04b4:	f0f0 e434 	blx	8c0d20 <operator new[](unsigned int, std::align_val_t)@@Base+0x450>
+  3d04b8:	e7bc      	b.n	3d0434 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x64>
+  3d04ba:	4812      	ldr	r0, [pc, #72]	; (3d0504 <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0x134>)
+  3d04bc:	4478      	add	r0, pc
+  3d04be:	f0f0 e438 	blx	8c0d30 <operator new[](unsigned int, std::align_val_t)@@Base+0x460>
+  3d04c2:	e004      	b.n	3d04ce <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0xfe>
+  3d04c4:	4668      	mov	r0, sp
+  3d04c6:	f0f0 e274 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0>
+  3d04ca:	e000      	b.n	3d04ce <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0xfe>
+  3d04cc:	e7ff      	b.n	3d04ce <input::InputDevice::fillMotionRanges(std::__ndk1::list<input::InputDevice::MotionRange, std::__ndk1::allocator<input::InputDevice::MotionRange> >*)@@Base+0xfe>
+  3d04ce:	a803      	add	r0, sp, #12
+  3d04d0:	f0f0 e6de 	blx	8c1290 <operator new[](unsigned int, std::align_val_t)@@Base+0x9c0>
+  3d04d4:	f0f0 e284 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110>
+  3d04d8:	f654 0056 			; <UNDEFINED> instruction: 0xf6540056
+  3d04dc:	f430 0056 	bics.w	r0, r0, #14024704	; 0xd60000
+  3d04e0:	6eea      	ldr	r2, [r5, #108]	; 0x6c
+  3d04e2:	ffee 37ac 	vabdl.u32	<illegal reg q9.5>, d30, d28
+  3d04e6:	0058      	lsls	r0, r3, #1
+  3d04e8:	374e      	adds	r7, #78	; 0x4e
+  3d04ea:	0058      	lsls	r0, r3, #1
+  3d04ec:	f229 fff3 	bl	5fa4d6 <ossl_threads_ctx_new@@Base+0x4a>
+  3d04f0:	77bc      	strb	r4, [r7, #30]
+  3d04f2:	fff1 3724 	vabs.f8	d19, d20
+  3d04f6:	0058      	lsls	r0, r3, #1
+  3d04f8:	3726      	adds	r7, #38	; 0x26
+  3d04fa:	0058      	lsls	r0, r3, #1
+  3d04fc:	378c      	adds	r7, #140	; 0x8c
+  3d04fe:	0058      	lsls	r0, r3, #1
+  3d0500:	f3aa 0056 	usat	r0, #22, sl, asr #1
+  3d0504:	3718      	adds	r7, #24
+  3d0506:	0058      	lsls	r0, r3, #1
+
+003d0508 <_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)@@Base>:
+  3d0508:	b081      	sub	sp, #4
+  3d050a:	b580      	push	{r7, lr}
+  3d050c:	466f      	mov	r7, sp
+  3d050e:	b083      	sub	sp, #12
+  3d0510:	60bb      	str	r3, [r7, #8]
+  3d0512:	4b0d      	ldr	r3, [pc, #52]	; (3d0548 <_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)@@Base+0x40>)
+  3d0514:	447b      	add	r3, pc
+  3d0516:	681b      	ldr	r3, [r3, #0]
+  3d0518:	681b      	ldr	r3, [r3, #0]
+  3d051a:	9302      	str	r3, [sp, #8]
+  3d051c:	6803      	ldr	r3, [r0, #0]
+  3d051e:	f8d3 c238 	ldr.w	ip, [r3, #568]	; 0x238
+  3d0522:	f107 0308 	add.w	r3, r7, #8
+  3d0526:	9301      	str	r3, [sp, #4]
+  3d0528:	47e0      	blx	ip
+  3d052a:	9802      	ldr	r0, [sp, #8]
+  3d052c:	4907      	ldr	r1, [pc, #28]	; (3d054c <_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)@@Base+0x44>)
+  3d052e:	4479      	add	r1, pc
+  3d0530:	6809      	ldr	r1, [r1, #0]
+  3d0532:	6809      	ldr	r1, [r1, #0]
+  3d0534:	4281      	cmp	r1, r0
+  3d0536:	bf01      	itttt	eq
+  3d0538:	b003      	addeq	sp, #12
+  3d053a:	e8bd 4080 	ldmiaeq.w	sp!, {r7, lr}
+  3d053e:	b001      	addeq	sp, #4
+  3d0540:	4770      	bxeq	lr
+  3d0542:	f0f0 e246 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100>
+  3d0546:	bf00      	nop
+  3d0548:	f304 0056 	ssat	r0, #23, r4, lsl #1
+  3d054c:	f2ea 0056 			; <UNDEFINED> instruction: 0xf2ea0056
+
+003d0550 <input::InputDevice::getMotionRanges()@@Base>:
+  3d0550:	b5d0      	push	{r4, r6, r7, lr}
+  3d0552:	af02      	add	r7, sp, #8
+  3d0554:	680a      	ldr	r2, [r1, #0]
+  3d0556:	4604      	mov	r4, r0
+  3d0558:	2000      	movs	r0, #0
+  3d055a:	e9c4 4400 	strd	r4, r4, [r4]
+  3d055e:	60a0      	str	r0, [r4, #8]
+  3d0560:	b11a      	cbz	r2, 3d056a <input::InputDevice::getMotionRanges()@@Base+0x1a>
+  3d0562:	4608      	mov	r0, r1
+  3d0564:	4621      	mov	r1, r4
+  3d0566:	f0f1 e62c 	blx	8c21c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x18f0>
+  3d056a:	bdd0      	pop	{r4, r6, r7, pc}

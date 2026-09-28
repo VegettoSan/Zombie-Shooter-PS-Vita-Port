@@ -1,0 +1,17 @@
+--- a/source/textures.c
++++ b/source/textures.c
+@@ -1,3 +1,5 @@
++/* Optional port diagnostic. Safe full preservation, same COW lifetime. */
++int zombie_texture_full_preserve __attribute__((weak));
+ /*
+  * This file is part of vitaGL
+  * Copyright 2017, 2018, 2019, 2020 Rinnegatamante
+@@ -1029,7 +1031,7 @@
+             tex_format == SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB;
+         GLboolean rgba_to_rgb565 = format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
+             tex_format == SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB;
+-        if (target == GL_TEXTURE_2D && level == 0 && tex->mip_count == 1 &&
++        if (!zombie_texture_full_preserve && target == GL_TEXTURE_2D && level == 0 && tex->mip_count == 1 &&
+             (native_rgba || native_rgb565 || rgba_to_rgb565) && pixels &&
+             (unpack_row_len == 0 || unpack_row_len == width) &&
+             xoffset >= 0 && yoffset >= 0 && width > 0 && height > 0 &&

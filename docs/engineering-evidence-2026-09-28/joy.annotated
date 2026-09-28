@@ -1,0 +1,187 @@
+
+/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/demo/libzombie_shooter.so:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+003cf0b4 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base>:
+  3cf0b4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3cf0b6:	af03      	add	r7, sp, #12
+  3cf0b8:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3cf0bc:	b08d      	sub	sp, #52	; 0x34
+  3cf0be:	4682      	mov	sl, r0
+  3cf0c0:	4867      	ldr	r0, [pc, #412]	; (3cf260 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x1ac>)
+  3cf0c2:	f10a 0848 	add.w	r8, sl, #72	; 0x48
+  3cf0c6:	460d      	mov	r5, r1
+  3cf0c8:	4478      	add	r0, pc
+  3cf0ca:	6800      	ldr	r0, [r0, #0]
+  3cf0cc:	6800      	ldr	r0, [r0, #0]
+  3cf0ce:	900c      	str	r0, [sp, #48]	; 0x30
+  3cf0d0:	4640      	mov	r0, r8
+  3cf0d2:	f0f3 e1ae 	blx	8c2430 <operator new[](unsigned int, std::align_val_t)@@Base+0x1b60> // input::MotionAPIV14::isValid() const
+  3cf0d6:	2800      	cmp	r0, #0
+  3cf0d8:	f000 8094 	beq.w	3cf204 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x150>
+  3cf0dc:	4628      	mov	r0, r5
+  3cf0de:	f0f3 e1b0 	blx	8c2440 <operator new[](unsigned int, std::align_val_t)@@Base+0x1b70> // AInputEvent_getDeviceId
+  3cf0e2:	f8da 4058 	ldr.w	r4, [sl, #88]	; 0x58
+  3cf0e6:	4681      	mov	r9, r0
+  3cf0e8:	9006      	str	r0, [sp, #24]
+  3cf0ea:	f10a 0054 	add.w	r0, sl, #84	; 0x54
+  3cf0ee:	9003      	str	r0, [sp, #12]
+  3cf0f0:	b364      	cbz	r4, 3cf14c <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x98>
+  3cf0f2:	f04f 3055 	mov.w	r0, #1431655765	; 0x55555555
+  3cf0f6:	f04f 3133 	mov.w	r1, #858993459	; 0x33333333
+  3cf0fa:	ea00 0054 	and.w	r0, r0, r4, lsr #1
+  3cf0fe:	1a20      	subs	r0, r4, r0
+  3cf100:	ea01 0190 	and.w	r1, r1, r0, lsr #2
+  3cf104:	f020 30cc 	bic.w	r0, r0, #3435973836	; 0xcccccccc
+  3cf108:	4408      	add	r0, r1
+  3cf10a:	f04f 3101 	mov.w	r1, #16843009	; 0x1010101
+  3cf10e:	eb00 1010 	add.w	r0, r0, r0, lsr #4
+  3cf112:	f020 30f0 	bic.w	r0, r0, #4042322160	; 0xf0f0f0f0
+  3cf116:	4348      	muls	r0, r1
+  3cf118:	0e01      	lsrs	r1, r0, #24
+  3cf11a:	2901      	cmp	r1, #1
+  3cf11c:	d803      	bhi.n	3cf126 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x72>
+  3cf11e:	1e60      	subs	r0, r4, #1
+  3cf120:	ea00 0b09 	and.w	fp, r0, r9
+  3cf124:	e009      	b.n	3cf13a <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x86>
+  3cf126:	45a1      	cmp	r9, r4
+  3cf128:	46cb      	mov	fp, r9
+  3cf12a:	d306      	bcc.n	3cf13a <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x86>
+  3cf12c:	460e      	mov	r6, r1
+  3cf12e:	4648      	mov	r0, r9
+  3cf130:	4621      	mov	r1, r4
+  3cf132:	f0e9 e47a 	blx	8b8a28 <__emutls_get_address@@Base+0x8a8>
+  3cf136:	468b      	mov	fp, r1
+  3cf138:	4631      	mov	r1, r6
+  3cf13a:	9803      	ldr	r0, [sp, #12]
+  3cf13c:	6800      	ldr	r0, [r0, #0]
+  3cf13e:	f850 002b 	ldr.w	r0, [r0, fp, lsl #2]
+  3cf142:	2800      	cmp	r0, #0
+  3cf144:	bf1c      	itt	ne
+  3cf146:	6806      	ldrne	r6, [r0, #0]
+  3cf148:	2e00      	cmpne	r6, #0
+  3cf14a:	d169      	bne.n	3cf220 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x16c>
+  3cf14c:	4650      	mov	r0, sl
+  3cf14e:	4649      	mov	r1, r9
+  3cf150:	f0f3 e17e 	blx	8c2450 <operator new[](unsigned int, std::align_val_t)@@Base+0x1b80> // input::AndroidJoystickControl::updateDeviceInfo(int)
+  3cf154:	4843      	ldr	r0, [pc, #268]	; (3cf264 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x1b0>)
+  3cf156:	4478      	add	r0, pc
+  3cf158:	6800      	ldr	r0, [r0, #0]
+  3cf15a:	6800      	ldr	r0, [r0, #0]
+  3cf15c:	6801      	ldr	r1, [r0, #0]
+  3cf15e:	6b49      	ldr	r1, [r1, #52]	; 0x34
+  3cf160:	4788      	blx	r1
+  3cf162:	2108      	movs	r1, #8
+  3cf164:	f0f3 e05c 	blx	8c2220 <operator new[](unsigned int, std::align_val_t)@@Base+0x1950> // input::InputHandler::addSource(input::InputHandler::Source)
+  3cf168:	2001      	movs	r0, #1
+  3cf16a:	f88a 000c 	strb.w	r0, [sl, #12]
+  3cf16e:	483e      	ldr	r0, [pc, #248]	; (3cf268 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x1b4>)
+  3cf170:	f1a7 0131 	sub.w	r1, r7, #49	; 0x31
+  3cf174:	aa06      	add	r2, sp, #24
+  3cf176:	9208      	str	r2, [sp, #32]
+  3cf178:	4478      	add	r0, pc
+  3cf17a:	6803      	ldr	r3, [r0, #0]
+  3cf17c:	a808      	add	r0, sp, #32
+  3cf17e:	e9cd 0100 	strd	r0, r1, [sp]
+  3cf182:	a809      	add	r0, sp, #36	; 0x24
+  3cf184:	9903      	ldr	r1, [sp, #12]
+  3cf186:	f0f3 e16c 	blx	8c2460 <operator new[](unsigned int, std::align_val_t)@@Base+0x1b90> // std::__ndk1::pair<std::__ndk1::__hash_iterator<std::__ndk1::__hash_node<std::__ndk1::__hash_value_type<int, core::Timer>, void*>*>, bool> std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<int, core::Timer>, std::__ndk1::__unordered_map_hasher<int, std::__ndk1::__hash_value_type<int, core::Timer>, std::__ndk1::hash<int>, std::__ndk1::equal_to<int>, true>, std::__ndk1::__unordered_map_equal<int, std::__ndk1::__hash_value_type<int, core::Timer>, std::__ndk1::equal_to<int>, std::__ndk1::hash<int>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<int, core::Timer> > >::__emplace_unique_key_args<int, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<int const&>, std::__ndk1::tuple<> >(int const&, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<int const&>&&, std::__ndk1::tuple<>&&)
+  3cf18a:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3cf18c:	300c      	adds	r0, #12
+  3cf18e:	f0f3 e170 	blx	8c2470 <operator new[](unsigned int, std::align_val_t)@@Base+0x1ba0> // core::Timer::reset()
+  3cf192:	4628      	mov	r0, r5
+  3cf194:	f0f3 e074 	blx	8c2280 <operator new[](unsigned int, std::align_val_t)@@Base+0x19b0> // AInputEvent_getType
+  3cf198:	2801      	cmp	r0, #1
+  3cf19a:	d033      	beq.n	3cf204 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x150>
+  3cf19c:	4628      	mov	r0, r5
+  3cf19e:	f0f3 e170 	blx	8c2480 <operator new[](unsigned int, std::align_val_t)@@Base+0x1bb0> // AMotionEvent_getAction
+  3cf1a2:	2802      	cmp	r0, #2
+  3cf1a4:	d12e      	bne.n	3cf204 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x150>
+  3cf1a6:	4628      	mov	r0, r5
+  3cf1a8:	f0f3 e172 	blx	8c2490 <operator new[](unsigned int, std::align_val_t)@@Base+0x1bc0> // AMotionEvent_getPointerCount
+  3cf1ac:	b340      	cbz	r0, 3cf200 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x14c>
+  3cf1ae:	e9cd a803 	strd	sl, r8, [sp, #12]
+  3cf1b2:	f10d 0b08 	add.w	fp, sp, #8
+  3cf1b6:	482d      	ldr	r0, [pc, #180]	; (3cf26c <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x1b8>)
+  3cf1b8:	ac09      	add	r4, sp, #36	; 0x24
+  3cf1ba:	f04f 0900 	mov.w	r9, #0
+  3cf1be:	9505      	str	r5, [sp, #20]
+  3cf1c0:	4478      	add	r0, pc
+  3cf1c2:	6800      	ldr	r0, [r0, #0]
+  3cf1c4:	9002      	str	r0, [sp, #8]
+  3cf1c6:	e89b 0c40 	ldmia.w	fp, {r6, sl, fp}
+  3cf1ca:	2500      	movs	r5, #0
+  3cf1cc:	f856 2025 	ldr.w	r2, [r6, r5, lsl #2]
+  3cf1d0:	4658      	mov	r0, fp
+  3cf1d2:	9905      	ldr	r1, [sp, #20]
+  3cf1d4:	464b      	mov	r3, r9
+  3cf1d6:	f8dd 8018 	ldr.w	r8, [sp, #24]
+  3cf1da:	f0f3 e162 	blx	8c24a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1bd0> // input::MotionAPIV14::axisValue(AInputEvent const*, int, unsigned int)
+  3cf1de:	900b      	str	r0, [sp, #44]	; 0x2c
+  3cf1e0:	4650      	mov	r0, sl
+  3cf1e2:	4621      	mov	r1, r4
+  3cf1e4:	e9cd 8509 	strd	r8, r5, [sp, #36]	; 0x24
+  3cf1e8:	f0f3 e162 	blx	8c24b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1be0> // input::JoystickControl::pushEvent(input::JoystickControl::event_t const&)
+  3cf1ec:	3501      	adds	r5, #1
+  3cf1ee:	2d0a      	cmp	r5, #10
+  3cf1f0:	d1ec      	bne.n	3cf1cc <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x118>
+  3cf1f2:	9805      	ldr	r0, [sp, #20]
+  3cf1f4:	f109 0901 	add.w	r9, r9, #1
+  3cf1f8:	f0f3 e14a 	blx	8c2490 <operator new[](unsigned int, std::align_val_t)@@Base+0x1bc0> // AMotionEvent_getPointerCount
+  3cf1fc:	4581      	cmp	r9, r0
+  3cf1fe:	d3e4      	bcc.n	3cf1ca <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x116>
+  3cf200:	2001      	movs	r0, #1
+  3cf202:	e000      	b.n	3cf206 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x152>
+  3cf204:	2000      	movs	r0, #0
+  3cf206:	990c      	ldr	r1, [sp, #48]	; 0x30
+  3cf208:	4a19      	ldr	r2, [pc, #100]	; (3cf270 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x1bc>)
+  3cf20a:	447a      	add	r2, pc
+  3cf20c:	6812      	ldr	r2, [r2, #0]
+  3cf20e:	6812      	ldr	r2, [r2, #0]
+  3cf210:	428a      	cmp	r2, r1
+  3cf212:	bf02      	ittt	eq
+  3cf214:	b00d      	addeq	sp, #52	; 0x34
+  3cf216:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3cf21a:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3cf21c:	f0f1 e3d8 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3cf220:	1e62      	subs	r2, r4, #1
+  3cf222:	f8cd 8010 	str.w	r8, [sp, #16]
+  3cf226:	9102      	str	r1, [sp, #8]
+  3cf228:	e005      	b.n	3cf236 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x182>
+  3cf22a:	68b0      	ldr	r0, [r6, #8]
+  3cf22c:	4548      	cmp	r0, r9
+  3cf22e:	d09e      	beq.n	3cf16e <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0xba>
+  3cf230:	6836      	ldr	r6, [r6, #0]
+  3cf232:	2e00      	cmp	r6, #0
+  3cf234:	d08a      	beq.n	3cf14c <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x98>
+  3cf236:	6870      	ldr	r0, [r6, #4]
+  3cf238:	4548      	cmp	r0, r9
+  3cf23a:	d0f6      	beq.n	3cf22a <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x176>
+  3cf23c:	2901      	cmp	r1, #1
+  3cf23e:	d801      	bhi.n	3cf244 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x190>
+  3cf240:	4010      	ands	r0, r2
+  3cf242:	e00a      	b.n	3cf25a <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x1a6>
+  3cf244:	42a0      	cmp	r0, r4
+  3cf246:	d308      	bcc.n	3cf25a <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x1a6>
+  3cf248:	4621      	mov	r1, r4
+  3cf24a:	4690      	mov	r8, r2
+  3cf24c:	f0e9 e3ec 	blx	8b8a28 <__emutls_get_address@@Base+0x8a8>
+  3cf250:	4642      	mov	r2, r8
+  3cf252:	4608      	mov	r0, r1
+  3cf254:	9902      	ldr	r1, [sp, #8]
+  3cf256:	f8dd 8010 	ldr.w	r8, [sp, #16]
+  3cf25a:	4558      	cmp	r0, fp
+  3cf25c:	d0e8      	beq.n	3cf230 <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x17c>
+  3cf25e:	e775      	b.n	3cf14c <input::AndroidJoystickControl::handleEvent(AInputEvent*)@@Base+0x98>
+  3cf260:	0750      	lsls	r0, r2, #29
+  3cf262:	0057      	lsls	r7, r2, #1
+  3cf264:	0776      	lsls	r6, r6, #29
+  3cf266:	0057      	lsls	r7, r2, #1
+  3cf268:	06c0      	lsls	r0, r0, #27
+  3cf26a:	0057      	lsls	r7, r2, #1
+  3cf26c:	08b0      	lsrs	r0, r6, #2
+  3cf26e:	0057      	lsls	r7, r2, #1
+  3cf270:	060e      	lsls	r6, r1, #24
+  3cf272:	0057      	lsls	r7, r2, #1

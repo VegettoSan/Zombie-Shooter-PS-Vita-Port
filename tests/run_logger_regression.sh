@@ -21,4 +21,8 @@ for opt in 0 3; do
     '-DZOMBIE_BUILD_VARIANT="Release"' '-DZOMBIE_BUILD_ID="test"' \
     tests/logger_regression.c -o "$tmp/logger-$opt"
   "$tmp/logger-$opt"
+  cc -std=gnu11 -O"$opt" -Isource -I"$tmp" -DDEBUG_SOLOADER=1 -DZOMBIE_DEBUG_BUILD=1 \
+    '-DZOMBIE_BUILD_VARIANT="Debug"' '-DZOMBIE_BUILD_ID="test"' \
+    tests/logger_quiet_debug_regression.c -o "$tmp/logger-debug-$opt"
+  "$tmp/logger-debug-$opt"
 done

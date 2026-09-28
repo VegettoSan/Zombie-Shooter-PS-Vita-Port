@@ -1,0 +1,190 @@
+[
+  {
+    "file": "log_0004.log",
+    "sha256": "6489b22c466d9016369dd7d5c1f7618b66a703e3797624e33bc7e5af777e5336",
+    "totals": {
+      "light_source": {
+        "calls": 18208,
+        "inclusive_us": 25132972
+      },
+      "light_AS2": {
+        "calls": 0,
+        "inclusive_us": 0
+      },
+      "light_stencil": {
+        "calls": 0,
+        "inclusive_us": 0
+      },
+      "asset_open_ok": {
+        "calls": 2685,
+        "measured_us": 64592167,
+        "errors": 0
+      },
+      "asset_open_fail": {
+        "calls": 4632,
+        "measured_us": 2795310,
+        "errors": 4632
+      }
+    },
+    "reported_top_paths": [
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/empty.vid",
+        88
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/empty_fastest.vid",
+        54
+      ],
+      [
+        "ux0:data/zombieshooter/assets/vid/empty.vid",
+        46
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//wav/null.wav",
+        23
+      ],
+      [
+        "ux0:data/zombieshooter/assets/vid/empty_fastest.vid",
+        23
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/151.vid",
+        8
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/187.vid",
+        8
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/168.vid",
+        8
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/415.vid",
+        6
+      ],
+      [
+        "ux0:data/zombieshooter/assets/vid/415.vid",
+        5
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/eteam_logo.vid",
+        4
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/430.vid",
+        4
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/501.vid",
+        4
+      ],
+      [
+        "ux0:data/zombieshooter/assets/menus/main.men",
+        4
+      ],
+      [
+        "ux0:data/zombieshooter/assets/menus/frame_empty.men",
+        4
+      ]
+    ],
+    "unresolved_occurrences": {
+      "Activity.getPreferences": 100
+    },
+    "scope": "Reported windows/limited path table; not a paired benchmark or complete asset trace."
+  },
+  {
+    "file": "log_0005.log",
+    "sha256": "315b96c33a5769b45510ac03a1fba495352507dcf46ec24055dbd493b447a84a",
+    "totals": {
+      "light_source": {
+        "calls": 23987,
+        "inclusive_us": 28540267
+      },
+      "light_AS2": {
+        "calls": 0,
+        "inclusive_us": 0
+      },
+      "light_stencil": {
+        "calls": 0,
+        "inclusive_us": 0
+      },
+      "asset_open_ok": {
+        "calls": 2700,
+        "measured_us": 59504787,
+        "errors": 0
+      },
+      "asset_open_fail": {
+        "calls": 4637,
+        "measured_us": 2779550,
+        "errors": 4637
+      }
+    },
+    "reported_top_paths": [
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/empty.vid",
+        116
+      ],
+      [
+        "ux0:data/zombieshooter/assets/vid/empty.vid",
+        63
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/empty_fastest.vid",
+        56
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//wav/null.wav",
+        23
+      ],
+      [
+        "ux0:data/zombieshooter/assets/vid/empty_fastest.vid",
+        23
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/168.vid",
+        19
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/101.vid",
+        15
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/113.vid",
+        10
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/151.vid",
+        8
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/booster_on.vid",
+        6
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//menus/items/2613_0001.png",
+        5
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//menus/items/2613_0002.png",
+        5
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/187.vid",
+        5
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/105.vid",
+        5
+      ],
+      [
+        "ux0:data/zombieshooter/assets/i18n//vid/eteam_logo.vid",
+        4
+      ]
+    ],
+    "unresolved_occurrences": {
+      "Activity.getPreferences": 99
+    },
+    "scope": "Reported windows/limited path table; not a paired benchmark or complete asset trace."
+  }
+]

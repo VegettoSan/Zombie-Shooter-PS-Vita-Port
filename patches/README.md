@@ -27,3 +27,7 @@ Véase `docs/REPRODUCIBLE_BUILD.md` para instalar el SDK exacto y ambos builds.
 
 La iteración JNI posterior a la restauración añade IDs object no NULL y retorno NULL
 para campos ausentes; véase `docs/CRASH_RELEASE_JNI_2026-09-25.md`.
+
+### Engineering follow-up (2026-09-28)
+
+`vitagl_engineering.patch` layers only the opt-in full-preserve COW diagnostic over the pinned Pass10/11 result; lifetime/allocation/free behavior is unchanged. `prepare_build.py` pins the combined textures.c SHA. FalsoNDK's Debug weak event tap is included in its existing patch and lock. `tests/run_dependency_patch_regression.py` replays every layer outside the checkout and compares the exact resulting sources.

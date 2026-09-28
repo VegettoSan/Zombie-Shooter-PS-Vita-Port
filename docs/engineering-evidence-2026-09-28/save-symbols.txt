@@ -1,0 +1,96 @@
+00583c80 T EVP_PKEY_save_parameters
+0052fae0 T OSSL_ERR_STATE_save
+0052fb8c T OSSL_ERR_STATE_save_to_mark
+0071bf44 T SSL_get_selected_srtp_profile
+0071bf1e T SSL_get_srtp_profiles
+009548e8 V guard variable for equipment::GameItemFuncs::Save::hash()::val
+00482d58 T ScoreSystem::saveScores(STRING const&, int)
+00483694 T ScoreSystem::snapshotSave()
+0048553c T ScoreSystem::saveCompleted()
+00483b84 T ScoreSystem::selectSaveSlot(int)
+00483c78 T ScoreSystem::getSaveSlotTotalTime(int)
+00483c68 T ScoreSystem::loadSaveSlotMetaData(int)
+00483d08 T ScoreSystem::getSaveSlotMissionSuccess(int)
+00483e4c T ScoreSystem::getSaveSlotDifficultyLevel(int)
+0032c618 R web_backend::Snapshot::kProgressFieldNumber
+003e70c4 T ProfilePrivate::load(STRING const&)
+003e79a0 T ProfilePrivate::setString(STRING const&, STRING const&, STRING const&)
+003e6fe0 T ProfilePrivate::ProfilePrivate()
+003e6fe0 T ProfilePrivate::ProfilePrivate()
+003e7080 T ProfilePrivate::~ProfilePrivate()
+003e7020 T ProfilePrivate::~ProfilePrivate()
+003e7020 T ProfilePrivate::~ProfilePrivate()
+004f6d60 T ProgressSprite::ChangeAnimation(int, bool, bool, bool)
+004f6ba8 T ProgressSprite::Draw()
+004f6d84 T ProgressSprite::destroy()
+004f6d78 T ProgressSprite::instance()
+004f6ae8 T ProgressSprite::ProgressSprite(VECTOR const&)
+004f6ae8 T ProgressSprite::ProgressSprite(VECTOR const&)
+004f6b94 T ProgressSprite::~ProgressSprite()
+004f6b74 T ProgressSprite::~ProgressSprite()
+004f6b74 T ProgressSprite::~ProgressSprite()
+0044aa94 T MENU::addMorphing(char const*, upal::method<void (SPRITE*, VECTOR2 const&, VECTOR2 const&, float)> const&, Profile const&, STRING const&, STRING const&)
+0044c888 T MENU::Save(STRING const&)
+003f6060 T core::crypto::CryptEngine::encryptionKey()
+003f60e4 T core::crypto::CryptEngine::salt(std::__ndk1::optional<std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > >)
+00486ff8 T detail::ScoreSystemPrivate::saveScores(STRING const&, int)
+004884d0 T detail::ScoreSystemPrivate::snapshotSave(std::__ndk1::shared_ptr<BaseStream> const&)
+00489382 W detail::BaseScoreSystemPrivate::selectSaveSlot(int)
+0048938a W detail::BaseScoreSystemPrivate::loadSaveSlotMetaData(int)
+004d02e4 T social::SocialEngine::configure(Profile const&)
+004cfae6 T social::Agent::configure(Profile const&)
+003e6f90 T Profile::load(STRING const&)
+003e6fc2 T Profile::setString(STRING const&, STRING const&, STRING const&)
+003e6e80 T Profile::Profile(STRING const&)
+003e6e38 T Profile::Profile()
+003e6e80 T Profile::Profile(STRING const&)
+003e6e38 T Profile::Profile()
+003e6e60 T Profile::~Profile()
+003e6e60 T Profile::~Profile()
+003cd6aa W android::AbstractActivityHandler::onActivitySaveState(void**, unsigned int*)
+003bb819 R playcore::kAssetPackState_transferProgressPercentage
+003bb834 R playcore::kAssetPackState_transferProgressPercentage_void
+00444918 W equipment::GameItemFuncs::Save::hash()
+00483c34 T ScoreSystem::getSaveSlot() const
+00482b74 T ScoreSystem::isSavesAvailable() const
+00485764 T ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const
+0048589c T ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const
+003e79e8 T ProfilePrivate::getSection(STRING const&) const
+003e7094 T ProfilePrivate::platformKey(STRING const&) const
+003e72f4 T ProfilePrivate::getInt(STRING const&, STRING const&, int) const
+003e7844 T ProfilePrivate::getBool(STRING const&, STRING const&, bool) const
+003e76c0 T ProfilePrivate::getFloat(STRING const&, STRING const&, float) const
+003e7460 T ProfilePrivate::getString(STRING const&, STRING const&, STRING const&) const
+004f6d70 T ProgressSprite::Animation() const
+0041747c T iap::Purchases::inProgressKey(STRING const&) const
+0043a48c T GROUPS::Save(RESOURCE*) const
+004e5130 T SPRITE::Save(BaseStream*) const
+003dcc24 T STRING::saveToFile(STRING const&) const
+00486b5c T detail::ScoreSystemPrivate::isSavesAvailable() const
+00489384 W detail::BaseScoreSystemPrivate::getSaveSlotIndex() const
+003e6fd4 T Profile::getSection(STRING const&) const
+003e6fa4 T Profile::getInt(STRING const&, STRING const&, int) const
+003e6fce T Profile::getBool(STRING const&, STRING const&, bool) const
+003e6fc8 T Profile::getFloat(STRING const&, STRING const&, float) const
+003e6fa0 T Profile::isLoaded() const
+003e6faa T Profile::getString(STRING const&, STRING const&, STRING const&) const
+00444480 W void equipment::GameItem::execItemCallback<equipment::GameItemFuncs::Save>() const
+0044422c T equipment::GameItem::save() const
+008edf5c D typeinfo for ProfilePrivate
+008f4e84 D typeinfo for ProgressSprite
+008edf54 V typeinfo for Private<Profile>
+008edaa8 V typeinfo for Profile
+00321cea R typeinfo name for ProfilePrivate
+0032b787 R typeinfo name for ProgressSprite
+00321cfb V typeinfo name for Private<Profile>
+00321a03 V typeinfo name for Profile
+008edf44 D vtable for ProfilePrivate
+008f4cf0 D vtable for ProgressSprite
+009548e4 V equipment::GameItemFuncs::Save::hash()::val
+0054cb3c T ossl_asn1_enc_save
+007a481e T png_save_int_32
+007bbc8a T png_save_uint_16
+007bbc84 T png_save_uint_32
+006f0288 T tls13_save_handshake_digest_for_pha
+00701a10 T tls1_save_sigalgs
+00701978 T tls1_save_u16

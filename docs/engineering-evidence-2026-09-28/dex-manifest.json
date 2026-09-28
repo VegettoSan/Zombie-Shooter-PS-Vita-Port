@@ -1,0 +1,32 @@
+[
+  {
+    "name": "classes.dex",
+    "sha256": "99f8e7600b19dd8c8c4fc5b438e6104fedf6301354d1f54d590cc292a4fa9827",
+    "broad_persistence_matches": 94996
+  },
+  {
+    "name": "classes2.dex",
+    "sha256": "d0673c89186f4bc8f996de8b15b03b90cab0b266e744f1711e429f5d578eb7ac",
+    "broad_persistence_matches": 103103
+  },
+  {
+    "name": "classes3.dex",
+    "sha256": "4c485ae1741f0983a306a0c2593bc9e622c1e040a5efe2e700eaceeeecea9cf6",
+    "broad_persistence_matches": 145288
+  },
+  {
+    "name": "classes4.dex",
+    "sha256": "9822a97139a7fe1258008b786e39ac00a3ba65038b4ec0074af252cf80121b70",
+    "broad_persistence_matches": 133833
+  },
+  {
+    "name": "classes5.dex",
+    "sha256": "6909a33a9894f5a3f99e3bcd7c485b792aeed3120048a2e9e31a59d1f0d69e5b",
+    "broad_persistence_matches": 122395
+  },
+  {
+    "name": "classes6.dex",
+    "sha256": "cb1c2a6fffddeee8b1d7facbb011f7a7b96c89a30a222a8bf7c5ed0260d2db7b",
+    "broad_persistence_matches": 2579
+  }
+]

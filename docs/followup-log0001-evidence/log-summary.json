@@ -1,0 +1,378 @@
+{
+  "sha256": "b1c9e2bfcea8c4626151bfb2eca52f960b0c050ad7bf5a9ba88ecaaca0bc1e47",
+  "bytes": 7248788,
+  "lines": 51837,
+  "prefix": {
+    "info": 484,
+    "PERF": 9513,
+    "success": 67,
+    "warning": 1728,
+    "debug": 39694,
+    "error": 348,
+    "fatal": 1
+  },
+  "save": {
+    "write": 6,
+    "RegistryEnumerator.onKey": 1,
+    "open": 50,
+    "engine=Registry.loadValue": 128,
+    "resolve": 1,
+    "Activity.getPreferences": 1,
+    "apply": 362,
+    "engine=crypto.encrypt": 226,
+    "RegistryEnumerator": 1
+  },
+  "jni": [
+    [
+      "[warning] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI_ImplBridge.c:183][methodObjectCall] method ID 0 not found!",
+      1648
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"registerPurchase\", \"(Ljava/lang/String;)V\"): not found",
+      25
+    ],
+    [
+      "[warning] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI_ImplBridge.c:194][methodVoidCall] method ID 0 not found!",
+      2
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"getPackageManager\", \"()Landroid/content/pm/PackageManager;\"): not found",
+      2
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:877][GetStaticMethodID] [JNI] GetStaticMethodID(env, PTR, \"initialize\", \"(Ljava/lang/String;I)I\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"com.sigmateam.sige.NetworkObserver/<init>\", \"(Landroid/app/Activity;)V\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"com.sigmateam.iap.google.Purchases/<init>\", \"(Lcom/sigmateam/sige/CommonActivity;)V\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"com.sigmateam.sige.AlertHelper/<init>\", \"(Landroid/app/Activity;)V\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"com.sigmateam.sige.WebFrameHelper/<init>\", \"(Landroid/app/Activity;)V\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"java/util/ArrayList/<init>\", \"()V\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"add\", \"(Ljava/lang/Object;)Z\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"intValue\", \"()I\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"hasNext\", \"()Z\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"next\", \"()Ljava/lang/Object;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"entrySet\", \"()Ljava/util/Set;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"size\", \"()I\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"getKey\", \"()Ljava/lang/Object;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"getValue\", \"()Ljava/lang/Object;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"iterator\", \"()Ljava/util/Iterator;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"addOnCompleteListener\", \"(Lcom/google/android/gms/tasks/OnCompleteListener;)Lcom/google/android/gms/tasks/Task;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"getException\", \"()Ljava/lang/Exception;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"getStatusCode\", \"()I\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"com/google/android/gms/tasks/NativeOnCompleteListener/<init>\", \"(J)V\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"packStorageMethod\", \"()I\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"assetsPath\", \"()Ljava/lang/String;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"packStates\", \"()Ljava/util/Map;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"name\", \"()Ljava/lang/String;\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"status\", \"()I\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"errorCode\", \"()I\"): not found",
+      1
+    ],
+    [
+      "[error] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:317][GetMethodID] [JNI] GetMethodID(env, PTR, \"bytesDownloaded\", \"()J\"): not found",
+      1
+    ]
+  ],
+  "input": {
+    "xbox_map": 1,
+    "InputDeviceHelper.onAxisInfo(IFFF)V": 1,
+    "vita_physical": 119,
+    "JNI": 6,
+    "queue": 28,
+    "physical=select": 8,
+    "button": 56,
+    "emitted": 118,
+    "physical=dpad_down": 10,
+    "engine=AndroidKeyboardControl": 56,
+    "axis": 10,
+    "engine=KeyBinder.setKey": 98,
+    "physical=dpad_up": 8,
+    "physical=r": 6,
+    "physical=cross": 16,
+    "physical=circle": 6,
+    "physical=square": 4,
+    "physical=triangle": 4,
+    "physical=dpad_right": 8,
+    "physical=dpad_left": 10,
+    "physical=l": 12,
+    "physical=rear_left": 14,
+    "physical=rear_right": 12
+  },
+  "perf": {
+    "light_source": {
+      "calls": 700,
+      "total_us": 0,
+      "inclusive_us": 575157,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "light_AS2": {
+      "calls": 0,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "light_stencil": {
+      "calls": 0,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "engine_graph": {
+      "calls": 1637,
+      "total_us": 121763632,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "engine_software": {
+      "calls": 1360,
+      "total_us": 14515120,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "engine_map": {
+      "calls": 1636,
+      "total_us": 442032722,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "engine_pre": {
+      "calls": 1637,
+      "total_us": 1143578,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "engine_post": {
+      "calls": 1636,
+      "total_us": 67749502,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "engine_collector": {
+      "calls": 19150,
+      "total_us": 12224634,
+      "inclusive_us": 0,
+      "measured_us": 0,
+      "errors": 0
+    },
+    "io_asset_sampled": {
+      "calls": 381006,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 19200089,
+      "errors": 0
+    },
+    "io_fread": {
+      "calls": 2,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 975,
+      "errors": 0
+    },
+    "io_read": {
+      "calls": 6,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 1447,
+      "errors": 0
+    },
+    "io_asset_open": {
+      "calls": 10072,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 166831868,
+      "errors": 4724
+    },
+    "io_asset_seek": {
+      "calls": 844,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 6753098,
+      "errors": 0
+    },
+    "io_asset_open_ok": {
+      "calls": 5348,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 137582044,
+      "errors": 0
+    },
+    "io_asset_open_fail": {
+      "calls": 4724,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 29261436,
+      "errors": 4724
+    },
+    "io_bulk_fill": {
+      "calls": 1443,
+      "total_us": 0,
+      "inclusive_us": 0,
+      "measured_us": 3285792,
+      "errors": 0
+    },
+    "negative": {
+      "avoided_opens": 598
+    }
+  },
+  "normalized_top": [
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][DeleteLocalRef] [JNI] DeleteLocalRef(env, N): ignored",
+      4627
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][GetEnv] [JVM] GetEnv(vm, **env, version:N)",
+      3865
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][CallObjectMethodV] [JNI] CallObjectMethodV(env, N, N, args)",
+      2571
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][PushLocalFrame] [JNI] PushLocalFrame(env, N): ignored",
+      2202
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][PopLocalFrame] [JNI] PopLocalFrame(env, N): ignored",
+      2201
+    ],
+    [
+      "[debug] [FalsoNDK] AAsset_getLength",
+      1700
+    ],
+    [
+      "[warning] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI_ImplBridge.c:N][methodObjectCall] method ID N not found!",
+      1648
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][NewStringUTF] [JNI] NewStringUTF(env, \"commonAssets\")",
+      1639
+    ],
+    [
+      "[PERF] scene_draw kind=DrawLayer layer=N calls=N inclusive_us=N avg_us=N max_us_lifetime=N nested=N",
+      1208
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][ExceptionOccurred] [JNI] ExceptionOccurred(env): ignored",
+      1117
+    ],
+    [
+      "[debug] [FalsoNDK] AAssetManager_open<N>(N, ux0:data/zombieshooter/assets/i18n//vid/N.vid, N): N",
+      1110
+    ],
+    [
+      "[debug] [FalsoNDK] AAsset_seek(N, N, N)",
+      844
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][CallBooleanMethodV] [JNI] CallBooleanMethodV(env, N, N, args)",
+      695
+    ],
+    [
+      "[debug] [FalsoNDK] AAssetManager_open<N>(N, ux0:data/zombieshooter/assets/vid/N.vid, N): N",
+      645
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][CallVoidMethodV] [JNI] CallVoidMethodV(env, N, N, args)",
+      365
+    ],
+    [
+      "[PERF] [SAVE] apply ok=N keys=N",
+      362
+    ],
+    [
+      "[debug] [FalsoNDK] AAsset_close<N>(N, ux0:data/zombieshooter/assets/vid/N.vid, read=N/N)",
+      323
+    ],
+    [
+      "[debug] [FalsoNDK] AAsset_read progress ux0:data/zombieshooter/assets/vid/N.vid: N/N bytes",
+      274
+    ],
+    [
+      "[debug] [FalsoNDK] AAsset_read progress ux0:data/zombieshooter/assets/menus/img/N.png: N/N bytes",
+      266
+    ],
+    [
+      "[debug] [FalsoJNI][/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/lib/falso_jni/FalsoJNI.c:N][NewGlobalRef] [JNI] NewGlobalRef(env, N)",
+      253
+    ]
+  ]
+}

@@ -1,0 +1,698 @@
+
+/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/demo/libzombie_shooter.so:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00485764 <ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const@@Base>:
+  485764:	b5f0      	push	{r4, r5, r6, r7, lr}
+  485766:	af03      	add	r7, sp, #12
+  485768:	f84d bd04 	str.w	fp, [sp, #-4]!
+  48576c:	b08a      	sub	sp, #40	; 0x28
+  48576e:	4605      	mov	r5, r0
+  485770:	481f      	ldr	r0, [pc, #124]	; (4857f0 <ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const@@Base+0x8c>)
+  485772:	466e      	mov	r6, sp
+  485774:	4611      	mov	r1, r2
+  485776:	4478      	add	r0, pc
+  485778:	461c      	mov	r4, r3
+  48577a:	6800      	ldr	r0, [r0, #0]
+  48577c:	6800      	ldr	r0, [r0, #0]
+  48577e:	9009      	str	r0, [sp, #36]	; 0x24
+  485780:	4630      	mov	r0, r6
+  485782:	f03f e00e 	blx	8c47a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ed0> // utils::intToString(int)
+  485786:	491b      	ldr	r1, [pc, #108]	; (4857f4 <ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const@@Base+0x90>)
+  485788:	4479      	add	r1, pc
+  48578a:	a803      	add	r0, sp, #12
+  48578c:	4632      	mov	r2, r6
+  48578e:	f03d e5b0 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  485792:	4a19      	ldr	r2, [pc, #100]	; (4857f8 <ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const@@Base+0x94>)
+  485794:	447a      	add	r2, pc
+  485796:	a806      	add	r0, sp, #24
+  485798:	a903      	add	r1, sp, #12
+  48579a:	f03d e5aa 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  48579e:	a906      	add	r1, sp, #24
+  4857a0:	4628      	mov	r0, r5
+  4857a2:	4622      	mov	r2, r4
+  4857a4:	f03d e5a4 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  4857a8:	a806      	add	r0, sp, #24
+  4857aa:	f03b e102 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4857ae:	a803      	add	r0, sp, #12
+  4857b0:	f03b e0fe 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4857b4:	4668      	mov	r0, sp
+  4857b6:	f03b e0fc 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4857ba:	9809      	ldr	r0, [sp, #36]	; 0x24
+  4857bc:	490f      	ldr	r1, [pc, #60]	; (4857fc <ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const@@Base+0x98>)
+  4857be:	4479      	add	r1, pc
+  4857c0:	6809      	ldr	r1, [r1, #0]
+  4857c2:	6809      	ldr	r1, [r1, #0]
+  4857c4:	4281      	cmp	r1, r0
+  4857c6:	bf02      	ittt	eq
+  4857c8:	b00a      	addeq	sp, #40	; 0x28
+  4857ca:	f85d bb04 	ldreq.w	fp, [sp], #4
+  4857ce:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  4857d0:	f03b e0fe 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  4857d4:	a806      	add	r0, sp, #24
+  4857d6:	f03b e0ec 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4857da:	e7ff      	b.n	4857dc <ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const@@Base+0x78>
+  4857dc:	a803      	add	r0, sp, #12
+  4857de:	f03b e0e8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4857e2:	e7ff      	b.n	4857e4 <ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const@@Base+0x80>
+  4857e4:	4668      	mov	r0, sp
+  4857e6:	f03b e0e4 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4857ea:	f03b e0fa 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  4857ee:	bf00      	nop
+  4857f0:	a0a2      	add	r0, pc, #648	; (adr r0, 485a7c <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x1e0>)
+  4857f2:	004b      	lsls	r3, r1, #1
+  4857f4:	f90c 004c 	vst4.16	{d0-d3}, [ip], ip
+  4857f8:	f90c 004c 	vst4.16	{d0-d3}, [ip], ip
+  4857fc:	a05a      	add	r0, pc, #360	; (adr r0, 485968 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0xcc>)
+  4857fe:	004b      	lsls	r3, r1, #1
+
+00485800 <ScoreSystem::successGetSnapshot()@@Base>:
+  485800:	b5f0      	push	{r4, r5, r6, r7, lr}
+  485802:	af03      	add	r7, sp, #12
+  485804:	f84d bd04 	str.w	fp, [sp, #-4]!
+  485808:	b084      	sub	sp, #16
+  48580a:	481f      	ldr	r0, [pc, #124]	; (485888 <ScoreSystem::successGetSnapshot()@@Base+0x88>)
+  48580c:	466d      	mov	r5, sp
+  48580e:	491f      	ldr	r1, [pc, #124]	; (48588c <ScoreSystem::successGetSnapshot()@@Base+0x8c>)
+  485810:	4478      	add	r0, pc
+  485812:	4479      	add	r1, pc // literal @2fef11 allow.lobby.connect
+  485814:	6806      	ldr	r6, [r0, #0]
+  485816:	6834      	ldr	r4, [r6, #0]
+  485818:	481d      	ldr	r0, [pc, #116]	; (485890 <ScoreSystem::successGetSnapshot()@@Base+0x90>)
+  48581a:	4478      	add	r0, pc
+  48581c:	6800      	ldr	r0, [r0, #0]
+  48581e:	6800      	ldr	r0, [r0, #0]
+  485820:	9003      	str	r0, [sp, #12]
+  485822:	4628      	mov	r0, r5
+  485824:	f03b e0fc 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  485828:	6820      	ldr	r0, [r4, #0]
+  48582a:	6b03      	ldr	r3, [r0, #48]	; 0x30
+  48582c:	4620      	mov	r0, r4
+  48582e:	4629      	mov	r1, r5
+  485830:	2200      	movs	r2, #0
+  485832:	4798      	blx	r3
+  485834:	4604      	mov	r4, r0
+  485836:	4668      	mov	r0, sp
+  485838:	f03b e0ba 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  48583c:	2c00      	cmp	r4, #0
+  48583e:	dc0f      	bgt.n	485860 <ScoreSystem::successGetSnapshot()@@Base+0x60>
+  485840:	6834      	ldr	r4, [r6, #0]
+  485842:	466d      	mov	r5, sp
+  485844:	4913      	ldr	r1, [pc, #76]	; (485894 <ScoreSystem::successGetSnapshot()@@Base+0x94>)
+  485846:	4628      	mov	r0, r5
+  485848:	4479      	add	r1, pc // literal @2fef11 allow.lobby.connect
+  48584a:	f03b e0ea 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  48584e:	6820      	ldr	r0, [r4, #0]
+  485850:	6b43      	ldr	r3, [r0, #52]	; 0x34
+  485852:	4620      	mov	r0, r4
+  485854:	4629      	mov	r1, r5
+  485856:	2201      	movs	r2, #1
+  485858:	4798      	blx	r3
+  48585a:	4668      	mov	r0, sp
+  48585c:	f03b e0a8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485860:	9803      	ldr	r0, [sp, #12]
+  485862:	490d      	ldr	r1, [pc, #52]	; (485898 <ScoreSystem::successGetSnapshot()@@Base+0x98>)
+  485864:	4479      	add	r1, pc
+  485866:	6809      	ldr	r1, [r1, #0]
+  485868:	6809      	ldr	r1, [r1, #0]
+  48586a:	4281      	cmp	r1, r0
+  48586c:	bf02      	ittt	eq
+  48586e:	b004      	addeq	sp, #16
+  485870:	f85d bb04 	ldreq.w	fp, [sp], #4
+  485874:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  485876:	f03b e0ac 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  48587a:	e7ff      	b.n	48587c <ScoreSystem::successGetSnapshot()@@Base+0x7c>
+  48587c:	4668      	mov	r0, sp
+  48587e:	f03b e098 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485882:	f03b e0ae 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485886:	bf00      	nop
+  485888:	a02c      	add	r0, pc, #176	; (adr r0, 48593c <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0xa0>)
+  48588a:	004b      	lsls	r3, r1, #1
+  48588c:	96fb      	str	r6, [sp, #1004]	; 0x3ec
+  48588e:	ffe7 9ffe 			; <UNDEFINED> instruction: 0xffe79ffe
+  485892:	004b      	lsls	r3, r1, #1
+  485894:	96c5      	str	r6, [sp, #788]	; 0x314
+  485896:	ffe7 9fb4 			; <UNDEFINED> instruction: 0xffe79fb4
+  48589a:	004b      	lsls	r3, r1, #1
+
+0048589c <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base>:
+  48589c:	b5f0      	push	{r4, r5, r6, r7, lr}
+  48589e:	af03      	add	r7, sp, #12
+  4858a0:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  4858a4:	b0a9      	sub	sp, #164	; 0xa4
+  4858a6:	4604      	mov	r4, r0
+  4858a8:	4891      	ldr	r0, [pc, #580]	; (485af0 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x254>)
+  4858aa:	4478      	add	r0, pc
+  4858ac:	6800      	ldr	r0, [r0, #0]
+  4858ae:	6800      	ldr	r0, [r0, #0]
+  4858b0:	9028      	str	r0, [sp, #160]	; 0xa0
+  4858b2:	6810      	ldr	r0, [r2, #0]
+  4858b4:	2800      	cmp	r0, #0
+  4858b6:	f000 80f3 	beq.w	485aa0 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x204>
+  4858ba:	4689      	mov	r9, r1
+  4858bc:	498d      	ldr	r1, [pc, #564]	; (485af4 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x258>)
+  4858be:	68a0      	ldr	r0, [r4, #8]
+  4858c0:	4615      	mov	r5, r2
+  4858c2:	4479      	add	r1, pc
+  4858c4:	f8d1 8000 	ldr.w	r8, [r1]
+  4858c8:	6801      	ldr	r1, [r0, #0]
+  4858ca:	f8d8 a000 	ldr.w	sl, [r8]
+  4858ce:	6949      	ldr	r1, [r1, #20]
+  4858d0:	4788      	blx	r1
+  4858d2:	b120      	cbz	r0, 4858de <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x42>
+  4858d4:	68a0      	ldr	r0, [r4, #8]
+  4858d6:	6801      	ldr	r1, [r0, #0]
+  4858d8:	69c9      	ldr	r1, [r1, #28]
+  4858da:	4788      	blx	r1
+  4858dc:	e001      	b.n	4858e2 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x46>
+  4858de:	f03b e290 	blx	8c0e00 <operator new[](unsigned int, std::align_val_t)@@Base+0x530> // STRING::emptyString()
+  4858e2:	4601      	mov	r1, r0
+  4858e4:	4650      	mov	r0, sl
+  4858e6:	f03f e364 	blx	8c4fb0 <operator new[](unsigned int, std::align_val_t)@@Base+0x46e0> // core::Registry::setDumpPassword(STRING const&)
+  4858ea:	6828      	ldr	r0, [r5, #0]
+  4858ec:	6801      	ldr	r1, [r0, #0]
+  4858ee:	6909      	ldr	r1, [r1, #16]
+  4858f0:	4788      	blx	r1
+  4858f2:	9001      	str	r0, [sp, #4]
+  4858f4:	ac02      	add	r4, sp, #8
+  4858f6:	4980      	ldr	r1, [pc, #512]	; (485af8 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x25c>)
+  4858f8:	4a80      	ldr	r2, [pc, #512]	; (485afc <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x260>)
+  4858fa:	4620      	mov	r0, r4
+  4858fc:	4479      	add	r1, pc
+  4858fe:	447a      	add	r2, pc
+  485900:	f03d e4f6 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  485904:	a805      	add	r0, sp, #20
+  485906:	4651      	mov	r1, sl
+  485908:	462a      	mov	r2, r5
+  48590a:	4623      	mov	r3, r4
+  48590c:	f03f e2f0 	blx	8c4ef0 <operator new[](unsigned int, std::align_val_t)@@Base+0x4620> // core::Registry::loadValueFromDump(std::__ndk1::shared_ptr<BaseStream> const&, STRING const&)
+  485910:	a805      	add	r0, sp, #20
+  485912:	f03e e236 	blx	8c3d80 <operator new[](unsigned int, std::align_val_t)@@Base+0x34b0> // STRING::Int() const
+  485916:	4683      	mov	fp, r0
+  485918:	a805      	add	r0, sp, #20
+  48591a:	f03b e04a 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  48591e:	a802      	add	r0, sp, #8
+  485920:	f03b e046 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485924:	4b76      	ldr	r3, [pc, #472]	; (485b00 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x264>)
+  485926:	ac05      	add	r4, sp, #20
+  485928:	464a      	mov	r2, r9
+  48592a:	f8d8 6000 	ldr.w	r6, [r8]
+  48592e:	447b      	add	r3, pc
+  485930:	4620      	mov	r0, r4
+  485932:	f048 e1a6 	blx	8cdc80 <operator new[](unsigned int, std::align_val_t)@@Base+0xd3b0> // ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const
+  485936:	6830      	ldr	r0, [r6, #0]
+  485938:	6b43      	ldr	r3, [r0, #52]	; 0x34
+  48593a:	4630      	mov	r0, r6
+  48593c:	4621      	mov	r1, r4
+  48593e:	465a      	mov	r2, fp
+  485940:	4798      	blx	r3
+  485942:	a805      	add	r0, sp, #20
+  485944:	f03b e034 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485948:	f03b e3ba 	blx	8c10c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x7f0> // core::Log::reportingLevel()
+  48594c:	2805      	cmp	r0, #5
+  48594e:	d318      	bcc.n	485982 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0xe6>
+  485950:	a805      	add	r0, sp, #20
+  485952:	2105      	movs	r1, #5
+  485954:	f03b e3bc 	blx	8c10d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x800> // core::Log::Log(core::ILogger::Level)
+  485958:	f03b e3c2 	blx	8c10e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x810> // core::Log::get()
+  48595c:	4969      	ldr	r1, [pc, #420]	; (485b04 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x268>)
+  48595e:	4479      	add	r1, pc // literal @2e193d ScoreSystem: SaveSlot: 
+  485960:	2217      	movs	r2, #23
+  485962:	f740 f8cb 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  485966:	4649      	mov	r1, r9
+  485968:	f03b e4b2 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  48596c:	4966      	ldr	r1, [pc, #408]	; (485b08 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x26c>)
+  48596e:	4479      	add	r1, pc // literal @2e8347 , MetaData totalTime = 
+  485970:	2217      	movs	r2, #23
+  485972:	f740 f8c3 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  485976:	4659      	mov	r1, fp
+  485978:	f03b e4aa 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  48597c:	a805      	add	r0, sp, #20
+  48597e:	f03b e3c0 	blx	8c1100 <operator new[](unsigned int, std::align_val_t)@@Base+0x830> // core::Log::~Log()
+  485982:	6828      	ldr	r0, [r5, #0]
+  485984:	6801      	ldr	r1, [r0, #0]
+  485986:	698a      	ldr	r2, [r1, #24]
+  485988:	9901      	ldr	r1, [sp, #4]
+  48598a:	4790      	blx	r2
+  48598c:	495f      	ldr	r1, [pc, #380]	; (485b0c <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x270>)
+  48598e:	ac02      	add	r4, sp, #8
+  485990:	4a5f      	ldr	r2, [pc, #380]	; (485b10 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x274>)
+  485992:	4479      	add	r1, pc
+  485994:	4620      	mov	r0, r4
+  485996:	447a      	add	r2, pc
+  485998:	f03d e4aa 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  48599c:	a805      	add	r0, sp, #20
+  48599e:	4651      	mov	r1, sl
+  4859a0:	462a      	mov	r2, r5
+  4859a2:	4623      	mov	r3, r4
+  4859a4:	f03f e2a4 	blx	8c4ef0 <operator new[](unsigned int, std::align_val_t)@@Base+0x4620> // core::Registry::loadValueFromDump(std::__ndk1::shared_ptr<BaseStream> const&, STRING const&)
+  4859a8:	a805      	add	r0, sp, #20
+  4859aa:	f03e e1ea 	blx	8c3d80 <operator new[](unsigned int, std::align_val_t)@@Base+0x34b0> // STRING::Int() const
+  4859ae:	4683      	mov	fp, r0
+  4859b0:	a805      	add	r0, sp, #20
+  4859b2:	f03a e7fe 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4859b6:	a802      	add	r0, sp, #8
+  4859b8:	f03a e7fa 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4859bc:	4b55      	ldr	r3, [pc, #340]	; (485b14 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x278>)
+  4859be:	ac05      	add	r4, sp, #20
+  4859c0:	464a      	mov	r2, r9
+  4859c2:	f8d8 6000 	ldr.w	r6, [r8]
+  4859c6:	447b      	add	r3, pc
+  4859c8:	4620      	mov	r0, r4
+  4859ca:	f048 e15a 	blx	8cdc80 <operator new[](unsigned int, std::align_val_t)@@Base+0xd3b0> // ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const
+  4859ce:	6830      	ldr	r0, [r6, #0]
+  4859d0:	6b43      	ldr	r3, [r0, #52]	; 0x34
+  4859d2:	4630      	mov	r0, r6
+  4859d4:	4621      	mov	r1, r4
+  4859d6:	465a      	mov	r2, fp
+  4859d8:	4798      	blx	r3
+  4859da:	a805      	add	r0, sp, #20
+  4859dc:	f03a e7e8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  4859e0:	f03b e36e 	blx	8c10c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x7f0> // core::Log::reportingLevel()
+  4859e4:	2805      	cmp	r0, #5
+  4859e6:	d318      	bcc.n	485a1a <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x17e>
+  4859e8:	a805      	add	r0, sp, #20
+  4859ea:	2105      	movs	r1, #5
+  4859ec:	f03b e370 	blx	8c10d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x800> // core::Log::Log(core::ILogger::Level)
+  4859f0:	f03b e376 	blx	8c10e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x810> // core::Log::get()
+  4859f4:	4948      	ldr	r1, [pc, #288]	; (485b18 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x27c>)
+  4859f6:	4479      	add	r1, pc // literal @2e193d ScoreSystem: SaveSlot: 
+  4859f8:	2217      	movs	r2, #23
+  4859fa:	f740 f87f 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  4859fe:	4649      	mov	r1, r9
+  485a00:	f03b e466 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  485a04:	4945      	ldr	r1, [pc, #276]	; (485b1c <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x280>)
+  485a06:	4479      	add	r1, pc // literal @30fb21 , MetaData missionSuccess = 
+  485a08:	221c      	movs	r2, #28
+  485a0a:	f740 f877 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  485a0e:	4659      	mov	r1, fp
+  485a10:	f03b e45e 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  485a14:	a805      	add	r0, sp, #20
+  485a16:	f03b e374 	blx	8c1100 <operator new[](unsigned int, std::align_val_t)@@Base+0x830> // core::Log::~Log()
+  485a1a:	6828      	ldr	r0, [r5, #0]
+  485a1c:	6801      	ldr	r1, [r0, #0]
+  485a1e:	698a      	ldr	r2, [r1, #24]
+  485a20:	9901      	ldr	r1, [sp, #4]
+  485a22:	4790      	blx	r2
+  485a24:	4b3e      	ldr	r3, [pc, #248]	; (485b20 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x284>)
+  485a26:	ac05      	add	r4, sp, #20
+  485a28:	4651      	mov	r1, sl
+  485a2a:	462a      	mov	r2, r5
+  485a2c:	447b      	add	r3, pc
+  485a2e:	4620      	mov	r0, r4
+  485a30:	f03f e25e 	blx	8c4ef0 <operator new[](unsigned int, std::align_val_t)@@Base+0x4620> // core::Registry::loadValueFromDump(std::__ndk1::shared_ptr<BaseStream> const&, STRING const&)
+  485a34:	4620      	mov	r0, r4
+  485a36:	f03e e1a4 	blx	8c3d80 <operator new[](unsigned int, std::align_val_t)@@Base+0x34b0> // STRING::Int() const
+  485a3a:	4604      	mov	r4, r0
+  485a3c:	a805      	add	r0, sp, #20
+  485a3e:	f03a e7b8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485a42:	4b38      	ldr	r3, [pc, #224]	; (485b24 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x288>)
+  485a44:	ae05      	add	r6, sp, #20
+  485a46:	464a      	mov	r2, r9
+  485a48:	f8d8 5000 	ldr.w	r5, [r8]
+  485a4c:	447b      	add	r3, pc
+  485a4e:	4630      	mov	r0, r6
+  485a50:	f048 e116 	blx	8cdc80 <operator new[](unsigned int, std::align_val_t)@@Base+0xd3b0> // ScoreSystem::saveSlotMetaDataKey(int, STRING const&) const
+  485a54:	6828      	ldr	r0, [r5, #0]
+  485a56:	6b43      	ldr	r3, [r0, #52]	; 0x34
+  485a58:	4628      	mov	r0, r5
+  485a5a:	4631      	mov	r1, r6
+  485a5c:	4622      	mov	r2, r4
+  485a5e:	4798      	blx	r3
+  485a60:	a805      	add	r0, sp, #20
+  485a62:	f03a e7a6 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485a66:	f03b e32c 	blx	8c10c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x7f0> // core::Log::reportingLevel()
+  485a6a:	2805      	cmp	r0, #5
+  485a6c:	d318      	bcc.n	485aa0 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x204>
+  485a6e:	a805      	add	r0, sp, #20
+  485a70:	2105      	movs	r1, #5
+  485a72:	f03b e32e 	blx	8c10d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x800> // core::Log::Log(core::ILogger::Level)
+  485a76:	f03b e334 	blx	8c10e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x810> // core::Log::get()
+  485a7a:	492b      	ldr	r1, [pc, #172]	; (485b28 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x28c>)
+  485a7c:	4479      	add	r1, pc // literal @2e193d ScoreSystem: SaveSlot: 
+  485a7e:	2217      	movs	r2, #23
+  485a80:	f740 f83c 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  485a84:	4649      	mov	r1, r9
+  485a86:	f03b e424 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  485a8a:	4928      	ldr	r1, [pc, #160]	; (485b2c <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x290>)
+  485a8c:	4479      	add	r1, pc // literal @2f2416 , MetaData difficultyLevel = 
+  485a8e:	221d      	movs	r2, #29
+  485a90:	f740 f834 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  485a94:	4621      	mov	r1, r4
+  485a96:	f03b e41c 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  485a9a:	a805      	add	r0, sp, #20
+  485a9c:	f03b e330 	blx	8c1100 <operator new[](unsigned int, std::align_val_t)@@Base+0x830> // core::Log::~Log()
+  485aa0:	9828      	ldr	r0, [sp, #160]	; 0xa0
+  485aa2:	4923      	ldr	r1, [pc, #140]	; (485b30 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x294>)
+  485aa4:	4479      	add	r1, pc
+  485aa6:	6809      	ldr	r1, [r1, #0]
+  485aa8:	6809      	ldr	r1, [r1, #0]
+  485aaa:	4281      	cmp	r1, r0
+  485aac:	bf02      	ittt	eq
+  485aae:	b029      	addeq	sp, #164	; 0xa4
+  485ab0:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  485ab4:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  485ab6:	f03a e78c 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  485aba:	e003      	b.n	485ac4 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x228>
+  485abc:	e002      	b.n	485ac4 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x228>
+  485abe:	e001      	b.n	485ac4 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x228>
+  485ac0:	e005      	b.n	485ace <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x232>
+  485ac2:	e008      	b.n	485ad6 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x23a>
+  485ac4:	a805      	add	r0, sp, #20
+  485ac6:	f03a e774 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485aca:	f03a e78a 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485ace:	a805      	add	r0, sp, #20
+  485ad0:	f03a e76e 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485ad4:	e7ff      	b.n	485ad6 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x23a>
+  485ad6:	a802      	add	r0, sp, #8
+  485ad8:	f03a e76a 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485adc:	f03a e780 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485ae0:	e000      	b.n	485ae4 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x248>
+  485ae2:	e7ff      	b.n	485ae4 <ScoreSystem::setSaveSlotMetaData(int, std::__ndk1::shared_ptr<BaseStream> const&) const@@Base+0x248>
+  485ae4:	a805      	add	r0, sp, #20
+  485ae6:	f03b e30c 	blx	8c1100 <operator new[](unsigned int, std::align_val_t)@@Base+0x830> // core::Log::~Log()
+  485aea:	f03a e77a 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485aee:	bf00      	nop
+  485af0:	9f6e      	ldr	r7, [sp, #440]	; 0x1b8
+  485af2:	004b      	lsls	r3, r1, #1
+  485af4:	9f7a      	ldr	r7, [sp, #488]	; 0x1e8
+  485af6:	004b      	lsls	r3, r1, #1
+  485af8:	f738 004c 			; <UNDEFINED> instruction: 0xf738004c
+  485afc:	f772 004c 			; <UNDEFINED> instruction: 0xf772004c
+  485b00:	f742 004c 			; <UNDEFINED> instruction: 0xf742004c
+  485b04:	bfdb      	ittet	le
+  485b06:	ffe5 29d5 			; <UNDEFINED> instruction: 0xffe529d5
+  485b0a:	ffe6 f6a2 	vrsubhnle.i64	d31, q11, q9
+  485b0e:	004c      	lslgt	r4, r1, #1
+  485b10:	f6e6 004c 			; <UNDEFINED> instruction: 0xf6e6004c
+  485b14:	f6b6 004c 			; <UNDEFINED> instruction: 0xf6b6004c
+  485b18:	bf43      	ittte	mi
+  485b1a:	ffe5 a117 	vsrami.u32	d26, d7, #27
+  485b1e:	ffe8 f65c 	vqshlumi.s32	<illegal reg q15.5>, q6, #8
+  485b22:	004c      	lslmi	r4, r1, #1
+  485b24:	f63c 004c 			; <UNDEFINED> instruction: 0xf63c004c
+  485b28:	bebd      	bkpt	0x00bd
+  485b2a:	ffe5 c986 			; <UNDEFINED> instruction: 0xffe5c986
+  485b2e:	ffe6 9d74 	vcvt.u16.f16	<illegal reg q12.5>, q10, #26
+  485b32:	004b      	lsls	r3, r1, #1
+
+00485b34 <ScoreSystemVariable::constructPermanentKey(STRING const&)@@Base>:
+  485b34:	b580      	push	{r7, lr}
+  485b36:	466f      	mov	r7, sp
+  485b38:	460a      	mov	r2, r1
+  485b3a:	4902      	ldr	r1, [pc, #8]	; (485b44 <ScoreSystemVariable::constructPermanentKey(STRING const&)@@Base+0x10>)
+  485b3c:	4479      	add	r1, pc
+  485b3e:	f03d e3d8 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  485b42:	bd80      	pop	{r7, pc}
+  485b44:	f4f8 004c 			; <UNDEFINED> instruction: 0xf4f8004c
+
+00485b48 <ScoreSystemVariable::ScoreSystemVariable(STRING const&, bool)@@Base>:
+  485b48:	b5f0      	push	{r4, r5, r6, r7, lr}
+  485b4a:	af03      	add	r7, sp, #12
+  485b4c:	f84d bd04 	str.w	fp, [sp, #-4]!
+  485b50:	4615      	mov	r5, r2
+  485b52:	4604      	mov	r4, r0
+  485b54:	f03a e784 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  485b58:	490e      	ldr	r1, [pc, #56]	; (485b94 <ScoreSystemVariable::ScoreSystemVariable(STRING const&, bool)@@Base+0x4c>)
+  485b5a:	f100 060c 	add.w	r6, r0, #12
+  485b5e:	4479      	add	r1, pc
+  485b60:	4630      	mov	r0, r6
+  485b62:	4622      	mov	r2, r4
+  485b64:	f03d e3c4 	blx	8c32f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x2a20> // STRING::operator+(STRING const&) const
+  485b68:	f104 0018 	add.w	r0, r4, #24
+  485b6c:	f03b e158 	blx	8c0e20 <operator new[](unsigned int, std::align_val_t)@@Base+0x550> // STRING::STRING()
+  485b70:	2000      	movs	r0, #0
+  485b72:	f884 5024 	strb.w	r5, [r4, #36]	; 0x24
+  485b76:	f884 0025 	strb.w	r0, [r4, #37]	; 0x25
+  485b7a:	4620      	mov	r0, r4
+  485b7c:	f85d bb04 	ldr.w	fp, [sp], #4
+  485b80:	bdf0      	pop	{r4, r5, r6, r7, pc}
+  485b82:	4630      	mov	r0, r6
+  485b84:	f03a e714 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485b88:	e7ff      	b.n	485b8a <ScoreSystemVariable::ScoreSystemVariable(STRING const&, bool)@@Base+0x42>
+  485b8a:	4620      	mov	r0, r4
+  485b8c:	f03a e710 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485b90:	f03a e726 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485b94:	f4e2 004c 			; <UNDEFINED> instruction: 0xf4e2004c
+
+00485b98 <ScoreSystemVariable::ScoreSystemVariable()@@Base>:
+  485b98:	b5b0      	push	{r4, r5, r7, lr}
+  485b9a:	af02      	add	r7, sp, #8
+  485b9c:	4604      	mov	r4, r0
+  485b9e:	f03b e140 	blx	8c0e20 <operator new[](unsigned int, std::align_val_t)@@Base+0x550> // STRING::STRING()
+  485ba2:	f100 050c 	add.w	r5, r0, #12
+  485ba6:	4628      	mov	r0, r5
+  485ba8:	f03b e13a 	blx	8c0e20 <operator new[](unsigned int, std::align_val_t)@@Base+0x550> // STRING::STRING()
+  485bac:	f104 0018 	add.w	r0, r4, #24
+  485bb0:	f03b e136 	blx	8c0e20 <operator new[](unsigned int, std::align_val_t)@@Base+0x550> // STRING::STRING()
+  485bb4:	2000      	movs	r0, #0
+  485bb6:	84a0      	strh	r0, [r4, #36]	; 0x24
+  485bb8:	4620      	mov	r0, r4
+  485bba:	bdb0      	pop	{r4, r5, r7, pc}
+  485bbc:	4628      	mov	r0, r5
+  485bbe:	f03a e6f8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485bc2:	e7ff      	b.n	485bc4 <ScoreSystemVariable::ScoreSystemVariable()@@Base+0x2c>
+  485bc4:	4620      	mov	r0, r4
+  485bc6:	f03a e6f4 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485bca:	f03a e70a 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485bce:	d4d4      	bmi.n	485b7a <ScoreSystemVariable::ScoreSystemVariable(STRING const&, bool)@@Base+0x32>
+
+00485bd0 <ScoreSystemVariable::~ScoreSystemVariable()@@Base>:
+  485bd0:	b5d0      	push	{r4, r6, r7, lr}
+  485bd2:	af02      	add	r7, sp, #8
+  485bd4:	b082      	sub	sp, #8
+  485bd6:	4604      	mov	r4, r0
+  485bd8:	f890 0025 	ldrb.w	r0, [r0, #37]	; 0x25
+  485bdc:	b188      	cbz	r0, 485c02 <ScoreSystemVariable::~ScoreSystemVariable()@@Base+0x32>
+  485bde:	4811      	ldr	r0, [pc, #68]	; (485c24 <ScoreSystemVariable::~ScoreSystemVariable()@@Base+0x54>)
+  485be0:	4478      	add	r0, pc
+  485be2:	6800      	ldr	r0, [r0, #0]
+  485be4:	6800      	ldr	r0, [r0, #0]
+  485be6:	b160      	cbz	r0, 485c02 <ScoreSystemVariable::~ScoreSystemVariable()@@Base+0x32>
+  485be8:	4b0f      	ldr	r3, [pc, #60]	; (485c28 <ScoreSystemVariable::~ScoreSystemVariable()@@Base+0x58>)
+  485bea:	4910      	ldr	r1, [pc, #64]	; (485c2c <ScoreSystemVariable::~ScoreSystemVariable()@@Base+0x5c>)
+  485bec:	447b      	add	r3, pc
+  485bee:	4479      	add	r1, pc
+  485bf0:	680a      	ldr	r2, [r1, #0]
+  485bf2:	f104 010c 	add.w	r1, r4, #12
+  485bf6:	681b      	ldr	r3, [r3, #0]
+  485bf8:	9301      	str	r3, [sp, #4]
+  485bfa:	2300      	movs	r3, #0
+  485bfc:	9400      	str	r4, [sp, #0]
+  485bfe:	f03b e250 	blx	8c10a0 <operator new[](unsigned int, std::align_val_t)@@Base+0x7d0> // core::Registry::unregisterIntTrigger(STRING const&, upal::method<void (int const&, int const&)>)
+  485c02:	f104 0018 	add.w	r0, r4, #24
+  485c06:	f03a e6d4 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485c0a:	f104 000c 	add.w	r0, r4, #12
+  485c0e:	f03a e6d0 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  485c12:	4620      	mov	r0, r4
+  485c14:	b002      	add	sp, #8
+  485c16:	e8bd 40d0 	ldmia.w	sp!, {r4, r6, r7, lr}
+  485c1a:	f035 b453 	b.w	8bb4c4 <__emutls_get_address@@Base+0x3344>
+  485c1e:	f73f fcaf 	bl	3c5580 <analytics::Analytics::~Analytics()@@Base+0x128>
+  485c22:	bf00      	nop
+  485c24:	9c5c      	ldr	r4, [sp, #368]	; 0x170
+  485c26:	004b      	lsls	r3, r1, #1
+  485c28:	ae40      	add	r6, sp, #256	; 0x100
+  485c2a:	004b      	lsls	r3, r1, #1
+  485c2c:	ae3a      	add	r6, sp, #232	; 0xe8
+  485c2e:	004b      	lsls	r3, r1, #1
+
+00485c30 <ScoreSystemVariable::cacheKey() const@@Base>:
+  485c30:	300c      	adds	r0, #12
+  485c32:	4770      	bx	lr
+
+00485c34 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base>:
+  485c34:	b5f0      	push	{r4, r5, r6, r7, lr}
+  485c36:	af03      	add	r7, sp, #12
+  485c38:	e92d 0700 	stmdb	sp!, {r8, r9, sl}
+  485c3c:	b08a      	sub	sp, #40	; 0x28
+  485c3e:	4605      	mov	r5, r0
+  485c40:	483d      	ldr	r0, [pc, #244]	; (485d38 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0x104>)
+  485c42:	4689      	mov	r9, r1
+  485c44:	4478      	add	r0, pc
+  485c46:	f8d0 a000 	ldr.w	sl, [r0]
+  485c4a:	f8da 0000 	ldr.w	r0, [sl]
+  485c4e:	493b      	ldr	r1, [pc, #236]	; (485d3c <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0x108>)
+  485c50:	2800      	cmp	r0, #0
+  485c52:	4479      	add	r1, pc
+  485c54:	6809      	ldr	r1, [r1, #0]
+  485c56:	6809      	ldr	r1, [r1, #0]
+  485c58:	9109      	str	r1, [sp, #36]	; 0x24
+  485c5a:	d04c      	beq.n	485cf6 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xc2>
+  485c5c:	2068      	movs	r0, #104	; 0x68
+  485c5e:	4690      	mov	r8, r2
+  485c60:	f03a e67e 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  485c64:	4604      	mov	r4, r0
+  485c66:	4836      	ldr	r0, [pc, #216]	; (485d40 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0x10c>)
+  485c68:	f104 060c 	add.w	r6, r4, #12
+  485c6c:	2100      	movs	r1, #0
+  485c6e:	4478      	add	r0, pc
+  485c70:	60a1      	str	r1, [r4, #8]
+  485c72:	6800      	ldr	r0, [r0, #0]
+  485c74:	3008      	adds	r0, #8
+  485c76:	e9c4 0100 	strd	r0, r1, [r4]
+  485c7a:	f105 0118 	add.w	r1, r5, #24
+  485c7e:	4630      	mov	r0, r6
+  485c80:	2200      	movs	r2, #0
+  485c82:	f03b e3ae 	blx	8c13e0 <operator new[](unsigned int, std::align_val_t)@@Base+0xb10> // script::ScriptRunner::ScriptRunner(STRING const&, bool)
+  485c86:	f8d9 1000 	ldr.w	r1, [r9]
+  485c8a:	e9cd 6407 	strd	r6, r4, [sp, #28]
+  485c8e:	a801      	add	r0, sp, #4
+  485c90:	2201      	movs	r2, #1
+  485c92:	f03b e356 	blx	8c1340 <operator new[](unsigned int, std::align_val_t)@@Base+0xa70> // script::StackObject::StackObject(int, int)
+  485c96:	a901      	add	r1, sp, #4
+  485c98:	4630      	mov	r0, r6
+  485c9a:	f03b e35a 	blx	8c1350 <operator new[](unsigned int, std::align_val_t)@@Base+0xa80> // script::ScriptRunner::setArg1(script::StackObject const&)
+  485c9e:	a801      	add	r0, sp, #4
+  485ca0:	f03b e35e 	blx	8c1360 <operator new[](unsigned int, std::align_val_t)@@Base+0xa90> // script::StackObject::~StackObject()
+  485ca4:	9c07      	ldr	r4, [sp, #28]
+  485ca6:	f8d8 1000 	ldr.w	r1, [r8]
+  485caa:	a801      	add	r0, sp, #4
+  485cac:	2201      	movs	r2, #1
+  485cae:	f03b e348 	blx	8c1340 <operator new[](unsigned int, std::align_val_t)@@Base+0xa70> // script::StackObject::StackObject(int, int)
+  485cb2:	a901      	add	r1, sp, #4
+  485cb4:	4620      	mov	r0, r4
+  485cb6:	f042 e77c 	blx	8c8bb0 <operator new[](unsigned int, std::align_val_t)@@Base+0x82e0> // script::ScriptRunner::setArg2(script::StackObject const&)
+  485cba:	a801      	add	r0, sp, #4
+  485cbc:	f03b e350 	blx	8c1360 <operator new[](unsigned int, std::align_val_t)@@Base+0xa90> // script::StackObject::~StackObject()
+  485cc0:	f8da 0000 	ldr.w	r0, [sl]
+  485cc4:	a907      	add	r1, sp, #28
+  485cc6:	f03b e354 	blx	8c1370 <operator new[](unsigned int, std::align_val_t)@@Base+0xaa0> // MAP::postScriptRun(std::__ndk1::shared_ptr<script::ScriptRunner> const&)
+  485cca:	9c08      	ldr	r4, [sp, #32]
+  485ccc:	b19c      	cbz	r4, 485cf6 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xc2>
+  485cce:	1d20      	adds	r0, r4, #4
+  485cd0:	f3bf 8f5b 	dmb	ish
+  485cd4:	e850 1f00 	ldrex	r1, [r0]
+  485cd8:	1e4a      	subs	r2, r1, #1
+  485cda:	e840 2300 	strex	r3, r2, [r0]
+  485cde:	2b00      	cmp	r3, #0
+  485ce0:	d1f8      	bne.n	485cd4 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xa0>
+  485ce2:	f3bf 8f5b 	dmb	ish
+  485ce6:	b931      	cbnz	r1, 485cf6 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xc2>
+  485ce8:	6820      	ldr	r0, [r4, #0]
+  485cea:	6881      	ldr	r1, [r0, #8]
+  485cec:	4620      	mov	r0, r4
+  485cee:	4788      	blx	r1
+  485cf0:	4620      	mov	r0, r4
+  485cf2:	f03b e31e 	blx	8c1330 <operator new[](unsigned int, std::align_val_t)@@Base+0xa60> // std::__ndk1::__shared_weak_count::__release_weak()
+  485cf6:	9809      	ldr	r0, [sp, #36]	; 0x24
+  485cf8:	4912      	ldr	r1, [pc, #72]	; (485d44 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0x110>)
+  485cfa:	4479      	add	r1, pc
+  485cfc:	6809      	ldr	r1, [r1, #0]
+  485cfe:	6809      	ldr	r1, [r1, #0]
+  485d00:	4281      	cmp	r1, r0
+  485d02:	bf02      	ittt	eq
+  485d04:	b00a      	addeq	sp, #40	; 0x28
+  485d06:	e8bd 0700 	ldmiaeq.w	sp!, {r8, r9, sl}
+  485d0a:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  485d0c:	f03a e660 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  485d10:	e005      	b.n	485d1e <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xea>
+  485d12:	e000      	b.n	485d16 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xe2>
+  485d14:	e003      	b.n	485d1e <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xea>
+  485d16:	a801      	add	r0, sp, #4
+  485d18:	f03b e322 	blx	8c1360 <operator new[](unsigned int, std::align_val_t)@@Base+0xa90> // script::StackObject::~StackObject()
+  485d1c:	e7ff      	b.n	485d1e <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xea>
+  485d1e:	a807      	add	r0, sp, #28
+  485d20:	f742 f844 	bl	3c7dac <ad::AdManager::gotPoints(STRING const&, int)@@Base+0x108>
+  485d24:	f03a e65c 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485d28:	4620      	mov	r0, r4
+  485d2a:	f03a e6e2 	blx	8c0af0 <operator new[](unsigned int, std::align_val_t)@@Base+0x220> // std::__ndk1::__shared_weak_count::~__shared_weak_count()
+  485d2e:	f03a e660 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  485d32:	f03a e656 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  485d36:	bf00      	nop
+  485d38:	9c04      	ldr	r4, [sp, #16]
+  485d3a:	004b      	lsls	r3, r1, #1
+  485d3c:	9bc6      	ldr	r3, [sp, #792]	; 0x318
+  485d3e:	004b      	lsls	r3, r1, #1
+  485d40:	9c1e      	ldr	r4, [sp, #120]	; 0x78
+  485d42:	004b      	lsls	r3, r1, #1
+  485d44:	9b1e      	ldr	r3, [sp, #120]	; 0x78
+  485d46:	004b      	lsls	r3, r1, #1
+
+00485d48 <ScoreSystemVariable::scriptFunctionName() const@@Base>:
+  485d48:	3018      	adds	r0, #24
+  485d4a:	4770      	bx	lr
+
+00485d4c <ScoreSystemVariable::isValid() const@@Base>:
+  485d4c:	b580      	push	{r7, lr}
+  485d4e:	466f      	mov	r7, sp
+  485d50:	f03b e19e 	blx	8c1090 <operator new[](unsigned int, std::align_val_t)@@Base+0x7c0> // STRING::isEmpty() const
+  485d54:	f080 0001 	eor.w	r0, r0, #1
+  485d58:	bd80      	pop	{r7, pc}
+  485d5a:	d4d4      	bmi.n	485d06 <ScoreSystemVariable::onChanged(int const&, int const&)@@Base+0xd2>
+
+00485d5c <core::AutoSingleton<ScoreSystem>::~AutoSingleton()@@Base>:
+  485d5c:	4905      	ldr	r1, [pc, #20]	; (485d74 <core::AutoSingleton<ScoreSystem>::~AutoSingleton()@@Base+0x18>)
+  485d5e:	4a06      	ldr	r2, [pc, #24]	; (485d78 <core::AutoSingleton<ScoreSystem>::~AutoSingleton()@@Base+0x1c>)
+  485d60:	4479      	add	r1, pc
+  485d62:	447a      	add	r2, pc
+  485d64:	6809      	ldr	r1, [r1, #0]
+  485d66:	6812      	ldr	r2, [r2, #0]
+  485d68:	3108      	adds	r1, #8
+  485d6a:	6001      	str	r1, [r0, #0]
+  485d6c:	2100      	movs	r1, #0
+  485d6e:	6011      	str	r1, [r2, #0]
+  485d70:	4770      	bx	lr
+  485d72:	bf00      	nop
+  485d74:	acb8      	add	r4, sp, #736	; 0x2e0
+  485d76:	004b      	lsls	r3, r1, #1
+  485d78:	9dca      	ldr	r5, [sp, #808]	; 0x328
+  485d7a:	004b      	lsls	r3, r1, #1
+
+00485d7c <core::AutoSingleton<ScoreSystem>::~AutoSingleton()@@Base>:
+  485d7c:	4903      	ldr	r1, [pc, #12]	; (485d8c <core::AutoSingleton<ScoreSystem>::~AutoSingleton()@@Base+0x10>)
+  485d7e:	2200      	movs	r2, #0
+  485d80:	4479      	add	r1, pc
+  485d82:	6809      	ldr	r1, [r1, #0]
+  485d84:	600a      	str	r2, [r1, #0]
+  485d86:	f035 b349 	b.w	8bb41c <__emutls_get_address@@Base+0x329c>
+  485d8a:	bf00      	nop
+  485d8c:	9dac      	ldr	r5, [sp, #688]	; 0x2b0
+  485d8e:	004b      	lsls	r3, r1, #1
+
+00485d90 <void upal::detail::free_call_multi<ScoreSystem, void, void (ScoreSystem::*)()>(upal::detail::function_pointers const&, void*)@@Base>:
+  485d90:	e9d0 2300 	ldrd	r2, r3, [r0]
+  485d94:	eb01 0063 	add.w	r0, r1, r3, asr #1
+  485d98:	07d9      	lsls	r1, r3, #31
+  485d9a:	bf1c      	itt	ne
+  485d9c:	6801      	ldrne	r1, [r0, #0]
+  485d9e:	588a      	ldrne	r2, [r1, r2]
+  485da0:	4710      	bx	r2
+  485da2:	d4d4      	bmi.n	485d4e <ScoreSystemVariable::isValid() const@@Base+0x2>
+
+00485da4 <std::__ndk1::pair<std::__ndk1::__hash_iterator<std::__ndk1::__hash_node<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, void*>*>, bool> std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::__unordered_map_hasher<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::hash<STRING>, std::__ndk1::equal_to<STRING>, true>, std::__ndk1::__unordered_map_equal<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::equal_to<STRING>, std::__ndk1::hash<STRING>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable> > >::__emplace_unique_key_args<STRING, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>, std::__ndk1::tuple<> >(STRING const&, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>&&, std::__ndk1::tuple<>&&)@@Base>:
+  485da4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  485da6:	af03      	add	r7, sp, #12
+  485da8:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  485dac:	b087      	sub	sp, #28
+  485dae:	9002      	str	r0, [sp, #8]
+  485db0:	4615      	mov	r5, r2
+  485db2:	48af      	ldr	r0, [pc, #700]	; (486070 <std::__ndk1::pair<std::__ndk1::__hash_iterator<std::__ndk1::__hash_node<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, void*>*>, bool> std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::__unordered_map_hasher<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::hash<STRING>, std::__ndk1::equal_to<STRING>, true>, std::__ndk1::__unordered_map_equal<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::equal_to<STRING>, std::__ndk1::hash<STRING>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable> > >::__emplace_unique_key_args<STRING, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>, std::__ndk1::tuple<> >(STRING const&, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>&&, std::__ndk1::tuple<>&&)@@Base+0x2cc>)
+  485db4:	468a      	mov	sl, r1
+  485db6:	4478      	add	r0, pc
+  485db8:	6800      	ldr	r0, [r0, #0]
+  485dba:	6800      	ldr	r0, [r0, #0]
+  485dbc:	9006      	str	r0, [sp, #24]
+  485dbe:	4610      	mov	r0, r2
+  485dc0:	f03a e656 	blx	8c0a70 <operator new[](unsigned int, std::align_val_t)@@Base+0x1a0> // STRING::hash() const
+  485dc4:	f8da 4004 	ldr.w	r4, [sl, #4]
+  485dc8:	4683      	mov	fp, r0
+  485dca:	b1dc      	cbz	r4, 485e04 <std::__ndk1::pair<std::__ndk1::__hash_iterator<std::__ndk1::__hash_node<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, void*>*>, bool> std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::__unordered_map_hasher<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::hash<STRING>, std::__ndk1::equal_to<STRING>, true>, std::__ndk1::__unordered_map_equal<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::equal_to<STRING>, std::__ndk1::hash<STRING>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable> > >::__emplace_unique_key_args<STRING, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>, std::__ndk1::tuple<> >(STRING const&, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>&&, std::__ndk1::tuple<>&&)@@Base+0x60>
+  485dcc:	f04f 3055 	mov.w	r0, #1431655765	; 0x55555555
+  485dd0:	f04f 3133 	mov.w	r1, #858993459	; 0x33333333
+  485dd4:	ea00 0054 	and.w	r0, r0, r4, lsr #1
+  485dd8:	1a20      	subs	r0, r4, r0
+  485dda:	ea01 0190 	and.w	r1, r1, r0, lsr #2
+  485dde:	f020 30cc 	bic.w	r0, r0, #3435973836	; 0xcccccccc
+  485de2:	4408      	add	r0, r1
+  485de4:	f04f 3101 	mov.w	r1, #16843009	; 0x1010101
+  485de8:	eb00 1010 	add.w	r0, r0, r0, lsr #4
+  485dec:	f020 30f0 	bic.w	r0, r0, #4042322160	; 0xf0f0f0f0
+  485df0:	4348      	muls	r0, r1
+  485df2:	ea4f 6810 	mov.w	r8, r0, lsr #24
+  485df6:	f1b8 0f01 	cmp.w	r8, #1
+  485dfa:	d804      	bhi.n	485e06 <std::__ndk1::pair<std::__ndk1::__hash_iterator<std::__ndk1::__hash_node<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, void*>*>, bool> std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::__unordered_map_hasher<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::hash<STRING>, std::__ndk1::equal_to<STRING>, true>, std::__ndk1::__unordered_map_equal<STRING, std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable>, std::__ndk1::equal_to<STRING>, std::__ndk1::hash<STRING>, true>, std::__ndk1::allocator<std::__ndk1::__hash_value_type<STRING, ScoreSystemVariable> > >::__emplace_unique_key_args<STRING, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>, std::__ndk1::tuple<> >(STRING const&, std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<STRING const&>&&, std::__ndk1::tuple<>&&)@@Base+0x62>
+  485dfc:	1e60      	subs	r0, r4, #1
+  485dfe:	Address 0x0000000000485dfe is out of bounds.

@@ -23,6 +23,12 @@ extern "C" {
 
 #define MAP_FAILED (void*)-1
 
+#ifdef ZOMBIE_DEBUG_BUILD
+void *malloc_soloader_diagnostic(size_t size);
+void *calloc_soloader_diagnostic(size_t count,size_t size);
+void *realloc_soloader_diagnostic(void *previous,size_t size);
+#endif
+
 void *memset_soloader_perf(void *dst, int c, size_t len);
 
 void *sceClibMemclr(void *dst, size_t len);

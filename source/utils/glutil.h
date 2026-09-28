@@ -30,6 +30,7 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface);
 unsigned egl_present_count(void);
 unsigned egl_present_age_ms(void);
 
+void glDeleteTextures_soloader(GLsizei n,const GLuint *textures);
 void glGenBuffers_soloader(GLsizei n, GLuint *buffers);
 void glBindBuffer_soloader(GLenum target, GLuint buffer);
 void glDeleteBuffers_soloader(GLsizei n, const GLuint *buffers);

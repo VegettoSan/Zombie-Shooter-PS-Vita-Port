@@ -312,7 +312,7 @@ index 3e61b41..d447197 100644
  #ifdef USE_SCELIBC_IO
          sceLibcBridge_fclose(a->f);
 diff --git a/android/AInput.cpp b/android/AInput.cpp
-index 91f151d..c1c23d3 100644
+index 91f151d..fe128ef 100644
 --- a/android/AInput.cpp
 +++ b/android/AInput.cpp
 @@ -3,6 +3,7 @@
@@ -323,7 +323,15 @@ index 91f151d..c1c23d3 100644
  #include <cstring>
  #include <cerrno>
  
-@@ -17,6 +18,9 @@ static inputEvent _event_pool_storage[EVENT_POOL_SIZE];
+@@ -12,11 +13,17 @@
+ #include "linux/fndk_unistd.h"
+ #include "shim/fndk_controls.h"
+ 
++#ifdef ZOMBIE_DEBUG_BUILD
++extern "C" void zombie_input_event_trace(const inputEvent*) __attribute__((weak));
++#endif
+ #define EVENT_POOL_SIZE 64
+ static inputEvent _event_pool_storage[EVENT_POOL_SIZE];
  static inputEvent* _event_pool_free[EVENT_POOL_SIZE];
  static int _event_pool_top = 0;
  static SceKernelLwMutexWork _event_pool_lock;
@@ -333,7 +341,7 @@ index 91f151d..c1c23d3 100644
  
  __attribute__((constructor))
  static void _event_pool_init() {
-@@ -43,6 +47,8 @@ AInputQueue * AInputQueue_create() {
+@@ -43,6 +50,8 @@ AInputQueue * AInputQueue_create() {
  
      if (iq->mDispatchFd < 0) {
          ALOGE("eventfd creation for AInputQueue failed: %s\n", strerror(errno));
@@ -342,7 +350,7 @@ index 91f151d..c1c23d3 100644
      } else {
          ALOGD("Created eventfd for AInputQueue: #%i", iq->mDispatchFd);
      }
-@@ -120,6 +126,7 @@ int32_t AInputQueue_getEvent(AInputQueue* queue, AInputEvent** outEvent) {
+@@ -120,6 +129,7 @@ int32_t AInputQueue_getEvent(AInputQueue* queue, AInputEvent** outEvent) {
      if (!q->mPendingEvents.empty()) {
          *outEvent = q->mPendingEvents.front();
          q->mPendingEvents.pop_front();
@@ -350,7 +358,7 @@ index 91f151d..c1c23d3 100644
      }
  
      if (q->mPendingEvents.empty()) {
-@@ -158,9 +165,16 @@ void AInputQueue_finishEvent(AInputQueue* queue, AInputEvent* event, int handled
+@@ -158,9 +168,16 @@ void AInputQueue_finishEvent(AInputQueue* queue, AInputEvent* event, int handled
  void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
      if (!queue || !event) return;
      auto * q = reinterpret_cast<inputQueue *>(queue);
@@ -367,7 +375,7 @@ index 91f151d..c1c23d3 100644
      if (q->mPendingEvents.size() == 1) {
          uint64_t payload = 1;
          int res = TEMP_FAILURE_RETRY(fndk_write(q->mDispatchFd, &payload, sizeof(payload)));
-@@ -169,6 +183,16 @@ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
+@@ -169,6 +186,16 @@ void AInputQueue_enqueueEvent(AInputQueue* queue, AInputEvent* event) {
          }
      }
      sceKernelUnlockLwMutex(&q->mLock, 1);
@@ -384,7 +392,17 @@ index 91f151d..c1c23d3 100644
  }
  
  /**
-@@ -198,7 +222,7 @@ int32_t AInputEvent_getType(const AInputEvent* event) {
+@@ -186,6 +213,9 @@ AInputEvent *AInputEvent_create(const inputEvent *e) {
+         ret = static_cast<inputEvent*>(malloc(sizeof(inputEvent)));
+     }
+     memcpy(ret, e, sizeof(inputEvent));
++#ifdef ZOMBIE_DEBUG_BUILD
++    if(zombie_input_event_trace) zombie_input_event_trace(ret);
++#endif
+     return reinterpret_cast<AInputEvent*>(ret);
+ }
+ 
+@@ -198,7 +228,7 @@ int32_t AInputEvent_getType(const AInputEvent* event) {
  int32_t AInputEvent_getDeviceId(const AInputEvent* event) {
      if (!event) return -1;
      auto * e = reinterpret_cast<const inputEvent *>(event);
@@ -393,7 +411,7 @@ index 91f151d..c1c23d3 100644
  }
  
  int32_t AInputEvent_getSource(const AInputEvent* event) {
-@@ -264,11 +288,26 @@ float AMotionEvent_getY(const AInputEvent* motion_event, size_t pointer_index) {
+@@ -264,11 +294,26 @@ float AMotionEvent_getY(const AInputEvent* motion_event, size_t pointer_index) {
      return e->motion_y[pointer_index];
  }
  
@@ -420,7 +438,7 @@ index 91f151d..c1c23d3 100644
      switch (axis) {
          case AMOTION_EVENT_AXIS_X:
              return e->motion_x[pointer_index];
-@@ -293,7 +332,7 @@ int32_t axis, size_t pointer_index) {
+@@ -293,7 +338,7 @@ int32_t axis, size_t pointer_index) {
              // These are often requested for joysticks but not applicable to the Vita
              return 0;
          default:

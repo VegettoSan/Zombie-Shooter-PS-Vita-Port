@@ -486,9 +486,16 @@ so_default_dynlib default_dynlib[] = {
 
 
         // Memory
+        #ifdef ZOMBIE_DEBUG_BUILD
+        { "calloc", (uintptr_t)&calloc_soloader_diagnostic },
+        { "malloc", (uintptr_t)&malloc_soloader_diagnostic },
+        { "realloc", (uintptr_t)&realloc_soloader_diagnostic },
+#else
         { "calloc", (uintptr_t)&calloc },
-        { "free", (uintptr_t)&free },
         { "malloc", (uintptr_t)&malloc },
+        { "realloc", (uintptr_t)&realloc },
+#endif
+        { "free", (uintptr_t)&free },
         { "memalign", (uintptr_t)&memalign },
         { "memcmp", (uintptr_t)&memcmp },
         { "memcpy", (uintptr_t)&sceClibMemcpy },
@@ -498,7 +505,6 @@ so_default_dynlib default_dynlib[] = {
         { "mmap", (uintptr_t)&mmap },
         { "__mmap2", (uintptr_t)&mmap },
         { "munmap", (uintptr_t)&munmap },
-        { "realloc", (uintptr_t)&realloc },
         { "valloc", (uintptr_t)&valloc },
 
 
@@ -541,7 +547,11 @@ so_default_dynlib default_dynlib[] = {
             { "fsetpos", (uintptr_t)&sceLibcBridge_fsetpos },
             { "ftell", (uintptr_t)&sceLibcBridge_ftell },
             { "fwide", (uintptr_t)&sceLibcBridge_fwide },
-            { "fwrite", (uintptr_t)&sceLibcBridge_fwrite },
+            #ifdef ZOMBIE_DEBUG_BUILD
+        { "fwrite", (uintptr_t)&fwrite_soloader },
+#else
+        { "fwrite", (uintptr_t)&sceLibcBridge_fwrite },
+#endif
             { "getc", (uintptr_t)&sceLibcBridge_getc },
             { "getwc", (uintptr_t)&sceLibcBridge_getwc },
             { "putc", (uintptr_t)&sceLibcBridge_putc },
@@ -568,7 +578,11 @@ so_default_dynlib default_dynlib[] = {
             { "fsetpos", (uintptr_t)&fsetpos },
             { "ftell", (uintptr_t)&ftell },
             { "fwide", (uintptr_t)&fwide },
-            { "fwrite", (uintptr_t)&fwrite },
+            #ifdef ZOMBIE_DEBUG_BUILD
+        { "fwrite", (uintptr_t)&fwrite_soloader },
+#else
+        { "fwrite", (uintptr_t)&fwrite },
+#endif
             { "getc", (uintptr_t)&getc },
             { "getwc", (uintptr_t)&getwc },
             { "putc", (uintptr_t)&putc },
@@ -602,15 +616,31 @@ so_default_dynlib default_dynlib[] = {
 #endif
         { "realpath", (uintptr_t)&realpath },
         { "remove", (uintptr_t)&remove },
+        #ifdef ZOMBIE_DEBUG_BUILD
+        { "rename", (uintptr_t)&rename_soloader },
+#else
         { "rename", (uintptr_t)&rename },
+#endif
         { "rewind", (uintptr_t)&rewind },
         { "rmdir", (uintptr_t)&rmdir },
         { "truncate", (uintptr_t)&truncate },
+        #ifdef ZOMBIE_DEBUG_BUILD
+        { "unlink", (uintptr_t)&unlink_soloader },
+#else
         { "unlink", (uintptr_t)&unlink },
+#endif
 #ifndef NDK_PORT
+        #ifdef ZOMBIE_DEBUG_BUILD
+        { "write", (uintptr_t)&write_soloader },
+#else
         { "write", (uintptr_t)&write },
+#endif
+#else
+        #ifdef ZOMBIE_DEBUG_BUILD
+        { "write", (uintptr_t)&write_soloader },
 #else
         { "write", (uintptr_t)&fndk_write },
+#endif
 #endif
 
 
@@ -715,7 +745,7 @@ so_default_dynlib default_dynlib[] = {
         { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
         { "glDeleteRenderbuffersOES", (uintptr_t)&glDeleteRenderbuffers },
         { "glDeleteShader", (uintptr_t)&glDeleteShader },
-        { "glDeleteTextures", (uintptr_t)&glDeleteTextures },
+        { "glDeleteTextures", (uintptr_t)&glDeleteTextures_soloader },
         { "glDepthFunc", (uintptr_t)&glDepthFunc },
         { "glDepthMask", (uintptr_t)&glDepthMask },
         { "glDepthRangef", (uintptr_t)&glDepthRangef },

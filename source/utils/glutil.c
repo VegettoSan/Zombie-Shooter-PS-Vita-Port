@@ -24,6 +24,27 @@
 #include <stdint.h>
 #include <so_util/so_util.h>
 #include "utils/perf.h"
+#include "utils/upload_reuse_guard.h"
+static UploadReuseGuard upload_guard;
+/* Shared with the pinned VitaGL COW diagnostic, default zero. */
+int zombie_texture_full_preserve;
+static void trace_texture_update(const char *operation,uintptr_t caller,GLenum target,
+                                 int w,int h,GLenum format,GLenum type,const void *data) {
+#ifdef ZOMBIE_DEBUG_BUILD
+    static struct {uintptr_t caller;GLuint texture;int w,h;GLenum format,type;} seen[64];
+    static unsigned count;
+    if(count==64 || target!=GL_TEXTURE_2D)return;
+    GLint texture=0;glGetIntegerv(GL_TEXTURE_BINDING_2D,&texture);
+    for(unsigned i=0;i<count;i++)if(seen[i].caller==caller&&seen[i].texture==(GLuint)texture&&
+        seen[i].w==w&&seen[i].h==h&&seen[i].format==format&&seen[i].type==type)return;
+    seen[count].caller=caller;seen[count].texture=texture;seen[count].w=w;seen[count].h=h;
+    seen[count].format=format;seen[count].type=type;count++;
+    l_perf("[GL] %s texture=%u shape=%dx%d format=0x%X type=0x%X producer=%p caller=%p reuse=%d diag=%d",operation,(unsigned)texture,w,h,format,type,data,(void*)caller,upload_guard.valid,setting_render_diagnostics);
+#else
+    (void)operation;(void)caller;(void)target;(void)w;(void)h;(void)format;(void)type;(void)data;
+#endif
+}
+
 #include <vitagl/source/utils/zombie_texture_update.h>
 
 extern so_module so_mod;
@@ -157,6 +178,12 @@ static void report_render_thread(void) {
 }
 static struct { uintptr_t caller; unsigned calls, us, max_us; int w,h; GLenum format,type; } upload_groups[8];
 extern volatile int zombie_render_reuse_active_this_tick;
+static unsigned render_reuse_uploads_refused;
+int render_upload_reuse_ready(void) { return upload_guard.valid; }
+void glDeleteTextures_soloader(GLsizei n,const GLuint *textures) {
+    for(GLsizei i=0;textures && i<n;i++) if(textures[i]==upload_guard.texture) upload_reuse_invalidate(&upload_guard);
+    glDeleteTextures(n,textures);
+}
 static unsigned render_reuse_uploads_skipped;
 static void report_texture_costs(void) {
     VglZombieTextureStats cow; vglZombieTextureStatsGet(&cow);
@@ -170,6 +197,7 @@ static void report_texture_costs(void) {
         (unsigned long long)cow.rgba565_input_bytes, (unsigned long long)cow.rgba565_output_bytes);
     l_perf("frame_reuse skipped_framebuffer_uploads_lifetime=%u caller=0x%08X strategy=caller_exact_full_rgba",
         render_reuse_uploads_skipped,(unsigned)guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN));
+    l_perf("texture_reuse refused_lifetime=%u texture=%u producer=%p valid=%d diagnostics=%d",render_reuse_uploads_refused,upload_guard.texture,(void*)upload_guard.producer,upload_guard.valid,setting_render_diagnostics);
     for (unsigned i=0;i<8;++i) if (upload_groups[i].calls) {
         l_perf("tex_upload caller=0x%08X calls=%u total_us=%u max_us=%u max_shape=%dx%d format=0x%X type=0x%X",
             (unsigned)upload_groups[i].caller,upload_groups[i].calls,upload_groups[i].us,upload_groups[i].max_us,
@@ -289,7 +317,11 @@ void glBufferSubData_soloader(GLenum target, GLintptr offset, GLsizeiptr size, c
     glBufferSubData(target, offset, size, data); gl_time(&gl_perf.buffer_sub, start);
 }
 void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data) {
+    upload_reuse_invalidate(&upload_guard);
+    zombie_texture_full_preserve=(setting_render_diagnostics & 2)!=0;
+    if(setting_render_diagnostics & 1) glFinish();
     uintptr_t caller=(uintptr_t)__builtin_return_address(0);
+    trace_texture_update("TexImage",caller,target,width,height,format,type,data);
     if (framebuffer565.active &&
         (caller==guest_return(SOFTWARE_INIT_TEXIMAGE_RETURN_A) || caller==guest_return(SOFTWARE_INIT_TEXIMAGE_RETURN_B))) {
         framebuffer565.active=0;
@@ -299,6 +331,7 @@ void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLs
 }
 void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data) {
     uintptr_t caller=(uintptr_t)__builtin_return_address(0);
+    trace_texture_update("TexSub",caller,target,width,height,format,type,data);
     if(format==GL_RGBA && type==GL_UNSIGNED_BYTE && width>=720 && height>=400) {
         static int last_width,last_height;
         if(width!=last_width || height!=last_height) {
@@ -306,23 +339,31 @@ void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint y
             last_width=width;last_height=height;
         }
     }
-    /* Pass 11: reuse only the proven final software-framebuffer upload.
-     * PostTact itself still runs, preserving OpenGLES lock/unlock/state semantics.
-     * The caller+shape+format gate prevents unrelated textures being skipped. */
-    if (setting_software_frameskip && zombie_render_reuse_active_this_tick && data &&
-        caller == guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN) &&
+    int software_upload = data && caller == guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN) &&
         target == GL_TEXTURE_2D && level == 0 && xoffset == 0 && yoffset == 0 &&
         format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
-        width >= 720 && width <= 1100 && height >= 400 && height <= 650) {
-        render_reuse_uploads_skipped++;
-        return;
+        width >= 720 && width <= 1100 && height >= 400 && height <= 650;
+    GLint texture=0;
+    if(software_upload) glGetIntegerv(GL_TEXTURE_BINDING_2D,&texture);
+    if(software_upload && setting_software_frameskip && zombie_render_reuse_active_this_tick &&
+        !(setting_render_diagnostics & 4)) {
+        if(upload_reuse_matches(&upload_guard,(unsigned)texture,(uintptr_t)data,width,height)) {
+            render_reuse_uploads_skipped++;return;
+        }
+        render_reuse_uploads_refused++;
     }
+    /* A non-framebuffer update may modify the reusable texture. Conservative
+     * invalidation is safe even when it actually updates an unrelated object. */
+    if(!software_upload) upload_reuse_invalidate(&upload_guard);
+    zombie_texture_full_preserve=(setting_render_diagnostics & 2)!=0;
+    if(setting_render_diagnostics & 1) glFinish();
 
     if (is_software_framebuffer_upload(caller,target,level,xoffset,yoffset,width,height,format,type,data))
         framebuffer565_reinit_if_needed(target,width,height);
 
     uint64_t start = sceKernelGetProcessTimeWide();
     glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, data);
+    if(software_upload) upload_reuse_complete(&upload_guard,(unsigned)texture,(uintptr_t)data,width,height);
     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
     gl_perf.tex_sub.calls++; gl_perf.tex_sub.total_us+=us;
     if (us>gl_perf.tex_sub.max_us) gl_perf.tex_sub.max_us=us;

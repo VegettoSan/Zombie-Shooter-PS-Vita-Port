@@ -6,7 +6,7 @@
 #ifdef ZOMBIE_RELEASE_BUILD
 #define EXPECTED_DEFAULT_LOG_MODE 1
 #else
-#define EXPECTED_DEFAULT_LOG_MODE 3
+#define EXPECTED_DEFAULT_LOG_MODE 2
 #endif
 
 int main(void) {
@@ -63,5 +63,13 @@ int main(void) {
         settings_load();assert(setting_asset_cache_mib==(i==3?8:cache_values[i]));
         assert(setting_audio_frames==(i==3?1024:audio_values[i]) && setting_music_mode==0 && setting_log_mode==1);
     }
+    for(int diagnostic=0;diagnostic<=8;diagnostic++) {
+        f=fopen(DATA_PATH "config.txt","w");assert(f);
+        fprintf(f,"render_diagnostics %d\nasset_negative_cache 0\n",diagnostic);fclose(f);
+        settings_load();assert(setting_render_diagnostics==(diagnostic<=7?diagnostic:0));
+        assert(setting_asset_negative_cache==0);
+    }
+    setting_render_diagnostics=2;setting_asset_negative_cache=1;settings_save();settings_reset();settings_load();
+    assert(setting_render_diagnostics==2 && setting_asset_negative_cache==1);
     puts("Settings regression PASS: log modes 0-3, stale vita_shooter ignored, 864 default, framebuffer migration, render reuse, music/cache/audio preservation");
 }

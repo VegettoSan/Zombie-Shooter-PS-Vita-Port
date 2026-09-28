@@ -110,7 +110,7 @@ jint fjni_register_natives(jclass c,const JNINativeMethod*m,jint n){
   for(jint i=0;i<n;i++)if(strcmp(m[i].name,"onKey")||strcmp(m[i].signature,"(Ljava/lang/String;)V")||!m[i].fnPtr)return JNI_ERR;
   for(jint i=0;i<n;i++)registry_key_callback=(RegistryKeyCallback)m[i].fnPtr;
 #ifdef ZOMBIE_DEBUG_BUILD
-  fjni_log_info("[PREFS] RegistryEnumerator.onKey registered");
+  l_perf("[SAVE] RegistryEnumerator.onKey registered");
 #endif
   return JNI_OK;
  }
@@ -119,7 +119,7 @@ jint fjni_register_natives(jclass c,const JNINativeMethod*m,jint n){
 void fjni_unregister_natives(jclass c){if(class_matches(c,REGISTRY_ENUM_CLASS))registry_key_callback=NULL;else base_fjni_unregister_natives(c);}
 
 int fjni_resolve_method(jclass c,const char*n,const char*s,jboolean st,jmethodID*r){
- if(c==(jclass)0x42424242&&!st&&!strcmp(n,"getPreferences")&&!strcmp(s,"(I)Landroid/content/SharedPreferences;")){*r=(jmethodID)(uintptr_t)METHOD_PREFS_ACTIVITY;return 1;}
+ if(c==(jclass)0x42424242&&!st&&!strcmp(n,"getPreferences")&&!strcmp(s,"(I)Landroid/content/SharedPreferences;")){*r=(jmethodID)(uintptr_t)METHOD_PREFS_ACTIVITY;SAVE_TRACE("[SAVE] resolve Activity.getPreferences(I) receiver=0x42424242");return 1;}
  if(class_matches(c,PREFS_CLASS)&&!st){
   if(!strcmp(n,"getString")&&!strcmp(s,"(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")){*r=(jmethodID)(uintptr_t)METHOD_PREFS_GET;return 1;}
   if(!strcmp(n,"contains")&&!strcmp(s,"(Ljava/lang/String;)Z")){*r=(jmethodID)(uintptr_t)METHOD_PREFS_CONTAINS;return 1;}

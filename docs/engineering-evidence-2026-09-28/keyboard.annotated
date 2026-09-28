@@ -1,0 +1,318 @@
+
+/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/demo/libzombie_shooter.so:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+003d0578 <input::AndroidKeyboardControl::handleKey(unsigned int) const@@Base>:
+  3d0578:	3904      	subs	r1, #4
+  3d057a:	2969      	cmp	r1, #105	; 0x69
+  3d057c:	f200 8039 	bhi.w	3d05f2 <input::AndroidKeyboardControl::handleKey(unsigned int) const@@Base+0x7a>
+  3d0580:	2001      	movs	r0, #1
+  3d0582:	e8df f001 	tbb	[pc, r1]
+  3d0586:	3635      	adds	r6, #53	; 0x35
+  3d0588:	3636      	adds	r6, #54	; 0x36
+  3d058a:	3636      	adds	r6, #54	; 0x36
+  3d058c:	3636      	adds	r6, #54	; 0x36
+  3d058e:	3636      	adds	r6, #54	; 0x36
+  3d0590:	3636      	adds	r6, #54	; 0x36
+  3d0592:	3636      	adds	r6, #54	; 0x36
+  3d0594:	3536      	adds	r5, #54	; 0x36
+  3d0596:	3535      	adds	r5, #53	; 0x35
+  3d0598:	3535      	adds	r5, #53	; 0x35
+  3d059a:	3636      	adds	r6, #54	; 0x36
+  3d059c:	3636      	adds	r6, #54	; 0x36
+  3d059e:	3636      	adds	r6, #54	; 0x36
+  3d05a0:	3636      	adds	r6, #54	; 0x36
+  3d05a2:	3636      	adds	r6, #54	; 0x36
+  3d05a4:	3636      	adds	r6, #54	; 0x36
+  3d05a6:	3636      	adds	r6, #54	; 0x36
+  3d05a8:	3636      	adds	r6, #54	; 0x36
+  3d05aa:	3636      	adds	r6, #54	; 0x36
+  3d05ac:	3636      	adds	r6, #54	; 0x36
+  3d05ae:	3636      	adds	r6, #54	; 0x36
+  3d05b0:	3636      	adds	r6, #54	; 0x36
+  3d05b2:	3636      	adds	r6, #54	; 0x36
+  3d05b4:	3636      	adds	r6, #54	; 0x36
+  3d05b6:	3636      	adds	r6, #54	; 0x36
+  3d05b8:	3636      	adds	r6, #54	; 0x36
+  3d05ba:	3636      	adds	r6, #54	; 0x36
+  3d05bc:	3636      	adds	r6, #54	; 0x36
+  3d05be:	3636      	adds	r6, #54	; 0x36
+  3d05c0:	3636      	adds	r6, #54	; 0x36
+  3d05c2:	3636      	adds	r6, #54	; 0x36
+  3d05c4:	3636      	adds	r6, #54	; 0x36
+  3d05c6:	3636      	adds	r6, #54	; 0x36
+  3d05c8:	3636      	adds	r6, #54	; 0x36
+  3d05ca:	3636      	adds	r6, #54	; 0x36
+  3d05cc:	3636      	adds	r6, #54	; 0x36
+  3d05ce:	3636      	adds	r6, #54	; 0x36
+  3d05d0:	3636      	adds	r6, #54	; 0x36
+  3d05d2:	3636      	adds	r6, #54	; 0x36
+  3d05d4:	3635      	adds	r6, #53	; 0x35
+  3d05d6:	3636      	adds	r6, #54	; 0x36
+  3d05d8:	3636      	adds	r6, #54	; 0x36
+  3d05da:	3636      	adds	r6, #54	; 0x36
+  3d05dc:	3636      	adds	r6, #54	; 0x36
+  3d05de:	3636      	adds	r6, #54	; 0x36
+  3d05e0:	3636      	adds	r6, #54	; 0x36
+  3d05e2:	3535      	adds	r5, #53	; 0x35
+  3d05e4:	3535      	adds	r5, #53	; 0x35
+  3d05e6:	3535      	adds	r5, #53	; 0x35
+  3d05e8:	3535      	adds	r5, #53	; 0x35
+  3d05ea:	3535      	adds	r5, #53	; 0x35
+  3d05ec:	3535      	adds	r5, #53	; 0x35
+  3d05ee:	3535      	adds	r5, #53	; 0x35
+  3d05f0:	4770      	bx	lr
+  3d05f2:	2000      	movs	r0, #0
+  3d05f4:	4770      	bx	lr
+  3d05f6:	d4d4      	bmi.n	3d05a2 <input::AndroidKeyboardControl::handleKey(unsigned int) const@@Base+0x2a>
+
+003d05f8 <input::AndroidKeyboardControl::refresh()@@Base>:
+  3d05f8:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3d05fa:	af03      	add	r7, sp, #12
+  3d05fc:	e92d 0f00 	stmdb	sp!, {r8, r9, sl, fp}
+  3d0600:	b0a5      	sub	sp, #148	; 0x94
+  3d0602:	4604      	mov	r4, r0
+  3d0604:	483b      	ldr	r0, [pc, #236]	; (3d06f4 <input::AndroidKeyboardControl::refresh()@@Base+0xfc>)
+  3d0606:	4478      	add	r0, pc
+  3d0608:	6800      	ldr	r0, [r0, #0]
+  3d060a:	6800      	ldr	r0, [r0, #0]
+  3d060c:	9024      	str	r0, [sp, #144]	; 0x90
+  3d060e:	6920      	ldr	r0, [r4, #16]
+  3d0610:	f0f1 e786 	blx	8c2520 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c50> // INPUT_Control::keyBinder()
+  3d0614:	f104 0818 	add.w	r8, r4, #24
+  3d0618:	4606      	mov	r6, r0
+  3d061a:	4640      	mov	r0, r8
+  3d061c:	f0f1 e458 	blx	8c1ed0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1600> // std::__ndk1::mutex::lock()
+  3d0620:	6b20      	ldr	r0, [r4, #48]	; 0x30
+  3d0622:	2800      	cmp	r0, #0
+  3d0624:	d050      	beq.n	3d06c8 <input::AndroidKeyboardControl::refresh()@@Base+0xd0>
+  3d0626:	6a20      	ldr	r0, [r4, #32]
+  3d0628:	f10d 0904 	add.w	r9, sp, #4
+  3d062c:	6ae2      	ldr	r2, [r4, #44]	; 0x2c
+  3d062e:	4932      	ldr	r1, [pc, #200]	; (3d06f8 <input::AndroidKeyboardControl::refresh()@@Base+0x100>)
+  3d0630:	4479      	add	r1, pc // literal @2c4c6b Keyboard: code == 
+  3d0632:	468a      	mov	sl, r1
+  3d0634:	4931      	ldr	r1, [pc, #196]	; (3d06fc <input::AndroidKeyboardControl::refresh()@@Base+0x104>)
+  3d0636:	4479      	add	r1, pc // literal @2d7d63 , state == 
+  3d0638:	468b      	mov	fp, r1
+  3d063a:	e001      	b.n	3d0640 <input::AndroidKeyboardControl::refresh()@@Base+0x48>
+  3d063c:	2900      	cmp	r1, #0
+  3d063e:	d043      	beq.n	3d06c8 <input::AndroidKeyboardControl::refresh()@@Base+0xd0>
+  3d0640:	0a53      	lsrs	r3, r2, #9
+  3d0642:	6821      	ldr	r1, [r4, #0]
+  3d0644:	f850 0023 	ldr.w	r0, [r0, r3, lsl #2]
+  3d0648:	f36f 225f 	bfc	r2, #9, #23
+  3d064c:	6a0b      	ldr	r3, [r1, #32]
+  3d064e:	eb00 05c2 	add.w	r5, r0, r2, lsl #3
+  3d0652:	f810 1032 	ldrb.w	r1, [r0, r2, lsl #3]
+  3d0656:	4620      	mov	r0, r4
+  3d0658:	686a      	ldr	r2, [r5, #4]
+  3d065a:	4798      	blx	r3
+  3d065c:	f0f0 e530 	blx	8c10c0 <operator new[](unsigned int, std::align_val_t)@@Base+0x7f0> // core::Log::reportingLevel()
+  3d0660:	2805      	cmp	r0, #5
+  3d0662:	d316      	bcc.n	3d0692 <input::AndroidKeyboardControl::refresh()@@Base+0x9a>
+  3d0664:	4648      	mov	r0, r9
+  3d0666:	2105      	movs	r1, #5
+  3d0668:	f0f0 e532 	blx	8c10d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x800> // core::Log::Log(core::ILogger::Level)
+  3d066c:	f0f0 e538 	blx	8c10e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x810> // core::Log::get()
+  3d0670:	4651      	mov	r1, sl
+  3d0672:	2212      	movs	r2, #18
+  3d0674:	f7f5 fa42 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  3d0678:	7829      	ldrb	r1, [r5, #0]
+  3d067a:	f0f0 e62a 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  3d067e:	4659      	mov	r1, fp
+  3d0680:	220b      	movs	r2, #11
+  3d0682:	f7f5 fa3b 	bl	3c5afc <void upal::detail::free_call_multi<analytics::Analytics, void, void (analytics::Analytics::*)()>(upal::detail::function_pointers const&, void*)@@Base+0x14>
+  3d0686:	6869      	ldr	r1, [r5, #4]
+  3d0688:	f0f0 e622 	blx	8c12d0 <operator new[](unsigned int, std::align_val_t)@@Base+0xa00> // std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char> >::operator<<(int)
+  3d068c:	4648      	mov	r0, r9
+  3d068e:	f0f0 e538 	blx	8c1100 <operator new[](unsigned int, std::align_val_t)@@Base+0x830> // core::Log::~Log()
+  3d0692:	686a      	ldr	r2, [r5, #4]
+  3d0694:	4630      	mov	r0, r6
+  3d0696:	7829      	ldrb	r1, [r5, #0]
+  3d0698:	f0f1 e74a 	blx	8c2530 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c60> // input::KeyBinder::setKey(unsigned int, input::Key::State)
+  3d069c:	e9d4 210b 	ldrd	r2, r1, [r4, #44]	; 0x2c
+  3d06a0:	6a20      	ldr	r0, [r4, #32]
+  3d06a2:	3901      	subs	r1, #1
+  3d06a4:	3201      	adds	r2, #1
+  3d06a6:	f5b2 6f80 	cmp.w	r2, #1024	; 0x400
+  3d06aa:	e9c4 210b 	strd	r2, r1, [r4, #44]	; 0x2c
+  3d06ae:	d3c5      	bcc.n	3d063c <input::AndroidKeyboardControl::refresh()@@Base+0x44>
+  3d06b0:	6800      	ldr	r0, [r0, #0]
+  3d06b2:	f0f0 e19e 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3d06b6:	6a20      	ldr	r0, [r4, #32]
+  3d06b8:	e9d4 210b 	ldrd	r2, r1, [r4, #44]	; 0x2c
+  3d06bc:	3004      	adds	r0, #4
+  3d06be:	6220      	str	r0, [r4, #32]
+  3d06c0:	f5a2 7200 	sub.w	r2, r2, #512	; 0x200
+  3d06c4:	62e2      	str	r2, [r4, #44]	; 0x2c
+  3d06c6:	e7b9      	b.n	3d063c <input::AndroidKeyboardControl::refresh()@@Base+0x44>
+  3d06c8:	4640      	mov	r0, r8
+  3d06ca:	f0f1 e40a 	blx	8c1ee0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1610> // std::__ndk1::mutex::unlock()
+  3d06ce:	9824      	ldr	r0, [sp, #144]	; 0x90
+  3d06d0:	490b      	ldr	r1, [pc, #44]	; (3d0700 <input::AndroidKeyboardControl::refresh()@@Base+0x108>)
+  3d06d2:	4479      	add	r1, pc
+  3d06d4:	6809      	ldr	r1, [r1, #0]
+  3d06d6:	6809      	ldr	r1, [r1, #0]
+  3d06d8:	4281      	cmp	r1, r0
+  3d06da:	bf02      	ittt	eq
+  3d06dc:	b025      	addeq	sp, #148	; 0x94
+  3d06de:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3d06e2:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3d06e4:	f0f0 e174 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3d06e8:	a801      	add	r0, sp, #4
+  3d06ea:	f0f0 e50a 	blx	8c1100 <operator new[](unsigned int, std::align_val_t)@@Base+0x830> // core::Log::~Log()
+  3d06ee:	f0f0 e178 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3d06f2:	bf00      	nop
+  3d06f4:	f212 0056 			; <UNDEFINED> instruction: 0xf2120056
+  3d06f8:	4637      	mov	r7, r6
+  3d06fa:	ffef 7729 	vabdl.u32	<illegal reg q11.5>, d15, d25
+  3d06fe:	fff0 f146 	vrev16.8	<illegal reg q15.5>, q3
+  3d0702:	0056      	lsls	r6, r2, #1
+
+003d0704 <input::AndroidKeyboardControl::configure()@@Base>:
+  3d0704:	b5d0      	push	{r4, r6, r7, lr}
+  3d0706:	af02      	add	r7, sp, #8
+  3d0708:	b084      	sub	sp, #16
+  3d070a:	4917      	ldr	r1, [pc, #92]	; (3d0768 <input::AndroidKeyboardControl::configure()@@Base+0x64>)
+  3d070c:	4479      	add	r1, pc
+  3d070e:	6809      	ldr	r1, [r1, #0]
+  3d0710:	6809      	ldr	r1, [r1, #0]
+  3d0712:	9103      	str	r1, [sp, #12]
+  3d0714:	6900      	ldr	r0, [r0, #16]
+  3d0716:	f0f1 e704 	blx	8c2520 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c50> // INPUT_Control::keyBinder()
+  3d071a:	4604      	mov	r4, r0
+  3d071c:	4813      	ldr	r0, [pc, #76]	; (3d076c <input::AndroidKeyboardControl::configure()@@Base+0x68>)
+  3d071e:	4478      	add	r0, pc
+  3d0720:	6800      	ldr	r0, [r0, #0]
+  3d0722:	6841      	ldr	r1, [r0, #4]
+  3d0724:	b119      	cbz	r1, 3d072e <input::AndroidKeyboardControl::configure()@@Base+0x2a>
+  3d0726:	4668      	mov	r0, sp
+  3d0728:	f0f0 e19a 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3d072c:	e003      	b.n	3d0736 <input::AndroidKeyboardControl::configure()@@Base+0x32>
+  3d072e:	6801      	ldr	r1, [r0, #0]
+  3d0730:	4668      	mov	r0, sp
+  3d0732:	f0f0 e176 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  3d0736:	466a      	mov	r2, sp
+  3d0738:	4620      	mov	r0, r4
+  3d073a:	2108      	movs	r1, #8
+  3d073c:	23ff      	movs	r3, #255	; 0xff
+  3d073e:	f0f1 e700 	blx	8c2540 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c70> // input::KeyBinder::bindKeys(input::ActionStates::Type, STRING const&, unsigned char)
+  3d0742:	4668      	mov	r0, sp
+  3d0744:	f0f0 e134 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3d0748:	9803      	ldr	r0, [sp, #12]
+  3d074a:	4909      	ldr	r1, [pc, #36]	; (3d0770 <input::AndroidKeyboardControl::configure()@@Base+0x6c>)
+  3d074c:	4479      	add	r1, pc
+  3d074e:	6809      	ldr	r1, [r1, #0]
+  3d0750:	6809      	ldr	r1, [r1, #0]
+  3d0752:	4281      	cmp	r1, r0
+  3d0754:	bf04      	itt	eq
+  3d0756:	b004      	addeq	sp, #16
+  3d0758:	bdd0      	popeq	{r4, r6, r7, pc}
+  3d075a:	f0f0 e13a 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3d075e:	4668      	mov	r0, sp
+  3d0760:	f0f0 e126 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3d0764:	f0f0 e13c 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3d0768:	f10c 0056 	add.w	r0, ip, #86	; 0x56
+  3d076c:	f396 0056 			; <UNDEFINED> instruction: 0xf3960056
+  3d0770:	f0cc 0056 			; <UNDEFINED> instruction: 0xf0cc0056
+
+003d0774 <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base>:
+  3d0774:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3d0776:	af03      	add	r7, sp, #12
+  3d0778:	f84d bd04 	str.w	fp, [sp, #-4]!
+  3d077c:	b084      	sub	sp, #16
+  3d077e:	4604      	mov	r4, r0
+  3d0780:	4819      	ldr	r0, [pc, #100]	; (3d07e8 <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base+0x74>)
+  3d0782:	460d      	mov	r5, r1
+  3d0784:	4478      	add	r0, pc
+  3d0786:	6800      	ldr	r0, [r0, #0]
+  3d0788:	6800      	ldr	r0, [r0, #0]
+  3d078a:	9003      	str	r0, [sp, #12]
+  3d078c:	4608      	mov	r0, r1
+  3d078e:	f0f1 e6e0 	blx	8c2550 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c80> // AKeyEvent_getAction
+  3d0792:	b130      	cbz	r0, 3d07a2 <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base+0x2e>
+  3d0794:	2802      	cmp	r0, #2
+  3d0796:	d018      	beq.n	3d07ca <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base+0x56>
+  3d0798:	2801      	cmp	r0, #1
+  3d079a:	bf14      	ite	ne
+  3d079c:	2602      	movne	r6, #2
+  3d079e:	2600      	moveq	r6, #0
+  3d07a0:	e000      	b.n	3d07a4 <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base+0x30>
+  3d07a2:	2601      	movs	r6, #1
+  3d07a4:	4628      	mov	r0, r5
+  3d07a6:	f0f1 e6dc 	blx	8c2560 <operator new[](unsigned int, std::align_val_t)@@Base+0x1c90> // AKeyEvent_getKeyCode
+  3d07aa:	4605      	mov	r5, r0
+  3d07ac:	6820      	ldr	r0, [r4, #0]
+  3d07ae:	4629      	mov	r1, r5
+  3d07b0:	69c2      	ldr	r2, [r0, #28]
+  3d07b2:	4620      	mov	r0, r4
+  3d07b4:	4790      	blx	r2
+  3d07b6:	b140      	cbz	r0, 3d07ca <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base+0x56>
+  3d07b8:	a901      	add	r1, sp, #4
+  3d07ba:	4620      	mov	r0, r4
+  3d07bc:	9602      	str	r6, [sp, #8]
+  3d07be:	f88d 5004 	strb.w	r5, [sp, #4]
+  3d07c2:	f0f1 e6d6 	blx	8c2570 <operator new[](unsigned int, std::align_val_t)@@Base+0x1ca0> // input::AndroidKeyboardControl::pushEvent(input::AndroidKeyboardControl::key_t const&)
+  3d07c6:	2001      	movs	r0, #1
+  3d07c8:	e000      	b.n	3d07cc <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base+0x58>
+  3d07ca:	2000      	movs	r0, #0
+  3d07cc:	9903      	ldr	r1, [sp, #12]
+  3d07ce:	4a07      	ldr	r2, [pc, #28]	; (3d07ec <input::AndroidKeyboardControl::handleEvent(AInputEvent*)@@Base+0x78>)
+  3d07d0:	447a      	add	r2, pc
+  3d07d2:	6812      	ldr	r2, [r2, #0]
+  3d07d4:	6812      	ldr	r2, [r2, #0]
+  3d07d6:	428a      	cmp	r2, r1
+  3d07d8:	bf02      	ittt	eq
+  3d07da:	b004      	addeq	sp, #16
+  3d07dc:	f85d bb04 	ldreq.w	fp, [sp], #4
+  3d07e0:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3d07e2:	f0f0 e0f6 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3d07e6:	bf00      	nop
+  3d07e8:	f094 0056 	eors.w	r0, r4, #86	; 0x56
+  3d07ec:	f048 0056 	orr.w	r0, r8, #86	; 0x56
+
+003d07f0 <input::AndroidKeyboardControl::pushEvent(input::AndroidKeyboardControl::key_t const&)@@Base>:
+  3d07f0:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3d07f2:	af03      	add	r7, sp, #12
+  3d07f4:	e92d 0b00 	stmdb	sp!, {r8, r9, fp}
+  3d07f8:	f100 0918 	add.w	r9, r0, #24
+  3d07fc:	4605      	mov	r5, r0
+  3d07fe:	4688      	mov	r8, r1
+  3d0800:	4648      	mov	r0, r9
+  3d0802:	f0f1 e366 	blx	8c1ed0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1600> // std::__ndk1::mutex::lock()
+  3d0806:	e9d5 0108 	ldrd	r0, r1, [r5, #32]
+  3d080a:	f04f 3cff 	mov.w	ip, #4294967295	; 0xffffffff
+  3d080e:	e9d5 230b 	ldrd	r2, r3, [r5, #44]	; 0x2c
+  3d0812:	1a0e      	subs	r6, r1, r0
+  3d0814:	1a0c      	subs	r4, r1, r0
+  3d0816:	eb03 0102 	add.w	r1, r3, r2
+  3d081a:	bf18      	it	ne
+  3d081c:	eb0c 14c6 	addne.w	r4, ip, r6, lsl #7
+  3d0820:	428c      	cmp	r4, r1
+  3d0822:	d107      	bne.n	3d0834 <input::AndroidKeyboardControl::pushEvent(input::AndroidKeyboardControl::key_t const&)@@Base+0x44>
+  3d0824:	f105 001c 	add.w	r0, r5, #28
+  3d0828:	f000 f894 	bl	3d0954 <input::AndroidKeyboardControl::~AndroidKeyboardControl()@@Base+0x78>
+  3d082c:	e9d5 120b 	ldrd	r1, r2, [r5, #44]	; 0x2c
+  3d0830:	6a28      	ldr	r0, [r5, #32]
+  3d0832:	4411      	add	r1, r2
+  3d0834:	0a4a      	lsrs	r2, r1, #9
+  3d0836:	f36f 215f 	bfc	r1, #9, #23
+  3d083a:	f850 0022 	ldr.w	r0, [r0, r2, lsl #2]
+  3d083e:	e9d8 2300 	ldrd	r2, r3, [r8]
+  3d0842:	f840 2031 	str.w	r2, [r0, r1, lsl #3]
+  3d0846:	eb00 00c1 	add.w	r0, r0, r1, lsl #3
+  3d084a:	6043      	str	r3, [r0, #4]
+  3d084c:	6b28      	ldr	r0, [r5, #48]	; 0x30
+  3d084e:	3001      	adds	r0, #1
+  3d0850:	6328      	str	r0, [r5, #48]	; 0x30
+  3d0852:	4648      	mov	r0, r9
+  3d0854:	e8bd 0b00 	ldmia.w	sp!, {r8, r9, fp}
+  3d0858:	e8bd 40f0 	ldmia.w	sp!, {r4, r5, r6, r7, lr}
+  3d085c:	f0ea b698 	b.w	8bb590 <__emutls_get_address@@Base+0x3410>
+  3d0860:	4648      	mov	r0, r9
+  3d0862:	f0f1 e33e 	blx	8c1ee0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1610> // std::__ndk1::mutex::unlock()
+  3d0866:	f0f0 e0bc 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3d086a:	d4d4      	bmi.n	3d0816 <input::AndroidKeyboardControl::pushEvent(input::AndroidKeyboardControl::key_t const&)@@Base+0x26>

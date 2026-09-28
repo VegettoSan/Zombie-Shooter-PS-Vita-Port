@@ -46,6 +46,7 @@ set(PARSECOREPATH "$ENV{PARSECOREPATH}" CACHE STRING "vita-parse-core main.py")
 # Game-specific definitions - Zombie Shooter
 set(DATA_PATH "ux0:data/zombieshooter/" CACHE STRING "Path to data (with trailing /)")
 set(SO_PATH "${DATA_PATH}libzombie_shooter.so" CACHE STRING "Path to .so")
+add_definitions(-DZOMBIE_VITA_BUILD=1)
 add_definitions(-DDATA_PATH="${DATA_PATH}" -DSO_PATH="${SO_PATH}")
 
 # Port type â€” ON because libzombie_shooter.so exports ANativeActivity_onCreate

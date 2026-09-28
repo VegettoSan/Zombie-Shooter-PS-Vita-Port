@@ -1,5 +1,12 @@
 # Progreso del port
 
+## Actualización física — log_0001, 2026-09-28
+
+La entrega engineering `local-5f67eec-5e3402a4c9` ya fue probada: SAVE, controles y flicker siguen fallando; Release observado por el usuario ~25–40 FPS con caídas. Debug verbose no es baseline de FPS. Log termina en std::bad_alloc. El error AES corresponde al contexto EVP después de CipherInit, no a la longitud del android_id. Seguimiento `local-5f67eec-c50a43be87` añade Debug selectivo y diagnóstico de OpenSSL/bindings/asignación fallida; todavía pendiente de Vita.
+
+Detalles y prueba reducida: [FOLLOWUP_LOG0001_2026-09-28.md](docs/FOLLOWUP_LOG0001_2026-09-28.md).
+
+
 ## Pase7 y resultado físico pase6 (2026-09-26)
 
 Usuario/log0010: FPS parecidos, carga inicial casi2min; NO mejora confirmada
@@ -320,3 +327,7 @@ Build local-d8b8c5e-ee2bcbe20f-clearfast Release/Debug; hashes/verificación en 
 Uso real, FPS y audio de Clear nuevo PENDIENTES Vita. Pedir1log de juego con
 disparos/explosiones/linterna y regreso al menú. Originales intactos, local-only.
 Informe: docs/LIGHTS_LOG0004_0005_FOLLOWUP_2026-09-27.md.
+
+## 2026-09-28 — local engineering follow-up
+
+Canonical SO and all 2,432 APK assets verified unchanged. Six DEX searched; SIGE RegistryEnumerator and native registry/input contracts reconstructed. Replaced remove-before-rename persistence with synced temp/backup/recovery; tests restart distinct processes and inject rename/restore failure. Added compact physical/emitted/native input and engine/JNI/disk save traces, without guessing new mappings. Framebuffer reuse now checks texture/producer/shape and invalidates/primes after image redefinition or deletion; GPU finish/full COW/upload A/B default off. A 256-entry exact ENOENT cache addresses repeated i18n probes visible in log4/5. Existing audio, light profiler and opt-in arithmetic remain. See docs/ENGINEERING_PASS_2026-09-28.md for evidence and limits; no new physical fix or FPS claim.

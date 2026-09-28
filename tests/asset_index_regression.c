@@ -39,6 +39,7 @@ static void reset(void) {
         free(directories[i].hashes);directories[i].hashes=NULL;
         directories[i].count=directories[i].capacity=0;directories[i].state=0;
     }
+    asset_index_configure_negative(0);
     memset(&stats,0,sizeof(stats));opens=reads=closes=position=0;
     fault=fail_alloc=generated=0;
 }
@@ -93,5 +94,27 @@ int main(void) {
     for(unsigned i=0;i<4;++i) assert(!pthread_join(workers[i],NULL));
     assert(opens==1 && stats.present==4000 && stats.absent==4000);
     asset_index_report();assert(stats.lookups==0 && directories[0].state==1);
+    reset();asset_index_configure_negative(1);
+    assert(!asset_index_missing("i18n//wav/null.wav"));
+    asset_index_record_missing("i18n//wav/null.wav",EACCES);
+    assert(!asset_index_missing("i18n//wav/null.wav"));
+    asset_index_record_missing("i18n//wav/null.wav",EIO);
+    assert(!asset_index_missing("i18n//wav/null.wav"));
+    fail_alloc=1;asset_index_record_missing("i18n//wav/null.wav",ENOENT);
+    assert(!asset_index_missing("i18n//wav/null.wav"));fail_alloc=0;
+    asset_index_record_missing("i18n//wav/null.wav",ENOENT);
+    for(unsigned i=0;i<10000;i++)assert(asset_index_missing("i18n//wav/null.wav") && errno==ENOENT);
+    assert(negative_count==1 && negative_hits==10000 && opens==0);
+    assert(!asset_index_missing("i18n//wav/NULL.wav")); // exact key, no folding
+    assert(!asset_index_missing("elsewhere/real-file.wav")); // no false positive
+    asset_index_record_missing("i18n//wav/null.wav",ENOENT);assert(negative_count==1);
+    for(unsigned i=0;i<NEGATIVE_CAPACITY+16;i++) {
+        char name[64];snprintf(name,sizeof(name),"unindexed/miss_%u",i);
+        asset_index_record_missing(name,ENOENT);
+    }
+    assert(negative_count==NEGATIVE_CAPACITY);
+    assert(!asset_index_missing("unindexed/miss_271")); // capacity => original open
+    asset_index_configure_negative(0);assert(!asset_index_missing("i18n//wav/null.wav"));
+    assert(negative_count==0 && negative_bytes==0);
     reset();puts("Asset index regression passed: complete listing, present/case aliases, negative reuse, collisions, conservative paths, read/close/OOM/cap failures, concurrent readers");
 }

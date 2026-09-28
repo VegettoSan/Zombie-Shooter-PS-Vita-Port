@@ -24,6 +24,34 @@ static struct DirectoryIndex {
 } directories[]={{"vid/",0,0,0,0},{"menus/img/",0,0,0,0},{"menus/items/",0,0,0,0},
     {"music/",0,0,0,0},{"menus/",0,0,0,0},{"menus/rpg/",0,0,0,0},{"menus/img/supply_boxes/",0,0,0,0}};
 static pthread_mutex_t index_lock=PTHREAD_MUTEX_INITIALIZER;
+/* Exact, case-sensitive misses for this immutable asset package and process.
+ * No permissions/I/O/OOM failures, no unbounded table, no path remapping. */
+#define NEGATIVE_CAPACITY 256
+static char *negative_paths[NEGATIVE_CAPACITY];
+static unsigned negative_count,negative_bytes,negative_hits;
+static int negative_enabled;
+void asset_index_configure_negative(int enabled) {
+    pthread_mutex_lock(&index_lock);
+    for(unsigned i=0;i<negative_count;i++)free(negative_paths[i]);
+    negative_count=negative_bytes=negative_hits=0;negative_enabled=enabled!=0;
+    pthread_mutex_unlock(&index_lock);
+}
+static int negative_find(const char *filename) {
+    for(unsigned i=0;i<negative_count;i++)if(!strcmp(filename,negative_paths[i]))return 1;
+    return 0;
+}
+void asset_index_record_missing(const char *filename,int error) {
+    int saved_errno=errno;
+    if(error!=ENOENT || !filename)return;
+    size_t n=strlen(filename);
+    if(!n || n>=256)return;
+    pthread_mutex_lock(&index_lock);
+    if(negative_enabled && negative_count<NEGATIVE_CAPACITY && !negative_find(filename)) {
+        char *copy=ASSET_INDEX_REALLOC(NULL,n+1);
+        if(copy) {memcpy(copy,filename,n+1);negative_paths[negative_count++]=copy;negative_bytes+=(unsigned)n+1;}
+    }
+    pthread_mutex_unlock(&index_lock);errno=saved_errno;
+}
 static struct { unsigned lookups,present,absent,fallback,builds,failed,listed,build_us; } stats;
 /* Conservative ASCII leaves. Avoid aliases, separators, wildcard/path syntax,
  * trailing dots and Unicode filesystem case folding. Unknown names fall back. */
@@ -88,6 +116,9 @@ int asset_index_missing(const char *filename) {
     }
     pthread_mutex_lock(&index_lock);
     int missing=0;
+    if(negative_enabled && filename && negative_find(filename)) {
+        negative_hits++;pthread_mutex_unlock(&index_lock);errno=ENOENT;return 1;
+    }
     if(!d) stats.fallback++;
     else {
         stats.lookups++;
@@ -112,6 +143,9 @@ void asset_index_report(void) {
     }
     unsigned lookups=stats.lookups,present=stats.present,absent=stats.absent,fallback=stats.fallback;
     unsigned builds=stats.builds,failed=stats.failed,listed=stats.listed,us=stats.build_us;
+    unsigned misses=negative_hits,count=negative_count,miss_bytes=negative_bytes;
+    negative_hits=0;
     memset(&stats,0,sizeof(stats));pthread_mutex_unlock(&index_lock);
+    l_perf("asset_negative avoided_opens=%u entries=%u bytes=%u capacity=%u",misses,count,miss_bytes,NEGATIVE_CAPACITY);
     l_perf("asset_index lookups=%u present=%u absent=%u fallback=%u builds=%u build_failures=%u listed=%u build_us=%u entries=%u bytes=%u",lookups,present,absent,fallback,builds,failed,listed,us,entries,bytes);
 }

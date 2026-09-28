@@ -1,0 +1,350 @@
+
+/home/vegettosandev/Zombie-Shooter-PS-Vita-Port/demo/libzombie_shooter.so:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+003eaf00 <core::Registry::encryptKey(STRING const&)@@Base+0x44>:
+  3eaf00:	9501      	str	r5, [sp, #4]
+  3eaf02:	e006      	b.n	3eaf12 <core::Registry::encryptKey(STRING const&)@@Base+0x56>
+  3eaf04:	f809 5b01 	strb.w	r5, [r9], #1
+  3eaf08:	f8cd 9040 	str.w	r9, [sp, #64]	; 0x40
+  3eaf0c:	f10a 0a01 	add.w	sl, sl, #1
+  3eaf10:	9d01      	ldr	r5, [sp, #4]
+  3eaf12:	9802      	ldr	r0, [sp, #8]
+  3eaf14:	f0d6 e714 	blx	8c1d40 <operator new[](unsigned int, std::align_val_t)@@Base+0x1470> // STRING::Length() const
+  3eaf18:	4582      	cmp	sl, r0
+  3eaf1a:	d237      	bcs.n	3eaf8c <core::Registry::encryptKey(STRING const&)@@Base+0xd0>
+  3eaf1c:	9802      	ldr	r0, [sp, #8]
+  3eaf1e:	4651      	mov	r1, sl
+  3eaf20:	f0d8 e746 	blx	8c3db0 <operator new[](unsigned int, std::align_val_t)@@Base+0x34e0> // STRING::operator[](unsigned int) const
+  3eaf24:	4605      	mov	r5, r0
+  3eaf26:	e9dd 9010 	ldrd	r9, r0, [sp, #64]	; 0x40
+  3eaf2a:	4581      	cmp	r9, r0
+  3eaf2c:	d3ea      	bcc.n	3eaf04 <core::Registry::encryptKey(STRING const&)@@Base+0x48>
+  3eaf2e:	9c0f      	ldr	r4, [sp, #60]	; 0x3c
+  3eaf30:	eba9 0b04 	sub.w	fp, r9, r4
+  3eaf34:	f10b 0601 	add.w	r6, fp, #1
+  3eaf38:	f1b6 3fff 	cmp.w	r6, #4294967295	; 0xffffffff
+  3eaf3c:	dd6f      	ble.n	3eb01e <core::Registry::encryptKey(STRING const&)@@Base+0x162>
+  3eaf3e:	1b00      	subs	r0, r0, r4
+  3eaf40:	f06f 4140 	mvn.w	r1, #3221225472	; 0xc0000000
+  3eaf44:	ebb6 0f40 	cmp.w	r6, r0, lsl #1
+  3eaf48:	bf38      	it	cc
+  3eaf4a:	0046      	lslcc	r6, r0, #1
+  3eaf4c:	4288      	cmp	r0, r1
+  3eaf4e:	bf28      	it	cs
+  3eaf50:	f06f 4600 	mvncs.w	r6, #2147483648	; 0x80000000
+  3eaf54:	b126      	cbz	r6, 3eaf60 <core::Registry::encryptKey(STRING const&)@@Base+0xa4>
+  3eaf56:	4630      	mov	r0, r6
+  3eaf58:	f0d5 e502 	blx	8c0960 <operator new[](unsigned int, std::align_val_t)@@Base+0x90> // operator new(unsigned int)
+  3eaf5c:	4680      	mov	r8, r0
+  3eaf5e:	e001      	b.n	3eaf64 <core::Registry::encryptKey(STRING const&)@@Base+0xa8>
+  3eaf60:	f04f 0800 	mov.w	r8, #0
+  3eaf64:	eb08 090b 	add.w	r9, r8, fp
+  3eaf68:	4640      	mov	r0, r8
+  3eaf6a:	4621      	mov	r1, r4
+  3eaf6c:	465a      	mov	r2, fp
+  3eaf6e:	f809 5b01 	strb.w	r5, [r9], #1
+  3eaf72:	f0cd e548 	blx	8b8a04 <__emutls_get_address@@Base+0x884>
+  3eaf76:	2c00      	cmp	r4, #0
+  3eaf78:	eb08 0006 	add.w	r0, r8, r6
+  3eaf7c:	9011      	str	r0, [sp, #68]	; 0x44
+  3eaf7e:	f8cd 803c 	str.w	r8, [sp, #60]	; 0x3c
+  3eaf82:	bf1c      	itt	ne
+  3eaf84:	4620      	movne	r0, r4
+  3eaf86:	f0d5 e534 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eaf8a:	e7bd      	b.n	3eaf08 <core::Registry::encryptKey(STRING const&)@@Base+0x4c>
+  3eaf8c:	f0d9 e210 	blx	8c43b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ae0> // core::crypto::ICryptEngine::instance()
+  3eaf90:	4601      	mov	r1, r0
+  3eaf92:	6808      	ldr	r0, [r1, #0]
+  3eaf94:	6982      	ldr	r2, [r0, #24]
+  3eaf96:	a80c      	add	r0, sp, #48	; 0x30
+  3eaf98:	4790      	blx	r2
+  3eaf9a:	aa0f      	add	r2, sp, #60	; 0x3c
+  3eaf9c:	2300      	movs	r3, #0
+  3eaf9e:	ca07      	ldmia	r2, {r0, r1, r2}
+  3eafa0:	e9cd 330f 	strd	r3, r3, [sp, #60]	; 0x3c
+  3eafa4:	9311      	str	r3, [sp, #68]	; 0x44
+  3eafa6:	ab06      	add	r3, sp, #24
+  3eafa8:	c307      	stmia	r3!, {r0, r1, r2}
+  3eafaa:	a809      	add	r0, sp, #36	; 0x24
+  3eafac:	a906      	add	r1, sp, #24
+  3eafae:	aa0c      	add	r2, sp, #48	; 0x30
+  3eafb0:	f0d9 e23e 	blx	8c4430 <operator new[](unsigned int, std::align_val_t)@@Base+0x3b60> // core::crypto::encrypt_salsa(std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> >, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3eafb4:	9806      	ldr	r0, [sp, #24]
+  3eafb6:	2800      	cmp	r0, #0
+  3eafb8:	bf1c      	itt	ne
+  3eafba:	9007      	strne	r0, [sp, #28]
+  3eafbc:	f0d5 e518 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eafc0:	492d      	ldr	r1, [pc, #180]	; (3eb078 <core::Registry::encryptKey(STRING const&)@@Base+0x1bc>)
+  3eafc2:	4479      	add	r1, pc
+  3eafc4:	4628      	mov	r0, r5
+  3eafc6:	f0d5 e54c 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3eafca:	a803      	add	r0, sp, #12
+  3eafcc:	a909      	add	r1, sp, #36	; 0x24
+  3eafce:	f0d9 e1d8 	blx	8c4380 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ab0> // core::crypto::base64Encode(std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3eafd2:	a903      	add	r1, sp, #12
+  3eafd4:	4628      	mov	r0, r5
+  3eafd6:	f0d8 e55c 	blx	8c3a90 <operator new[](unsigned int, std::align_val_t)@@Base+0x31c0> // STRING::operator+=(STRING const&)
+  3eafda:	a803      	add	r0, sp, #12
+  3eafdc:	f0d5 e4e8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eafe0:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3eafe2:	2800      	cmp	r0, #0
+  3eafe4:	bf1c      	itt	ne
+  3eafe6:	900a      	strne	r0, [sp, #40]	; 0x28
+  3eafe8:	f0d5 e502 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eafec:	980c      	ldr	r0, [sp, #48]	; 0x30
+  3eafee:	2800      	cmp	r0, #0
+  3eaff0:	bf1c      	itt	ne
+  3eaff2:	900d      	strne	r0, [sp, #52]	; 0x34
+  3eaff4:	f0d5 e4fc 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eaff8:	980f      	ldr	r0, [sp, #60]	; 0x3c
+  3eaffa:	2800      	cmp	r0, #0
+  3eaffc:	bf1c      	itt	ne
+  3eaffe:	9010      	strne	r0, [sp, #64]	; 0x40
+  3eb000:	f0d5 e4f6 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eb004:	9812      	ldr	r0, [sp, #72]	; 0x48
+  3eb006:	491d      	ldr	r1, [pc, #116]	; (3eb07c <core::Registry::encryptKey(STRING const&)@@Base+0x1c0>)
+  3eb008:	4479      	add	r1, pc
+  3eb00a:	6809      	ldr	r1, [r1, #0]
+  3eb00c:	6809      	ldr	r1, [r1, #0]
+  3eb00e:	4281      	cmp	r1, r0
+  3eb010:	bf02      	ittt	eq
+  3eb012:	b013      	addeq	sp, #76	; 0x4c
+  3eb014:	e8bd 0f00 	ldmiaeq.w	sp!, {r8, r9, sl, fp}
+  3eb018:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3eb01a:	f0d5 e4da 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3eb01e:	a80f      	add	r0, sp, #60	; 0x3c
+  3eb020:	f007 f94c 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3eb024:	a80f      	add	r0, sp, #60	; 0x3c
+  3eb026:	f007 f949 	bl	3f22bc <std::__ndk1::__tree_node_base<void*>*& std::__ndk1::__tree<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::__map_value_compare<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value>, std::__ndk1::less<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >, true>, std::__ndk1::allocator<std::__ndk1::__value_type<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> >, picojson::value> > >::__find_equal<std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >(std::__ndk1::__tree_end_node<std::__ndk1::__tree_node_base<void*>*>*&, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > const&)@@Base+0xf4>
+  3eb02a:	a803      	add	r0, sp, #12
+  3eb02c:	f0d5 e4c0 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb030:	e7ff      	b.n	3eb032 <core::Registry::encryptKey(STRING const&)@@Base+0x176>
+  3eb032:	9801      	ldr	r0, [sp, #4]
+  3eb034:	f0d5 e4bc 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb038:	e7ff      	b.n	3eb03a <core::Registry::encryptKey(STRING const&)@@Base+0x17e>
+  3eb03a:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3eb03c:	b130      	cbz	r0, 3eb04c <core::Registry::encryptKey(STRING const&)@@Base+0x190>
+  3eb03e:	900a      	str	r0, [sp, #40]	; 0x28
+  3eb040:	e002      	b.n	3eb048 <core::Registry::encryptKey(STRING const&)@@Base+0x18c>
+  3eb042:	9806      	ldr	r0, [sp, #24]
+  3eb044:	b110      	cbz	r0, 3eb04c <core::Registry::encryptKey(STRING const&)@@Base+0x190>
+  3eb046:	9007      	str	r0, [sp, #28]
+  3eb048:	f0d5 e4d2 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3eb04c:	980c      	ldr	r0, [sp, #48]	; 0x30
+  3eb04e:	2800      	cmp	r0, #0
+  3eb050:	bf1c      	itt	ne
+  3eb052:	900d      	strne	r0, [sp, #52]	; 0x34
+  3eb054:	f0d5 e4cc 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eb058:	e003      	b.n	3eb062 <core::Registry::encryptKey(STRING const&)@@Base+0x1a6>
+  3eb05a:	e002      	b.n	3eb062 <core::Registry::encryptKey(STRING const&)@@Base+0x1a6>
+  3eb05c:	e001      	b.n	3eb062 <core::Registry::encryptKey(STRING const&)@@Base+0x1a6>
+  3eb05e:	e000      	b.n	3eb062 <core::Registry::encryptKey(STRING const&)@@Base+0x1a6>
+  3eb060:	e7ff      	b.n	3eb062 <core::Registry::encryptKey(STRING const&)@@Base+0x1a6>
+  3eb062:	980f      	ldr	r0, [sp, #60]	; 0x3c
+  3eb064:	2800      	cmp	r0, #0
+  3eb066:	bf1c      	itt	ne
+  3eb068:	9010      	strne	r0, [sp, #64]	; 0x40
+  3eb06a:	f0d5 e4c2 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eb06e:	f0d5 e4b8 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3eb072:	bf00      	nop
+  3eb074:	494e      	ldr	r1, [pc, #312]	; (3eb1b0 <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0xb0>)
+  3eb076:	0055      	lsls	r5, r2, #1
+  3eb078:	8d2e      	ldrh	r6, [r5, #40]	; 0x28
+  3eb07a:	0056      	lsls	r6, r2, #1
+  3eb07c:	4810      	ldr	r0, [pc, #64]	; (3eb0c0 <core::Registry::storeValue(STRING const&, STRING const&)@@Base+0x34>)
+  3eb07e:	0055      	lsls	r5, r2, #1
+
+003eb080 <non-virtual thunk to core::Registry::remove(STRING const&)@@Base>:
+  3eb080:	3808      	subs	r0, #8
+  3eb082:	f0d0 b3ed 	b.w	8bb860 <__emutls_get_address@@Base+0x36e0>
+
+003eb086 <core::Registry::clearCache(STRING const&)@@Base>:
+  3eb086:	4770      	bx	lr
+
+003eb088 <non-virtual thunk to core::Registry::clearCache(STRING const&)@@Base>:
+  3eb088:	4770      	bx	lr
+  3eb08a:	d4d4      	bmi.n	3eb036 <core::Registry::encryptKey(STRING const&)@@Base+0x17a>
+
+003eb08c <core::Registry::storeValue(STRING const&, STRING const&)@@Base>:
+  3eb08c:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3eb08e:	af03      	add	r7, sp, #12
+  3eb090:	f84d 8d04 	str.w	r8, [sp, #-4]!
+  3eb094:	b084      	sub	sp, #16
+  3eb096:	4605      	mov	r5, r0
+  3eb098:	4815      	ldr	r0, [pc, #84]	; (3eb0f0 <core::Registry::storeValue(STRING const&, STRING const&)@@Base+0x64>)
+  3eb09a:	466c      	mov	r4, sp
+  3eb09c:	4616      	mov	r6, r2
+  3eb09e:	4478      	add	r0, pc
+  3eb0a0:	4688      	mov	r8, r1
+  3eb0a2:	6800      	ldr	r0, [r0, #0]
+  3eb0a4:	6800      	ldr	r0, [r0, #0]
+  3eb0a6:	9003      	str	r0, [sp, #12]
+  3eb0a8:	4620      	mov	r0, r4
+  3eb0aa:	f0d5 e6ba 	blx	8c0e20 <operator new[](unsigned int, std::align_val_t)@@Base+0x550> // STRING::STRING()
+  3eb0ae:	4630      	mov	r0, r6
+  3eb0b0:	4621      	mov	r1, r4
+  3eb0b2:	f0d9 e18e 	blx	8c43d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3b00> // core::crypto::encrypt(STRING const&, STRING&)
+  3eb0b6:	b128      	cbz	r0, 3eb0c4 <core::Registry::storeValue(STRING const&, STRING const&)@@Base+0x38>
+  3eb0b8:	68e8      	ldr	r0, [r5, #12]
+  3eb0ba:	6801      	ldr	r1, [r0, #0]
+  3eb0bc:	68cb      	ldr	r3, [r1, #12]
+  3eb0be:	466a      	mov	r2, sp
+  3eb0c0:	4641      	mov	r1, r8
+  3eb0c2:	4798      	blx	r3
+  3eb0c4:	4668      	mov	r0, sp
+  3eb0c6:	f0d5 e474 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb0ca:	9803      	ldr	r0, [sp, #12]
+  3eb0cc:	4909      	ldr	r1, [pc, #36]	; (3eb0f4 <core::Registry::storeValue(STRING const&, STRING const&)@@Base+0x68>)
+  3eb0ce:	4479      	add	r1, pc
+  3eb0d0:	6809      	ldr	r1, [r1, #0]
+  3eb0d2:	6809      	ldr	r1, [r1, #0]
+  3eb0d4:	4281      	cmp	r1, r0
+  3eb0d6:	bf02      	ittt	eq
+  3eb0d8:	b004      	addeq	sp, #16
+  3eb0da:	f85d 8b04 	ldreq.w	r8, [sp], #4
+  3eb0de:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3eb0e0:	f0d5 e476 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3eb0e4:	4668      	mov	r0, sp
+  3eb0e6:	f0d5 e464 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb0ea:	f0d5 e47a 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3eb0ee:	bf00      	nop
+  3eb0f0:	477a      	bx	pc
+  3eb0f2:	0055      	lsls	r5, r2, #1
+  3eb0f4:	474a      	bx	r9
+  3eb0f6:	0055      	lsls	r5, r2, #1
+
+003eb0f8 <core::Registry::lazyMigration() const@@Base>:
+  3eb0f8:	f890 00cc 	ldrb.w	r0, [r0, #204]	; 0xcc
+  3eb0fc:	4770      	bx	lr
+  3eb0fe:	d4d4      	bmi.n	3eb0aa <core::Registry::storeValue(STRING const&, STRING const&)@@Base+0x1e>
+
+003eb100 <core::Registry::loadValue(STRING const&, STRING const&)@@Base>:
+  3eb100:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3eb102:	af03      	add	r7, sp, #12
+  3eb104:	f84d 8d04 	str.w	r8, [sp, #-4]!
+  3eb108:	b08a      	sub	sp, #40	; 0x28
+  3eb10a:	4680      	mov	r8, r0
+  3eb10c:	482f      	ldr	r0, [pc, #188]	; (3eb1cc <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0xcc>)
+  3eb10e:	460d      	mov	r5, r1
+  3eb110:	4616      	mov	r6, r2
+  3eb112:	4478      	add	r0, pc
+  3eb114:	461c      	mov	r4, r3
+  3eb116:	6800      	ldr	r0, [r0, #0]
+  3eb118:	6800      	ldr	r0, [r0, #0]
+  3eb11a:	9009      	str	r0, [sp, #36]	; 0x24
+  3eb11c:	68c8      	ldr	r0, [r1, #12]
+  3eb11e:	6801      	ldr	r1, [r0, #0]
+  3eb120:	6a4a      	ldr	r2, [r1, #36]	; 0x24
+  3eb122:	4631      	mov	r1, r6
+  3eb124:	4790      	blx	r2
+  3eb126:	b380      	cbz	r0, 3eb18a <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0x8a>
+  3eb128:	a806      	add	r0, sp, #24
+  3eb12a:	f0d5 e67a 	blx	8c0e20 <operator new[](unsigned int, std::align_val_t)@@Base+0x550> // STRING::STRING()
+  3eb12e:	68e9      	ldr	r1, [r5, #12]
+  3eb130:	6808      	ldr	r0, [r1, #0]
+  3eb132:	6905      	ldr	r5, [r0, #16]
+  3eb134:	a803      	add	r0, sp, #12
+  3eb136:	4632      	mov	r2, r6
+  3eb138:	4623      	mov	r3, r4
+  3eb13a:	47a8      	blx	r5
+  3eb13c:	a803      	add	r0, sp, #12
+  3eb13e:	4621      	mov	r1, r4
+  3eb140:	f0d5 e4ae 	blx	8c0aa0 <operator new[](unsigned int, std::align_val_t)@@Base+0x1d0> // STRING::operator==(STRING const&) const
+  3eb144:	b9b0      	cbnz	r0, 3eb174 <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0x74>
+  3eb146:	f0d9 e134 	blx	8c43b0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3ae0> // core::crypto::ICryptEngine::instance()
+  3eb14a:	4601      	mov	r1, r0
+  3eb14c:	6808      	ldr	r0, [r1, #0]
+  3eb14e:	6882      	ldr	r2, [r0, #8]
+  3eb150:	4668      	mov	r0, sp
+  3eb152:	4790      	blx	r2
+  3eb154:	ae06      	add	r6, sp, #24
+  3eb156:	a803      	add	r0, sp, #12
+  3eb158:	466a      	mov	r2, sp
+  3eb15a:	4631      	mov	r1, r6
+  3eb15c:	f0d9 e140 	blx	8c43e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x3b10> // core::crypto::decrypt(STRING const&, STRING&, std::__ndk1::vector<unsigned char, std::__ndk1::allocator<unsigned char> > const&)
+  3eb160:	4605      	mov	r5, r0
+  3eb162:	9800      	ldr	r0, [sp, #0]
+  3eb164:	2800      	cmp	r0, #0
+  3eb166:	bf1c      	itt	ne
+  3eb168:	9001      	strne	r0, [sp, #4]
+  3eb16a:	f0d5 e442 	blxne	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120>
+  3eb16e:	2d00      	cmp	r5, #0
+  3eb170:	bf18      	it	ne
+  3eb172:	4634      	movne	r4, r6
+  3eb174:	4640      	mov	r0, r8
+  3eb176:	4621      	mov	r1, r4
+  3eb178:	f0d5 e472 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3eb17c:	a803      	add	r0, sp, #12
+  3eb17e:	f0d5 e418 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb182:	a806      	add	r0, sp, #24
+  3eb184:	f0d5 e414 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb188:	e003      	b.n	3eb192 <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0x92>
+  3eb18a:	4640      	mov	r0, r8
+  3eb18c:	4621      	mov	r1, r4
+  3eb18e:	f0d5 e468 	blx	8c0a60 <operator new[](unsigned int, std::align_val_t)@@Base+0x190> // STRING::STRING(STRING const&)
+  3eb192:	9809      	ldr	r0, [sp, #36]	; 0x24
+  3eb194:	490e      	ldr	r1, [pc, #56]	; (3eb1d0 <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0xd0>)
+  3eb196:	4479      	add	r1, pc
+  3eb198:	6809      	ldr	r1, [r1, #0]
+  3eb19a:	6809      	ldr	r1, [r1, #0]
+  3eb19c:	4281      	cmp	r1, r0
+  3eb19e:	bf02      	ittt	eq
+  3eb1a0:	b00a      	addeq	sp, #40	; 0x28
+  3eb1a2:	f85d 8b04 	ldreq.w	r8, [sp], #4
+  3eb1a6:	bdf0      	popeq	{r4, r5, r6, r7, pc}
+  3eb1a8:	f0d5 e412 	blx	8c09d0 <operator new[](unsigned int, std::align_val_t)@@Base+0x100> // __stack_chk_fail
+  3eb1ac:	9800      	ldr	r0, [sp, #0]
+  3eb1ae:	b128      	cbz	r0, 3eb1bc <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0xbc>
+  3eb1b0:	9001      	str	r0, [sp, #4]
+  3eb1b2:	f0d5 e41e 	blx	8c09f0 <operator new[](unsigned int, std::align_val_t)@@Base+0x120> // operator delete(void*)
+  3eb1b6:	e001      	b.n	3eb1bc <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0xbc>
+  3eb1b8:	e000      	b.n	3eb1bc <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0xbc>
+  3eb1ba:	e002      	b.n	3eb1c2 <core::Registry::loadValue(STRING const&, STRING const&)@@Base+0xc2>
+  3eb1bc:	a803      	add	r0, sp, #12
+  3eb1be:	f0d5 e3f8 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb1c2:	a806      	add	r0, sp, #24
+  3eb1c4:	f0d5 e3f4 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb1c8:	f0d5 e40a 	blx	8c09e0 <operator new[](unsigned int, std::align_val_t)@@Base+0x110> // __cxa_end_cleanup
+  3eb1cc:	4706      	bx	r0
+  3eb1ce:	0055      	lsls	r5, r2, #1
+  3eb1d0:	4682      	mov	sl, r0
+  3eb1d2:	0055      	lsls	r5, r2, #1
+
+003eb1d4 <core::Registry::migrate()@@Base>:
+  3eb1d4:	b5f0      	push	{r4, r5, r6, r7, lr}
+  3eb1d6:	af03      	add	r7, sp, #12
+  3eb1d8:	e92d 0b00 	stmdb	sp!, {r8, r9, fp}
+  3eb1dc:	b084      	sub	sp, #16
+  3eb1de:	4681      	mov	r9, r0
+  3eb1e0:	4859      	ldr	r0, [pc, #356]	; (3eb348 <core::Registry::migrate()@@Base+0x174>)
+  3eb1e2:	46e8      	mov	r8, sp
+  3eb1e4:	4478      	add	r0, pc
+  3eb1e6:	6804      	ldr	r4, [r0, #0]
+  3eb1e8:	4858      	ldr	r0, [pc, #352]	; (3eb34c <core::Registry::migrate()@@Base+0x178>)
+  3eb1ea:	4478      	add	r0, pc
+  3eb1ec:	6800      	ldr	r0, [r0, #0]
+  3eb1ee:	6800      	ldr	r0, [r0, #0]
+  3eb1f0:	9003      	str	r0, [sp, #12]
+  3eb1f2:	4640      	mov	r0, r8
+  3eb1f4:	f8d9 500c 	ldr.w	r5, [r9, #12]
+  3eb1f8:	6826      	ldr	r6, [r4, #0]
+  3eb1fa:	4955      	ldr	r1, [pc, #340]	; (3eb350 <core::Registry::migrate()@@Base+0x17c>)
+  3eb1fc:	4479      	add	r1, pc // literal @2d4e01 migration.version
+  3eb1fe:	f0d5 e410 	blx	8c0a20 <operator new[](unsigned int, std::align_val_t)@@Base+0x150> // STRING::STRING(char const*)
+  3eb202:	6830      	ldr	r0, [r6, #0]
+  3eb204:	6b03      	ldr	r3, [r0, #48]	; 0x30
+  3eb206:	4630      	mov	r0, r6
+  3eb208:	4641      	mov	r1, r8
+  3eb20a:	2201      	movs	r2, #1
+  3eb20c:	4798      	blx	r3
+  3eb20e:	4606      	mov	r6, r0
+  3eb210:	4668      	mov	r0, sp
+  3eb212:	f0d5 e3ce 	blx	8c09b0 <operator new[](unsigned int, std::align_val_t)@@Base+0xe0> // STRING::~STRING()
+  3eb216:	6828      	ldr	r0, [r5, #0]
+  3eb218:	4631      	mov	r1, r6
+  3eb21a:	6a82      	ldr	r2, [r0, #40]	; 0x28
+  3eb21c:	4628      	mov	r0, r5
+  3eb21e:	4790      	blx	r2

@@ -71,6 +71,10 @@ static so_hook registry_load_value_hook;
 
 static uintptr_t hooked_registry_load_value(void *result, void *self,
                                             const void *key, const void *fallback) {
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned reads;
+    if(__atomic_fetch_add(&reads,1,__ATOMIC_RELAXED)<128) l_perf("[SAVE] engine=Registry.loadValue key=%p caller=%p",key,__builtin_return_address(0));
+#endif
     /* The exact SO constructor publishes Registry in its singleton at
      * +0x003e9394, but stores Registry::backend at self+12 only at
      * +0x003e93a8. A second thread called loadValue in that interval
@@ -356,7 +360,10 @@ static unsigned render_reuse_reused;
 static int render_reuse_has_frame;
 
 static uintptr_t probe_software(void *self,int argument) {
-    int reuse = render_reuse_choose(&render_policy,setting_software_frameskip,(uintptr_t)self,argument);
+    extern int render_upload_reuse_ready(void);
+    /* A deleted/redefined framebuffer must be produced before it can be reused. */
+    int mode=render_upload_reuse_ready()?setting_software_frameskip:0;
+    int reuse = render_reuse_choose(&render_policy,mode,(uintptr_t)self,argument);
     if (reuse) {
         zombie_render_reuse_active_this_tick = 1;
         render_reuse_reused++;
@@ -418,6 +425,8 @@ static void install_engine_probes(void) {
     map_profile_install();
     extern void asset_cache_configure(size_t);
     asset_cache_configure((size_t)setting_asset_cache_mib*1024*1024);
+    extern void asset_index_configure_negative(int);
+    asset_index_configure_negative(setting_asset_negative_cache);
     static const struct {
         const char *symbol;unsigned offset;uint32_t prologue[2];uintptr_t replacement;
     } probes[]={
@@ -521,11 +530,13 @@ void kuser_patch(void) {
 		KUSER_CMPXCHG_ANDROID, KUSER_CMPXCHG_VITA);
 }
 
+#include "contract_trace.inc"
 void so_patch(void) {
 	kuser_patch();
 #ifdef NDK_PORT
 	install_startup_diagnostics();
 	install_engine_probes();
+    install_contract_traces();
 	raster_palette_install();
     audio_stream_install();
     render_scale_install();
