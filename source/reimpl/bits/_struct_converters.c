@@ -56,7 +56,9 @@ SC_INLINE int oflags_bionic_to_newlib(int flags) {
 }
 
 /**
- * Convert newlib (Vita) `dirent` struct to bionic (Android) format.
+ * Convert newlib (Vita) `dirent` struct to the exact Android/Bionic public
+ * dirent/dirent64 layout. Android 32-bit uses a 64-bit inode and offset,
+ * followed by a 16-bit record length and 8-bit type.
  *
  * @param[in] dirent_newlib Pointer to a newlib-format dirent struct
  *
@@ -68,11 +70,13 @@ dirent64_bionic * dirent_newlib_to_bionic(const struct dirent* dirent_newlib) {
     dirent64_bionic * ret = malloc(sizeof(dirent64_bionic));
     if (!ret)
         return NULL;
+
     memset(ret, 0, sizeof(*ret));
-    strncpy(ret->d_name, dirent_newlib->d_name, sizeof(ret->d_name) - 1);
+    ret->d_ino = (uint64_t) dirent_newlib->d_stat.st_ino;
     ret->d_off = 0;
-    ret->d_reclen = 0;
+    ret->d_reclen = (uint16_t) sizeof(*ret);
     ret->d_type = SCE_S_ISDIR(dirent_newlib->d_stat.st_mode) ? DT_DIR : DT_REG;
+    strncpy(ret->d_name, dirent_newlib->d_name, sizeof(ret->d_name) - 1);
     return ret;
 }
 
