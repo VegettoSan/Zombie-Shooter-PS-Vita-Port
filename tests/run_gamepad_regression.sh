@@ -29,5 +29,9 @@ for optimization in 0 3; do
     "$mode" -I"$testdir" -I"$source_root/lib" "$root/tests/input_device_regression.c" "$source_root/source/java.c" \
     "$testdir/falso_jni/FalsoJNI.c" "$testdir/falso_jni/FalsoJNI_ImplBridge.c" "$testdir/falso_jni/converter.c" \
     -Wl,--gc-sections -o "$testdir/device"
+  # Durable save writes intentionally keep a last-known-valid .bak.  Each
+  # optimization variant is an independent cold-start regression, so remove
+  # every store generation before launching the next host process.
+  rm -f "$root/shared_preferences.bin" "$root/shared_preferences.tmp" "$root/shared_preferences.bak"
   "$testdir/device"
 done
