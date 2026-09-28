@@ -12,13 +12,22 @@ int main(void) {
     logger_force_sync();assert(mock_syncs==base+1);
     assert(strstr(output,"quiet first") && strstr(output,"sample 19"));
     assert(!strstr(output,"hidden JNI") && !strstr(output,"hidden warning"));
+
+    /* Quiet Debug errors must be visible in the log without physically syncing
+     * the memory card from the gameplay caller. */
     base=mock_syncs;l_error("critical");
-    assert(mock_syncs==base+1 && strstr(output,"critical") && console_calls==0);
+    assert(mock_syncs==base && strstr(output,"critical") && console_calls==0);
+
+    /* The one-second checkpoint also drains userspace bytes without fsync. */
     now+=1000000;base=mock_syncs;l_perf("one second");
-    assert(mock_syncs==base+1 && strstr(output,"one second"));
+    assert(mock_syncs==base && strstr(output,"one second"));
+
+    /* Explicit verbose mode keeps its immediate diagnostic behavior. */
     base=mock_syncs;setting_log_mode=3;l_debug("explicit verbose");
-    assert(strstr(output,"explicit verbose") && console_calls==1);
+    assert(strstr(output,"explicit verbose") && console_calls==1 && mock_syncs==base);
+
+    /* Fatal remains synchronous/durable even after returning to quiet mode. */
     setting_log_mode=2;l_fatal("fatal");
     assert(console_calls==2 && mock_syncs==base+1);
-    puts("Quiet Debug logger PASS: batched PERF, immediate critical flush, no console duplicate, explicit mode3 preserved");
+    puts("Quiet Debug logger PASS: PERF/errors flush without gameplay fsync, fatal/explicit sync preserved, mode3 preserved");
 }
