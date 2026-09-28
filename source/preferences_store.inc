@@ -3,11 +3,12 @@
  * Keep SigmaTeam's Registry/SharedPreferences contract, but persist each
  * logical string as a normal file under ux0:data/zombieshooter/save/.
  *
- * Build 48 proved this layout works on real hardware, but also exposed two
- * pathological costs: every tiny write called sceIoSync("ux0:"), and each
- * SharedPreferences apply rewrote the entire Registry.  This backend is
- * intentionally incremental: put writes one file, remove deletes one file,
- * clear deletes the generated files, and apply/commit do no directory rewrite.
+ * Build 48 proved this layout on real hardware. Build 52 made mutations
+ * incremental. Build 56 removed logger/device-sync stalls. This revision keeps
+ * Registry reads in RAM and moves physical save-file writes/deletes/clears to
+ * a dedicated Vita I/O worker with per-key coalescing, so the engine thread
+ * never waits on fopen/fwrite/rename metadata. Startup reads also use direct
+ * sceIo* calls on Vita to avoid stdio seek/tell overhead for every tiny .dat.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -15,7 +16,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #ifdef ZOMBIE_VITA_BUILD
+#include <pthread.h>
 #include <psp2/io/fcntl.h>
+#include <psp2/io/stat.h>
+#include <psp2/kernel/threadmgr.h>
 #endif
 
 #define PREFS_DIR DATA_PATH "save"
@@ -46,7 +50,7 @@ static PrefEntry *pref_entries;
 static unsigned pref_count,pref_capacity;
 static int pref_loaded,pref_dirty;
 static unsigned char pref_lock_byte;
-static void pref_lock(void){while(__atomic_test_and_set(&pref_lock_byte,__ATOMIC_ACQUIRE)){}}
+static void pref_lock(void){while(__atomic_test_and_set(&pref_lock_byte,__ATOMIC_ACQUIRE)){ }}
 static void pref_unlock(void){__atomic_clear(&pref_lock_byte,__ATOMIC_RELEASE);}
 static char *pref_dup(const char*s,size_t n){char*p=(char*)malloc(n+1);if(p){if(n)memcpy(p,s,n);p[n]=0;}return p;}
 static int pref_find(const char*k){for(unsigned i=0;i<pref_count;i++)if(!strcmp(pref_entries[i].key,k))return(int)i;return-1;}
@@ -96,11 +100,31 @@ static int pref_generated_filename(const char *name) {
 }
 
 static int pref_read_value_file(const char *path,char **value_out) {
+#ifdef ZOMBIE_VITA_BUILD
+    SceIoStat st;
+    if(sceIoGetstat(path,&st)<0)return 0;
+    long long raw=(long long)st.st_size;
+    if(raw<0||raw>(1<<20))return 0;
+    size_t sz=(size_t)raw;
+    char*v=(char*)malloc(sz+1);if(!v)return 0;
+    SceUID fd=sceIoOpen(path,SCE_O_RDONLY,0);
+    if(fd<0){free(v);return 0;}
+    size_t done=0;int ok=1;
+    while(done<sz){
+        int got=sceIoRead(fd,v+done,sz-done);
+        if(got<=0){ok=0;break;}
+        done+=(size_t)got;
+    }
+    if(sceIoClose(fd)<0)ok=0;
+    if(!ok||memchr(v,0,sz)){free(v);return 0;}
+    v[sz]=0;*value_out=v;return 1;
+#else
     FILE*f=fopen(path,"rb");if(!f)return 0;
     if(fseek(f,0,SEEK_END)!=0){fclose(f);return 0;}long sz=ftell(f);if(sz<0||sz>(1<<20)||fseek(f,0,SEEK_SET)!=0){fclose(f);return 0;}
     char*v=(char*)malloc((size_t)sz+1);if(!v){fclose(f);return 0;}
     int ok=(sz==0||fread(v,1,(size_t)sz,f)==(size_t)sz)&&!ferror(f);if(fclose(f)!=0)ok=0;
     if(!ok||memchr(v,0,(size_t)sz)){free(v);return 0;}v[sz]=0;*value_out=v;return 1;
+#endif
 }
 
 static void pref_load(void) {
@@ -119,27 +143,29 @@ static void pref_load(void) {
     closedir(d);pref_dirty=0;SAVE_TRACE("[SAVE] loaded registry directory path=%s keys=%u",PREFS_DIR,pref_count);
 }
 
-static int pref_write_entry(const PrefEntry *e) {
+/* Physical filesystem operations. On Vita these are called by the save worker,
+ * never by the game thread unless worker creation fails. */
+static int pref_write_key_value_now(const char *key,const char *value) {
     char path[768],tmp[768],bak[768];
-    if(!pref_path_for_key(path,sizeof(path),e->key,PREFS_EXT)||
-       !pref_path_for_key(tmp,sizeof(tmp),e->key,".tmp")||
-       !pref_path_for_key(bak,sizeof(bak),e->key,".bak"))return 0;
+    if(!pref_path_for_key(path,sizeof(path),key,PREFS_EXT)||
+       !pref_path_for_key(tmp,sizeof(tmp),key,".tmp")||
+       !pref_path_for_key(bak,sizeof(bak),key,".bak"))return 0;
     FILE*f=fopen(tmp,"wb");
-    if(!f){SAVE_TRACE("[SAVE] write-one open hash=%08X ok=0 errno=%d",pref_key_hash(e->key),errno);return 0;}
-    size_t n=strlen(e->value);
-    int ok=(n==0||fwrite(e->value,1,n,f)==n);
+    if(!f){SAVE_TRACE("[SAVE] write-one open hash=%08X ok=0 errno=%d",pref_key_hash(key),errno);return 0;}
+    size_t n=strlen(value);
+    int ok=(n==0||fwrite(value,1,n,f)==n);
     if(ok)ok=fflush(f)==0;
     if(fclose(f)!=0)ok=0;
-    if(!ok){remove(tmp);SAVE_TRACE("[SAVE] write-one hash=%08X bytes=%u ok=0 errno=%d",pref_key_hash(e->key),(unsigned)n,errno);return 0;}
+    if(!ok){remove(tmp);SAVE_TRACE("[SAVE] write-one hash=%08X bytes=%u ok=0 errno=%d",pref_key_hash(key),(unsigned)n,errno);return 0;}
     int had=(access(path,F_OK)==0);
-    if(had){remove(bak);if(rename(path,bak)!=0){remove(tmp);SAVE_TRACE("[SAVE] write-one rotate hash=%08X ok=0 errno=%d",pref_key_hash(e->key),errno);return 0;}}
-    if(rename(tmp,path)!=0){int saved_errno=errno;if(had)rename(bak,path);remove(tmp);errno=saved_errno;SAVE_TRACE("[SAVE] write-one rename hash=%08X ok=0 errno=%d",pref_key_hash(e->key),errno);return 0;}
+    if(had){remove(bak);if(rename(path,bak)!=0){remove(tmp);SAVE_TRACE("[SAVE] write-one rotate hash=%08X ok=0 errno=%d",pref_key_hash(key),errno);return 0;}}
+    if(rename(tmp,path)!=0){int saved_errno=errno;if(had)rename(bak,path);remove(tmp);errno=saved_errno;SAVE_TRACE("[SAVE] write-one rename hash=%08X ok=0 errno=%d",pref_key_hash(key),errno);return 0;}
     if(had)remove(bak);
-    SAVE_TRACE("[SAVE] write-one hash=%08X bytes=%u ok=1",pref_key_hash(e->key),(unsigned)n);
+    SAVE_TRACE("[SAVE] write-one hash=%08X bytes=%u ok=1",pref_key_hash(key),(unsigned)n);
     return 1;
 }
 
-static int pref_delete_key_file(const char *key) {
+static int pref_delete_key_file_now(const char *key) {
     char path[768],tmp[768],bak[768];int ok=1;
     if(!pref_path_for_key(path,sizeof(path),key,PREFS_EXT)||
        !pref_path_for_key(tmp,sizeof(tmp),key,".tmp")||
@@ -151,7 +177,7 @@ static int pref_delete_key_file(const char *key) {
     return ok;
 }
 
-static int pref_clear_files(void) {
+static int pref_clear_files_now(void) {
     if(!pref_ensure_dir())return 0;
     DIR*d=opendir(PREFS_DIR);if(!d)return errno==ENOENT;
     struct dirent*de;int ok=1;unsigned removed=0;
@@ -164,9 +190,163 @@ static int pref_clear_files(void) {
     closedir(d);SAVE_TRACE("[SAVE] clear registry files removed=%u ok=%d",removed,ok);return ok;
 }
 
-/* All mutations are persisted at the mutation boundary. apply()/commit() are
- * therefore bookkeeping only. If an immediate write failed, report failure
- * rather than falling back to an O(n) rewrite of the whole Registry. */
+#ifdef ZOMBIE_VITA_BUILD
+enum { PREF_IO_WRITE=1, PREF_IO_DELETE=2, PREF_IO_CLEAR=3 };
+typedef struct PrefIoJob {
+    int op;
+    char *key;
+    char *value;
+    struct PrefIoJob *next;
+} PrefIoJob;
+
+static pthread_mutex_t pref_io_mutex=PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t pref_io_cond=PTHREAD_COND_INITIALIZER;
+static PrefIoJob *pref_io_head,*pref_io_tail;
+static int pref_io_worker_state; /* 0=off, 1=starting, 2=ready, 3=failed */
+
+static void pref_io_job_free(PrefIoJob *j){
+    if(!j)return;free(j->key);free(j->value);free(j);
+}
+static void pref_io_queue_drop_all_locked(void){
+    PrefIoJob*j=pref_io_head;while(j){PrefIoJob*n=j->next;pref_io_job_free(j);j=n;}
+    pref_io_head=pref_io_tail=NULL;
+}
+static int pref_io_process(PrefIoJob *j){
+    if(j->op==PREF_IO_WRITE)return pref_write_key_value_now(j->key,j->value?j->value:"");
+    if(j->op==PREF_IO_DELETE)return pref_delete_key_file_now(j->key);
+    if(j->op==PREF_IO_CLEAR)return pref_clear_files_now();
+    return 0;
+}
+static void *pref_io_worker_main(void *unused){
+    (void)unused;
+    for(;;){
+        pthread_mutex_lock(&pref_io_mutex);
+        while(!pref_io_head)pthread_cond_wait(&pref_io_cond,&pref_io_mutex);
+        pthread_mutex_unlock(&pref_io_mutex);
+
+        /* Small debounce window lets bursts to the same Registry key collapse
+         * into one physical write without delaying the game thread. */
+        sceKernelDelayThread(15000);
+
+        pthread_mutex_lock(&pref_io_mutex);
+        PrefIoJob*j=pref_io_head;
+        if(j){
+            pref_io_head=j->next;
+            if(!pref_io_head)pref_io_tail=NULL;
+            j->next=NULL;
+        }
+        pthread_mutex_unlock(&pref_io_mutex);
+        if(!j)continue;
+
+        int ok=pref_io_process(j);
+        if(!ok)l_error("[SAVE] async Registry I/O failed op=%d hash=%08X",j->op,j->key?pref_key_hash(j->key):0);
+        else SAVE_TRACE("[SAVE] async Registry I/O complete op=%d hash=%08X",j->op,j->key?pref_key_hash(j->key):0);
+        pref_io_job_free(j);
+    }
+    return NULL;
+}
+static int pref_io_ensure_worker(void){
+    int state=__atomic_load_n(&pref_io_worker_state,__ATOMIC_ACQUIRE);
+    if(state==2)return 1;
+    if(state==3)return 0;
+    int expected=0;
+    if(__atomic_compare_exchange_n(&pref_io_worker_state,&expected,1,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)){
+        pthread_t thread;pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setstacksize(&attr,128*1024);
+        int rc=pthread_create(&thread,&attr,pref_io_worker_main,NULL);
+        pthread_attr_destroy(&attr);
+        if(rc!=0){
+            __atomic_store_n(&pref_io_worker_state,3,__ATOMIC_RELEASE);
+            l_error("[SAVE] async worker creation failed rc=%d; falling back to synchronous I/O",rc);
+            return 0;
+        }
+        pthread_detach(thread);
+        __atomic_store_n(&pref_io_worker_state,2,__ATOMIC_RELEASE);
+        SAVE_TRACE("[SAVE] async Registry I/O worker ready");
+        return 1;
+    }
+    do{
+        sceKernelDelayThread(100);
+        state=__atomic_load_n(&pref_io_worker_state,__ATOMIC_ACQUIRE);
+    }while(state==1);
+    return state==2;
+}
+static int pref_io_enqueue_key(int op,const char *key,const char *value){
+    if(!key||!pref_io_ensure_worker())return 0;
+    PrefIoJob*n=(PrefIoJob*)calloc(1,sizeof(*n));if(!n)return 0;
+    n->op=op;n->key=pref_dup(key,strlen(key));
+    if(!n->key){pref_io_job_free(n);return 0;}
+    if(op==PREF_IO_WRITE){
+        n->value=pref_dup(value?value:"",strlen(value?value:""));
+        if(!n->value){pref_io_job_free(n);return 0;}
+    }
+
+    pthread_mutex_lock(&pref_io_mutex);
+    /* Coalesce only after the newest pending CLEAR, preserving ordering. */
+    PrefIoJob*match=NULL;
+    for(PrefIoJob*j=pref_io_head;j;j=j->next){
+        if(j->op==PREF_IO_CLEAR)match=NULL;
+        else if(j->key&&!strcmp(j->key,key))match=j;
+    }
+    if(match){
+        free(match->value);match->value=n->value;n->value=NULL;match->op=op;
+        pref_io_job_free(n);
+    }else{
+        if(pref_io_tail)pref_io_tail->next=n;else pref_io_head=n;
+        pref_io_tail=n;
+    }
+    pthread_cond_signal(&pref_io_cond);
+    pthread_mutex_unlock(&pref_io_mutex);
+    return 1;
+}
+static int pref_io_enqueue_clear(void){
+    if(!pref_io_ensure_worker())return 0;
+    PrefIoJob*n=(PrefIoJob*)calloc(1,sizeof(*n));if(!n)return 0;n->op=PREF_IO_CLEAR;
+    pthread_mutex_lock(&pref_io_mutex);
+    /* A clear supersedes every mutation that has not reached disk yet. New
+     * writes queued afterwards remain ordered behind this clear. */
+    pref_io_queue_drop_all_locked();
+    pref_io_head=pref_io_tail=n;
+    pthread_cond_signal(&pref_io_cond);
+    pthread_mutex_unlock(&pref_io_mutex);
+    return 1;
+}
+#endif
+
+static int pref_write_entry(const PrefEntry *e) {
+#ifdef ZOMBIE_VITA_BUILD
+    if(pref_io_enqueue_key(PREF_IO_WRITE,e->key,e->value)){
+        SAVE_TRACE("[SAVE] write-one queued hash=%08X bytes=%u",pref_key_hash(e->key),(unsigned)strlen(e->value));
+        return 1;
+    }
+#endif
+    return pref_write_key_value_now(e->key,e->value);
+}
+
+static int pref_delete_key_file(const char *key) {
+#ifdef ZOMBIE_VITA_BUILD
+    if(pref_io_enqueue_key(PREF_IO_DELETE,key,NULL)){
+        SAVE_TRACE("[SAVE] delete-one queued hash=%08X",pref_key_hash(key));
+        return 1;
+    }
+#endif
+    return pref_delete_key_file_now(key);
+}
+
+static int pref_clear_files(void) {
+#ifdef ZOMBIE_VITA_BUILD
+    if(pref_io_enqueue_clear()){
+        SAVE_TRACE("[SAVE] clear registry files queued");
+        return 1;
+    }
+#endif
+    return pref_clear_files_now();
+}
+
+/* Mutations are reflected in RAM immediately. On Vita, successful apply means
+ * the physical mutation was accepted by the dedicated I/O worker, not that the
+ * game thread waited for the memory card. */
 static int pref_save(void) {
     pref_load();
     int ok=!pref_dirty;
