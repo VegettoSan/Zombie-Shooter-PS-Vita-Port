@@ -58,10 +58,10 @@ patch_file("source/java_base.inc", [
 #     -> 32-byte AES-256 key
 #
 # SigmaTeam's sha256 helper intentionally returns an EMPTY vector when the
-# Java string is null/empty.  Chipher<1,256>::porcess then compares key.size()
+# Java string is null/empty. Chipher<1,256>::porcess then compares key.size()
 # with 0x20 and emits exactly the "Wrong AES key length" seen on hardware.
 # Resolve this Java path by exact class+signature, not FalsoJNI's legacy
-# name-only fallback.  The Android ID itself remains the normal stable 16 hex
+# name-only fallback. The Android ID itself remains the normal stable 16 hex
 # characters; the engine hashes it to the required 32 bytes.
 old_secure = '''static jobject secureGetString(jmethodID id, va_list args) {
 \t(void) id;
@@ -101,7 +101,7 @@ new_secure = '''static jobject secureGetString(jmethodID id, va_list args) {
 \t\treturn NULL;
 \t/* applicationUID() SHA-256 hashes this normal 64-bit Android identifier.
 \t * Do not return a pre-hashed/32-character value here: that would change the
-\t * engine's real key derivation contract.  Resolver identity is intentionally
+\t * engine's real key derivation contract. Resolver identity is intentionally
 \t * not used as a rejection condition once this exact static API is resolved;
 \t * Android accepts any valid ContentResolver and the Vita object is synthetic. */
 \treturn jni->NewStringUTF(&jni, "a1b2c3d4e5f60718");
@@ -115,13 +115,15 @@ old_resolver = '''int fjni_resolve_method(jclass clazz, const char *name, const 
 '''
 new_resolver = '''int fjni_resolve_method(jclass clazz, const char *name, const char *sig, jboolean is_static, jmethodID *result) {
     /* CryptEngine::applicationUID() asks the main Activity for a resolver and
-     * then calls Settings.Secure.getString(ContentResolver,String).  Resolve
+     * then calls Settings.Secure.getString(ContentResolver,String). Resolve
      * both calls by exact descriptor so the registry encryption key never
-     * depends on FalsoJNI's name-only fallback. */
-    if (clazz == (jclass)0x42424242 && !is_static &&
-        !strcmp(name, "getContentResolver") &&
-        !strcmp(sig, "()Landroid/content/ContentResolver;")) {
-        *result = (jmethodID)(uintptr_t)METHOD_GET_CONTENT_RESOLVER;
+     * depends on FalsoJNI's name-only fallback. Consume every same-name query
+     * on these classes: a wrong descriptor must be NULL, never fall through to
+     * legacy name-only lookup. */
+    if (clazz == (jclass)0x42424242 && !strcmp(name, "getContentResolver")) {
+        *result = NULL;
+        if (!is_static && !strcmp(sig, "()Landroid/content/ContentResolver;"))
+            *result = (jmethodID)(uintptr_t)METHOD_GET_CONTENT_RESOLVER;
         return 1;
     }
     if (class_matches(clazz, "android/provider/Settings$Secure") && is_static) {
@@ -141,9 +143,9 @@ patch_file("source/java_base.inc", [
     (old_resolver, new_resolver, "exact crypto identity JNI resolver"),
 ])
 
-# The regression follows the same JNI calls applicationUID() makes.  It proves
+# The regression follows the same JNI calls applicationUID() makes. It proves
 # exact descriptor matching, a non-null ContentResolver path, a stable 16-char
-# Android ID and rejection of unrelated Settings.Secure keys.  This catches the
+# Android ID and rejection of unrelated Settings.Secure keys. This catches the
 # failure before a VPK can be produced.
 crypto_regression_anchor = ''' puts("DisplayMetrics JNI regression passed: exact descriptors, nonzero fields and complete activity/display chain");
 
@@ -240,7 +242,7 @@ patch_file("source/patch.c", [
 ])
 
 # The bring-up build used kuser_patch() directly, which intentionally skipped
-# music, scaling and adaptive software-frame reuse.  Switch to the verified
+# music, scaling and adaptive software-frame reuse. Switch to the verified
 # 3.6.1 subset above; so_patch() still performs kuser first.
 patch_file("source/utils/init.c", [
     ('    kuser_patch();', '    so_patch();', "3.6.1 recovery patch entry"),
@@ -292,9 +294,9 @@ patch_file("source/utils/gamepad.c", [
      "stock controls.txt auto-migration"),
 ])
 
-# Do not rely on the engine eventually calling Editor.commit()/apply().  A real
+# Do not rely on the engine eventually calling Editor.commit()/apply(). A real
 # Android SharedPreferences editor normally commits staged mutations there, but
-# our lightweight bridge mutates the in-memory map immediately.  Persist that
+# our lightweight bridge mutates the in-memory map immediately. Persist that
 # mutation immediately as well so progress cannot vanish on abrupt Vita exits.
 patch_file("source/preferences_jni.inc", [
     ('if(v)ok=pref_set(k,v);else pref_remove_key(k);SAVE_TRACE(',
