@@ -19,7 +19,6 @@
 typedef enum {
     VITA_INPUT_STRICT = 0,
     VITA_INPUT_HYBRID = 1,
-    VITA_INPUT_GAMEPLAY = 2,
 } VitaInputMode;
 
 typedef struct {
@@ -28,43 +27,6 @@ typedef struct {
     bool from_rear;
     uint32_t xbox_mask;
 } VitaXboxBinding;
-
-typedef enum {
-    GAMEPLAY_TOUCH_NONE = 0,
-    GAMEPLAY_TOUCH_BUY_AMMO,
-    GAMEPLAY_TOUCH_PREV_WEAPON,
-    GAMEPLAY_TOUCH_NEXT_WEAPON,
-    GAMEPLAY_TOUCH_MEDIKIT,
-    GAMEPLAY_TOUCH_GRENADE,
-} GameplayTouchAction;
-
-typedef struct {
-    GameplayTouchAction action;
-    const char *name;
-    float x;
-    float y;
-} GameplayTouchTarget;
-
-/*
- * Coordinates come from the Android joystick HUD .men assets. FalsoNDK reports
- * front touch in the same 960x544 coordinate space, so no scaling is needed:
- *   action5                    -> buy ammo      (765, 280)
- *   dpadleft/action7           -> prev weapon   (709, 328)
- *   dpadright/action8          -> next weapon   (815, 328)
- *   action9/dpadup/ltrigger    -> medikit       (924, 316)
- *   action10/dpaddown/rtrigger -> grenade       (743, 180)
- */
-static const GameplayTouchTarget gameplay_touch_targets[] = {
-    { GAMEPLAY_TOUCH_BUY_AMMO,    "buy_ammo",    765.0f, 280.0f },
-    { GAMEPLAY_TOUCH_PREV_WEAPON, "prev_weapon", 709.0f, 328.0f },
-    { GAMEPLAY_TOUCH_NEXT_WEAPON, "next_weapon", 815.0f, 328.0f },
-    { GAMEPLAY_TOUCH_MEDIKIT,     "medikit",     924.0f, 316.0f },
-    { GAMEPLAY_TOUCH_GRENADE,     "grenade",     743.0f, 180.0f },
-};
-
-extern AInputQueue *inputQueue;
-
-static GameplayTouchAction gameplay_touch_current = GAMEPLAY_TOUCH_NONE;
 
 /*
  * Strong override of FalsoNDK's weak table.
@@ -93,7 +55,7 @@ ButtonMapping fndk_button_mapping[] = {
     { SCE_CTRL_L3,        AKEYCODE_BUTTON_THUMBL },
     { SCE_CTRL_R3,        AKEYCODE_BUTTON_THUMBR },
 
-    /* Legacy/hybrid aliases; not emitted by handheld strict/gameplay mode. */
+    /* Legacy/hybrid aliases; not emitted by handheld strict mode. */
     { SCE_CTRL_UP,        AKEYCODE_DPAD_UP },
     { SCE_CTRL_DOWN,      AKEYCODE_DPAD_DOWN },
     { SCE_CTRL_LEFT,      AKEYCODE_DPAD_LEFT },
@@ -125,7 +87,7 @@ static VitaXboxBinding bindings[] = {
 };
 
 static bool controls_loaded;
-static VitaInputMode input_mode = VITA_INPUT_GAMEPLAY;
+static VitaInputMode input_mode = VITA_INPUT_STRICT;
 
 static void reset_xbox_defaults(void) {
     bindings[0].xbox_mask  = SCE_CTRL_CROSS;    /* A */
@@ -144,8 +106,7 @@ static void reset_xbox_defaults(void) {
     bindings[13].xbox_mask = SCE_CTRL_RIGHT;
     bindings[14].xbox_mask = SCE_CTRL_L3;       /* LS */
     bindings[15].xbox_mask = SCE_CTRL_R3;       /* RS */
-    input_mode = VITA_INPUT_GAMEPLAY;
-    gameplay_touch_current = GAMEPLAY_TOUCH_NONE;
+    input_mode = VITA_INPUT_STRICT;
     fndk_button_mapping_count = FNDK_STRICT_KEY_COUNT;
 }
 
@@ -209,18 +170,10 @@ static const char *xbox_name(uint32_t mask) {
 }
 
 static const char *input_mode_name(void) {
-    if (input_mode == VITA_INPUT_HYBRID) return "hybrid";
-    if (input_mode == VITA_INPUT_GAMEPLAY) return "gameplay";
-    return "strict";
+    return input_mode == VITA_INPUT_HYBRID ? "hybrid" : "strict";
 }
 
 static bool set_input_mode(const char *name) {
-    if (strcmp(name, "GAMEPLAY") == 0 || strcmp(name, "VITA_GAMEPLAY") == 0 ||
-        strcmp(name, "TOUCH_GAMEPLAY") == 0) {
-        input_mode = VITA_INPUT_GAMEPLAY;
-        fndk_button_mapping_count = FNDK_STRICT_KEY_COUNT;
-        return true;
-    }
     if (strcmp(name, "STRICT") == 0 || strcmp(name, "XBOX_STRICT") == 0) {
         input_mode = VITA_INPUT_STRICT;
         fndk_button_mapping_count = FNDK_STRICT_KEY_COUNT;
@@ -241,13 +194,11 @@ static bool write_default_controls(void) {
     fputs("# Zombie Shooter Vita control mapping\n"
           "# Edit this file, save it, then fully restart the game.\n"
           "#\n"
-          "# input_mode gameplay (recommended): gameplay buttons press the\n"
-          "#   Android HUD touch targets used by Zombie Shooter itself.\n"
-          "#   Y=buy ammo, LB/RB=next/previous weapon, LT/RT=medikit/grenade,\n"
-          "#   and DPAD duplicates medikit/grenade/weapon switching.\n"
-          "# input_mode strict: standard Xbox/Android events only.\n"
-          "# input_mode hybrid: strict + legacy DPAD/L2/R2 KeyEvents.\n"
-          "input_mode gameplay\n\n"
+          "# input_mode strict (recommended): Xbox/Android style.\n"
+          "#   A/B/X/Y, LB/RB, START/BACK, LS/RS -> KeyEvent\n"
+          "#   DPAD -> HAT_X/HAT_Y only; LT/RT -> trigger axes only\n"
+          "# input_mode hybrid: legacy compatibility; also emits DPAD/L2/R2 KeyEvents.\n"
+          "input_mode strict\n\n"
           "# Physical PS Vita input -> Xbox logical control\n"
           "# Values: A B X Y LB RB LT RT LS RS START BACK\n"
           "#         DPAD_UP DPAD_DOWN DPAD_LEFT DPAD_RIGHT NONE\n"
@@ -307,7 +258,7 @@ void gamepad_config_load(void) {
 
         if (strcmp(physical, "input_mode") == 0 || strcmp(physical, "event_mode") == 0) {
             if (!set_input_mode(action))
-                l_perf("[INPUT] controls warning=unknown_input_mode value=%s default=gameplay", action);
+                l_perf("[INPUT] controls warning=unknown_input_mode value=%s default=strict", action);
             continue;
         }
 
@@ -332,73 +283,16 @@ void gamepad_config_load(void) {
     log_effective_mapping("controls.txt");
 }
 
-static const GameplayTouchTarget *gameplay_touch_target(GameplayTouchAction action) {
-    for (unsigned i = 0; i < sizeof(gameplay_touch_targets) / sizeof(gameplay_touch_targets[0]); ++i)
-        if (gameplay_touch_targets[i].action == action) return &gameplay_touch_targets[i];
-    return NULL;
-}
-
-static void emit_gameplay_touch(GameplayTouchAction action, bool down) {
-    const GameplayTouchTarget *target = gameplay_touch_target(action);
-    if (!target || !inputQueue) return;
-
-    inputEvent e = {0};
-    e.device_id = FNDK_TOUCH_DEVICE_ID;
-    e.source = AINPUT_SOURCE_TOUCHSCREEN;
-    e.type = AINPUT_EVENT_TYPE_MOTION;
-    e.motion_ptrcount = 1;
-    e.motion_ptridx[0] = 0;
-    e.motion_x[0] = target->x;
-    e.motion_y[0] = target->y;
-    e.motion_action = down ? AMOTION_EVENT_ACTION_DOWN : AMOTION_EVENT_ACTION_UP;
-
-#ifdef ZOMBIE_DEBUG_BUILD
-    l_debug("[INPUT] gameplay_touch action=%s %s x=%d y=%d",
-            target->name, down ? "DOWN" : "UP", (int)target->x, (int)target->y);
-#endif
-
-    AInputEvent *aie = AInputEvent_create(&e);
-    if (aie) AInputQueue_enqueueEvent(inputQueue, aie);
-}
-
-static GameplayTouchAction gameplay_action_from_logical(uint32_t logical) {
-    /*
-     * One virtual HUD finger is enough for controller gameplay and avoids
-     * duplicating the game's own touch state. Deterministic priority only
-     * matters if contradictory controls are held simultaneously.
-     */
-    if (logical & (SCE_CTRL_L2 | SCE_CTRL_UP)) return GAMEPLAY_TOUCH_MEDIKIT;
-    if (logical & (SCE_CTRL_R2 | SCE_CTRL_DOWN)) return GAMEPLAY_TOUCH_GRENADE;
-    if (logical & (SCE_CTRL_R1 | SCE_CTRL_LEFT)) return GAMEPLAY_TOUCH_PREV_WEAPON;
-    if (logical & (SCE_CTRL_L1 | SCE_CTRL_RIGHT)) return GAMEPLAY_TOUCH_NEXT_WEAPON;
-    if (logical & SCE_CTRL_TRIANGLE) return GAMEPLAY_TOUCH_BUY_AMMO;
-    return GAMEPLAY_TOUCH_NONE;
-}
-
-static void gameplay_touch_update(uint32_t logical) {
-    GameplayTouchAction next = gameplay_action_from_logical(logical);
-    if (next == gameplay_touch_current) return;
-
-    if (gameplay_touch_current != GAMEPLAY_TOUCH_NONE)
-        emit_gameplay_touch(gameplay_touch_current, false);
-    gameplay_touch_current = next;
-    if (gameplay_touch_current != GAMEPLAY_TOUCH_NONE)
-        emit_gameplay_touch(gameplay_touch_current, true);
-}
-
 uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handheld) {
     /* External controllers keep the complete legacy FalsoNDK representation. */
     if (!handheld) {
-        if (gameplay_touch_current != GAMEPLAY_TOUCH_NONE) {
-            emit_gameplay_touch(gameplay_touch_current, false);
-            gameplay_touch_current = GAMEPLAY_TOUCH_NONE;
-        }
         fndk_button_mapping_count = FNDK_HYBRID_KEY_COUNT;
         return buttons;
     }
 
     /* Startup should load controls.txt before the input queue starts. If that
-     * ordering ever changes, use the standard handheld mapping. */
+     * ordering ever changes, use the standard handheld mapping; do not revive
+     * the removed vita_shooter profile. */
     if (!controls_loaded) {
         fndk_button_mapping_count = FNDK_HYBRID_KEY_COUNT;
         return buttons | rear;
@@ -414,44 +308,22 @@ uint32_t fndk_translate_pad_buttons(uint32_t buttons, uint32_t rear, bool handhe
             logical |= bindings[i].xbox_mask;
     }
 
-    uint32_t emitted = logical;
-    if (input_mode == VITA_INPUT_GAMEPLAY) {
-        gameplay_touch_update(logical);
-
-        /*
-         * These controls are consumed through the real Android joystick HUD.
-         * Suppress their broken key/HAT/trigger representation so one physical
-         * press cannot also toggle flashlight, open diagnostics or double-fire.
-         * A/B/X, Start/Back and stick clicks remain normal gamepad KeyEvents.
-         */
-        emitted &= ~(SCE_CTRL_TRIANGLE |
-                     SCE_CTRL_L1 | SCE_CTRL_R1 |
-                     SCE_CTRL_L2 | SCE_CTRL_R2 |
-                     SCE_CTRL_UP | SCE_CTRL_DOWN |
-                     SCE_CTRL_LEFT | SCE_CTRL_RIGHT);
-    } else if (gameplay_touch_current != GAMEPLAY_TOUCH_NONE) {
-        emit_gameplay_touch(gameplay_touch_current, false);
-        gameplay_touch_current = GAMEPLAY_TOUCH_NONE;
-    }
-
 #ifdef ZOMBIE_DEBUG_BUILD
     static uint32_t previous_buttons = UINT32_MAX;
     static uint32_t previous_rear = UINT32_MAX;
     static uint32_t previous_logical = UINT32_MAX;
-    static uint32_t previous_emitted = UINT32_MAX;
     static int previous_key_count = -1;
     if (buttons != previous_buttons || rear != previous_rear || logical != previous_logical ||
-        emitted != previous_emitted || fndk_button_mapping_count != previous_key_count) {
-        l_debug("[INPUT] vita_physical mode=%s buttons=0x%08X rear=0x%08X xbox_mask=0x%08X emitted_mask=0x%08X key_count=%d",
+        fndk_button_mapping_count != previous_key_count) {
+        l_debug("[INPUT] vita_physical mode=%s buttons=0x%08X rear=0x%08X xbox_mask=0x%08X key_count=%d",
                 input_mode_name(), (unsigned)buttons, (unsigned)rear, (unsigned)logical,
-                (unsigned)emitted, fndk_button_mapping_count);
+                fndk_button_mapping_count);
         previous_buttons = buttons;
         previous_rear = rear;
         previous_logical = logical;
-        previous_emitted = emitted;
         previous_key_count = fndk_button_mapping_count;
     }
 #endif
 
-    return emitted;
+    return logical;
 }
