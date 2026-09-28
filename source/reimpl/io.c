@@ -2,6 +2,7 @@
  * Copyright (C) 2021      Andy Nguyen
  * Copyright (C) 2022      Rinnegatamante
  * Copyright (C) 2022-2024 Volodymyr Atamanenko
+ * Copyright (C) 2026      VegettoSan
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -27,6 +28,7 @@
 #ifdef NDK_PORT
 #include <falso_ndk/linux/fndk_unistd.h>
 #endif
+
 static void save_io_trace(unsigned group,const char *operation,const char *path,
                           uintptr_t object,long result) {
 #ifdef ZOMBIE_DEBUG_BUILD
@@ -39,6 +41,29 @@ static void save_io_trace(unsigned group,const char *operation,const char *path,
     (void)group;(void)operation;(void)path;(void)object;(void)result;
 #endif
 }
+
+static void save_stat_trace(const char *operation,const char *path,int fd,
+                            int result,const stat64_bionic *guest) {
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned details;
+    int saved_errno=errno;
+    if(__atomic_fetch_add(&details,1,__ATOMIC_RELAXED)<64) {
+        if(result==0 && guest) {
+            l_perf("[SAVE] %s-meta path=%s fd=%d size=%lld mode=0x%08X ino=%llu nlink=%u errno=0",
+                   operation,path?path:"-",fd,(long long)guest->st_size,
+                   (unsigned)guest->st_mode,(unsigned long long)guest->st_ino,
+                   (unsigned)guest->st_nlink);
+        } else {
+            l_perf("[SAVE] %s-meta path=%s fd=%d result=%d errno=%d",
+                   operation,path?path:"-",fd,result,saved_errno);
+        }
+    }
+    errno=saved_errno;
+#else
+    (void)operation;(void)path;(void)fd;(void)result;(void)guest;
+#endif
+}
+
 size_t fwrite_soloader(const void *ptr,size_t size,size_t count,FILE *stream) {
 #ifdef USE_SCELIBC_IO
     size_t result=sceLibcBridge_fwrite(ptr,size,count,stream);
@@ -67,7 +92,7 @@ int unlink_soloader(const char *path) {
 
 
 // Includes the following inline utilities:
-// int oflags_musl_to_newlib(int flags);
+// int oflags_bionic_to_newlib(int flags);
 // dirent64_bionic * dirent_newlib_to_bionic(struct dirent* dirent_newlib);
 // void stat_newlib_to_bionic(struct stat * src, stat64_bionic * dst);
 #include "reimpl/bits/_struct_converters.c"
@@ -130,13 +155,16 @@ int fstat_soloader(int fd, stat64_bionic * buf) {
     if (res == 0)
         stat_newlib_to_bionic(&st, buf);
 
+    save_stat_trace("fstat",NULL,fd,res,res==0?buf:NULL);
     l_debug("fstat(%i): %i", fd, res);
     return res;
 }
 
 int stat_soloader(const char * path, stat64_bionic * buf) {
     if (strcmp(path, "/system/lib/libOpenSLES.so") == 0) {
+        if(buf) memset(buf,0,sizeof(*buf));
         l_debug("stat(%s): returning 0 in case this is a check for OpenSLES support", path);
+        save_stat_trace("stat",path,-1,0,buf);
         return 0;
     }
 
@@ -147,6 +175,7 @@ int stat_soloader(const char * path, stat64_bionic * buf) {
         stat_newlib_to_bionic(&st, buf);
 
     save_io_trace(0,"stat",path,0,res);
+    save_stat_trace("stat",path,-1,res,res==0?buf:NULL);
     l_debug("stat(%s): %i", path, res);
     return res;
 }
@@ -182,6 +211,10 @@ struct dirent64_bionic * readdir_soloader(DIR * dir) {
 
     if (ret) {
         dirent64_bionic* entry_tmp = dirent_newlib_to_bionic(ret);
+        if(!entry_tmp) {
+            errno=ENOMEM;
+            return NULL;
+        }
         memcpy(&dirent_tmp, entry_tmp, sizeof(dirent64_bionic));
         free(entry_tmp);
         return &dirent_tmp;
@@ -193,15 +226,24 @@ struct dirent64_bionic * readdir_soloader(DIR * dir) {
 int readdir_r_soloader(DIR * dirp, dirent64_bionic * entry,
                        dirent64_bionic ** result) {
     struct dirent dirent_tmp;
-    struct dirent * pdirent_tmp;
+    struct dirent * pdirent_tmp=NULL;
 
     int ret = readdir_r(dirp, &dirent_tmp, &pdirent_tmp);
 
     if (ret == 0) {
-        dirent64_bionic* entry_tmp = dirent_newlib_to_bionic(&dirent_tmp);
-        memcpy(entry, entry_tmp, sizeof(dirent64_bionic));
-        *result = (pdirent_tmp != NULL) ? entry : NULL;
-        free(entry_tmp);
+        if(pdirent_tmp==NULL) {
+            *result=NULL;
+        } else {
+            dirent64_bionic* entry_tmp = dirent_newlib_to_bionic(&dirent_tmp);
+            if(!entry_tmp) {
+                *result=NULL;
+                ret=ENOMEM;
+            } else {
+                memcpy(entry, entry_tmp, sizeof(dirent64_bionic));
+                free(entry_tmp);
+                *result=entry;
+            }
+        }
     }
 
     l_debug("readdir_r(%p, %p, %p): %i", dirp, entry, result, ret);
