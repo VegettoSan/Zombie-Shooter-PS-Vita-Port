@@ -46,6 +46,137 @@ patch_file("source/java_base.inc", [
      "SDK comment"),
 ])
 
+# Hardware log #38 proved that RegistryPrivate reaches SharedPreferences but
+# every value is removed and AES-256 rejects its key.  Build-1161 disassembly
+# closes the native chain:
+#
+#   CryptEngine::encryptionKey()
+#     -> salt()
+#     -> applicationUID()
+#     -> Settings.Secure.getString(ContentResolver, "android_id")
+#     -> sha256(android_id)
+#     -> 32-byte AES-256 key
+#
+# SigmaTeam's sha256 helper intentionally returns an EMPTY vector when the
+# Java string is null/empty.  Chipher<1,256>::porcess then compares key.size()
+# with 0x20 and emits exactly the "Wrong AES key length" seen on hardware.
+# Resolve this Java path by exact class+signature, not FalsoJNI's legacy
+# name-only fallback.  The Android ID itself remains the normal stable 16 hex
+# characters; the engine hashes it to the required 32 bytes.
+old_secure = '''static jobject secureGetString(jmethodID id, va_list args) {
+\t(void) id;
+\tjobject resolver = va_arg(args, jobject);
+\tjstring name = va_arg(args, jstring);
+\tif (resolver != (jobject)0x71717171 || !name)
+\t\treturn NULL;
+\tconst char *key = jni->GetStringUTFChars(&jni, name, NULL);
+\tif (!key)
+\t\treturn NULL;
+\tint is_android_id = strcmp(key, "android_id") == 0;
+\tjni->ReleaseStringUTFChars(&jni, name, (char *)key);
+\tif (!is_android_id)
+\t\treturn NULL;
+\t/* Settings.Secure.ANDROID_ID is a stable 64-bit hexadecimal identifier.
+\t * Keep it stable across runs so encrypted local saves keep the same key. */
+\treturn jni->NewStringUTF(&jni, "a1b2c3d4e5f60718");
+}'''
+new_secure = '''static jobject secureGetString(jmethodID id, va_list args) {
+\t(void) id;
+\tjobject resolver = va_arg(args, jobject);
+\tjstring name = va_arg(args, jstring);
+\tif (!name)
+\t\treturn NULL;
+\tconst char *key = jni->GetStringUTFChars(&jni, name, NULL);
+\tif (!key)
+\t\treturn NULL;
+\tint is_android_id = strcmp(key, "android_id") == 0;
+#ifdef ZOMBIE_DEBUG_BUILD
+\tstatic unsigned crypto_identity_reports;
+\tif (__atomic_fetch_add(&crypto_identity_reports, 1, __ATOMIC_RELAXED) < 8)
+\t\tl_perf("[CRYPTO] Settings.Secure.getString name=%s resolver=%p resolver_expected=%d android_id=%d",
+\t\t       key, resolver, resolver == (jobject)0x71717171, is_android_id);
+#endif
+\tjni->ReleaseStringUTFChars(&jni, name, (char *)key);
+\tif (!is_android_id)
+\t\treturn NULL;
+\t/* applicationUID() SHA-256 hashes this normal 64-bit Android identifier.
+\t * Do not return a pre-hashed/32-character value here: that would change the
+\t * engine's real key derivation contract.  Resolver identity is intentionally
+\t * not used as a rejection condition once this exact static API is resolved;
+\t * Android accepts any valid ContentResolver and the Vita object is synthetic. */
+\treturn jni->NewStringUTF(&jni, "a1b2c3d4e5f60718");
+}'''
+
+old_resolver = '''int fjni_resolve_method(jclass clazz, const char *name, const char *sig, jboolean is_static, jmethodID *result) {
+    if (clazz == (jclass)0x42424242 && !strcmp(name, "getWindowManager") &&
+        !strcmp(sig, "()Landroid/view/WindowManager;") && !is_static) {
+        *result = (jmethodID)(uintptr_t)METHOD_GET_WINDOW_MANAGER; return 1;
+    }
+'''
+new_resolver = '''int fjni_resolve_method(jclass clazz, const char *name, const char *sig, jboolean is_static, jmethodID *result) {
+    /* CryptEngine::applicationUID() asks the main Activity for a resolver and
+     * then calls Settings.Secure.getString(ContentResolver,String).  Resolve
+     * both calls by exact descriptor so the registry encryption key never
+     * depends on FalsoJNI's name-only fallback. */
+    if (clazz == (jclass)0x42424242 && !is_static &&
+        !strcmp(name, "getContentResolver") &&
+        !strcmp(sig, "()Landroid/content/ContentResolver;")) {
+        *result = (jmethodID)(uintptr_t)METHOD_GET_CONTENT_RESOLVER;
+        return 1;
+    }
+    if (class_matches(clazz, "android/provider/Settings$Secure") && is_static) {
+        *result = NULL;
+        if (!strcmp(name, "getString") &&
+            !strcmp(sig, "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;"))
+            *result = (jmethodID)(uintptr_t)METHOD_SECURE_GET_STRING;
+        return 1;
+    }
+    if (clazz == (jclass)0x42424242 && !strcmp(name, "getWindowManager") &&
+        !strcmp(sig, "()Landroid/view/WindowManager;") && !is_static) {
+        *result = (jmethodID)(uintptr_t)METHOD_GET_WINDOW_MANAGER; return 1;
+    }
+'''
+patch_file("source/java_base.inc", [
+    (old_secure, new_secure, "Settings.Secure android_id implementation"),
+    (old_resolver, new_resolver, "exact crypto identity JNI resolver"),
+])
+
+# The regression follows the same JNI calls applicationUID() makes.  It proves
+# exact descriptor matching, a non-null ContentResolver path, a stable 16-char
+# Android ID and rejection of unrelated Settings.Secure keys.  This catches the
+# failure before a VPK can be produced.
+crypto_regression_anchor = ''' puts("DisplayMetrics JNI regression passed: exact descriptors, nonzero fields and complete activity/display chain");
+
+ jclass clazz=jni->FindClass(&jni,"android/view/InputDevice");'''
+crypto_regression = ''' puts("DisplayMetrics JNI regression passed: exact descriptors, nonzero fields and complete activity/display chain");
+
+ /* Build-1161 CryptEngine::applicationUID() uses this exact Android chain,
+  * then SHA-256 hashes the returned 16 ASCII hex characters into 32 bytes. */
+ jobject crypto_activity=(jobject)0x42424242;
+ jmethodID content_resolver_id=jni->GetMethodID(&jni,(jclass)crypto_activity,"getContentResolver","()Landroid/content/ContentResolver;");
+ assert(content_resolver_id);
+ assert(!jni->GetMethodID(&jni,(jclass)crypto_activity,"getContentResolver","()Ljava/lang/Object;"));
+ jobject content_resolver=jni->CallObjectMethod(&jni,crypto_activity,content_resolver_id); assert(content_resolver);
+ jclass secure=jni->FindClass(&jni,"android.provider.Settings$Secure"); assert(secure);
+ jmethodID secure_get=jni->GetStaticMethodID(&jni,secure,"getString","(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;");
+ assert(secure_get);
+ assert(!jni->GetStaticMethodID(&jni,secure,"getString","(Ljava/lang/String;)Ljava/lang/String;"));
+ jstring android_id_name=jni->NewStringUTF(&jni,"android_id");
+ jstring android_id_value=jni->CallStaticObjectMethod(&jni,secure,secure_get,content_resolver,android_id_name); assert(android_id_value);
+ const char *android_id_utf=jni->GetStringUTFChars(&jni,android_id_value,NULL); assert(android_id_utf);
+ assert(strlen(android_id_utf)==16 && !strcmp(android_id_utf,"a1b2c3d4e5f60718"));
+ jni->ReleaseStringUTFChars(&jni,android_id_value,(char*)android_id_utf);
+ jstring unknown_secure_name=jni->NewStringUTF(&jni,"unknown_secure_key");
+ assert(!jni->CallStaticObjectMethod(&jni,secure,secure_get,content_resolver,unknown_secure_name));
+ jni->DeleteGlobalRef(&jni,android_id_name); jni->DeleteGlobalRef(&jni,android_id_value);
+ jni->DeleteGlobalRef(&jni,unknown_secure_name); jni->DeleteGlobalRef(&jni,secure);
+ puts("Crypto identity JNI regression passed: exact Settings.Secure android_id path and stable non-empty UID");
+
+ jclass clazz=jni->FindClass(&jni,"android/view/InputDevice");'''
+patch_file("tests/input_device_regression.c", [
+    (crypto_regression_anchor, crypto_regression, "CryptEngine applicationUID JNI regression"),
+])
+
 # MusicPlayer layout was checked in 3.6.1: BaseStream volume remains self+0x20,
 # loop remains self+0x28 and MusicPlayer's should-stop flag remains self+0x44.
 # The six virtual methods and helper functions keep the same verified prologues.
@@ -179,6 +310,7 @@ patch_file("source/preferences_jni.inc", [
 
 print("Prepared Zombie Shooter 3.6.1 build 1161 profile:")
 print("  - Java identity / native API 24")
+print("  - exact Settings.Secure android_id crypto identity path")
 print("  - verified M4A/AAC music hooks rebased")
 print("  - verified 864 render-scale hook rebased")
 print("  - verified engine probes + adaptive software-frame reuse rebased")
