@@ -56,6 +56,14 @@ static const inputEvent &motion(const std::vector<inputEvent>&es) {
  for(const auto&e:es) if(e.type==AINPUT_EVENT_TYPE_MOTION) return e;
  assert(false); return es[0];
 }
+static const inputEvent &touch(const std::vector<inputEvent>&es,int action,float x,float y) {
+ for(const auto&e:es) {
+   if(e.type==AINPUT_EVENT_TYPE_MOTION && e.source==AINPUT_SOURCE_TOUCHSCREEN &&
+      e.motion_action==action && e.motion_ptrcount==1 &&
+      e.motion_x[0]==x && e.motion_y[0]==y) return e;
+ }
+ assert(false); return es[0];
+}
 static float axis(const inputEvent&e,int a) { return AMotionEvent_getAxisValue(reinterpret_cast<const AInputEvent*>(&e),a,0); }
 static void load_controls(const char *text) {
  FILE *f=std::fopen("controls.txt","wb"); assert(f); std::fputs(text,f); std::fclose(f);
@@ -63,15 +71,55 @@ static void load_controls(const char *text) {
 }
 int main() {
  std::remove("controls.txt");
- gamepad_config_load(); // Missing file generates the real strict default template.
+ gamepad_config_load(); // Missing file generates the real gameplay-first template.
  assert(fndk_button_mapping_count==10);
  queue=AInputQueue_create(); neutral();
 
- // Strict default: ordinary Xbox buttons are KeyEvents exactly once.
+ // Gameplay default: route broken Android gamepad actions through the game's
+ // real 960x544 joystick HUD touch targets and suppress duplicate key/HAT/axis
+ // events for those actions.
+ struct GameplayCase { unsigned button; float x,y; };
+ const GameplayCase gameplay_buttons[]={
+  {SCE_CTRL_TRIANGLE,765,280}, // action5 buy ammo
+  {SCE_CTRL_L1,815,328},       // action8 next weapon
+  {SCE_CTRL_R1,709,328},       // action7 previous weapon
+  {SCE_CTRL_UP,924,316},       // action9 medikit
+  {SCE_CTRL_DOWN,743,180},     // action10 grenade
+  {SCE_CTRL_LEFT,709,328},
+  {SCE_CTRL_RIGHT,815,328},
+ };
+ for(const auto &c:gameplay_buttons) {
+  pad.buttons=c.button; tick(); auto es=drain(); assert(es.size()==1);
+  const auto &down=touch(es,AMOTION_EVENT_ACTION_DOWN,c.x,c.y);
+  assert(down.device_id==FNDK_TOUCH_DEVICE_ID);
+  tick(); assert(drain().empty());
+  pad.buttons=0; tick(); es=drain(); assert(es.size()==1);
+  touch(es,AMOTION_EVENT_ACTION_UP,c.x,c.y);
+ }
+ neutral(); touches[1].reportNum=1; touches[1].report[0]={0,500,200}; tick();
+ auto es=drain(); assert(es.size()==1); touch(es,AMOTION_EVENT_ACTION_DOWN,924,316);
+ touches[1]={}; tick(); es=drain(); assert(es.size()==1); touch(es,AMOTION_EVENT_ACTION_UP,924,316);
+ neutral(); touches[1].reportNum=1; touches[1].report[0]={0,1400,200}; tick();
+ es=drain(); assert(es.size()==1); touch(es,AMOTION_EVENT_ACTION_DOWN,743,180);
+ touches[1]={}; tick(); es=drain(); assert(es.size()==1); touch(es,AMOTION_EVENT_ACTION_UP,743,180);
+
+ // A/B/X remain ordinary gamepad KeyEvents in gameplay mode.
+ const unsigned gameplay_passthrough[]={SCE_CTRL_CROSS,SCE_CTRL_CIRCLE,SCE_CTRL_SQUARE};
+ const int gameplay_codes[]={AKEYCODE_BUTTON_A,AKEYCODE_BUTTON_B,AKEYCODE_BUTTON_X};
+ for(unsigned i=0;i<3;i++) {
+  pad.buttons=gameplay_passthrough[i]; tick(); es=drain(); assert(es.size()==1);
+  key(es,gameplay_codes[i],AKEY_EVENT_ACTION_DOWN);
+  pad.buttons=0; tick(); es=drain(); assert(es.size()==1);
+  key(es,gameplay_codes[i],AKEY_EVENT_ACTION_UP);
+ }
+
+ // Strict mode remains available as a diagnostic/reference path.
+ load_controls("input_mode strict\n");
+ neutral();
  const unsigned buttons[]={SCE_CTRL_CROSS,SCE_CTRL_CIRCLE,SCE_CTRL_SQUARE,SCE_CTRL_TRIANGLE,SCE_CTRL_START,SCE_CTRL_SELECT,SCE_CTRL_L3,SCE_CTRL_R3};
  const int codes[]={AKEYCODE_BUTTON_A,AKEYCODE_BUTTON_B,AKEYCODE_BUTTON_X,AKEYCODE_BUTTON_Y,AKEYCODE_BUTTON_START,AKEYCODE_BUTTON_SELECT,AKEYCODE_BUTTON_THUMBL,AKEYCODE_BUTTON_THUMBR};
  for(unsigned i=0;i<8;i++) {
-  pad.buttons=buttons[i]; tick(); auto es=drain(); assert(es.size()==1); const auto&e=key(es,codes[i],AKEY_EVENT_ACTION_DOWN);
+  pad.buttons=buttons[i]; tick(); es=drain(); assert(es.size()==1); const auto&e=key(es,codes[i],AKEY_EVENT_ACTION_DOWN);
   auto *aie=reinterpret_cast<const AInputEvent*>(&e);
   assert(AInputEvent_getDeviceId(aie)==FNDK_GAMEPAD_DEVICE_ID && AInputEvent_getSource(aie)==AINPUT_SOURCE_GAMEPAD);
   assert(AKeyEvent_getRepeatCount(aie)==0 && AKeyEvent_getScanCode(aie)==0);
@@ -80,24 +128,22 @@ int main() {
  }
 
  // Existing stick path must not change.
- pad.lx=0; pad.ly=255; pad.rx=255; pad.ry=0; tick(); auto es=drain(); auto e=motion(es);
+ pad.lx=0; pad.ly=255; pad.rx=255; pad.ry=0; tick(); es=drain(); auto e=motion(es);
  assert(AInputEvent_getDeviceId(reinterpret_cast<AInputEvent*>(&e))==FNDK_GAMEPAD_DEVICE_ID);
  assert(e.device_id!=e.source && e.source==AINPUT_SOURCE_JOYSTICK);
  assert(axis(e,AMOTION_EVENT_AXIS_X)==-1 && axis(e,AMOTION_EVENT_AXIS_Y)==1 && axis(e,AMOTION_EVENT_AXIS_Z)==1 && axis(e,AMOTION_EVENT_AXIS_RZ)==-1);
  pad.lx=pad.ly=pad.rx=pad.ry=128; tick(); es=drain(); e=motion(es); assert(axis(e,AMOTION_EVENT_AXIS_X)==0 && axis(e,AMOTION_EVENT_AXIS_Z)==0);
 
- // Strict default: D-pad is HAT only, with no duplicate DPAD KeyEvent.
+ // Strict: D-pad is HAT only, with no duplicate DPAD KeyEvent.
  const unsigned dirs[]={SCE_CTRL_LEFT,SCE_CTRL_RIGHT,SCE_CTRL_UP,SCE_CTRL_DOWN};
  for(unsigned i=0;i<4;i++) {
   neutral(); pad.buttons=dirs[i]; tick(); es=drain(); assert(es.size()==1); e=motion(es);
   assert(axis(e,AMOTION_EVENT_AXIS_HAT_X)==(i==0?-1:i==1?1:0));
   assert(axis(e,AMOTION_EVENT_AXIS_HAT_Y)==(i==2?-1:i==3?1:0));
  }
- neutral(); pad.buttons=SCE_CTRL_LEFT|SCE_CTRL_RIGHT|SCE_CTRL_UP|SCE_CTRL_DOWN; tick(); es=drain(); assert(es.empty()); // opposite HAT directions cancel at center
+ neutral(); pad.buttons=SCE_CTRL_LEFT|SCE_CTRL_RIGHT|SCE_CTRL_UP|SCE_CTRL_DOWN; tick(); es=drain(); assert(es.empty());
 
- // Strict handheld: LT/RT come from Vita rear-touch zones and are trigger axes
- // only. SCE_CTRL_L2/R2 in pad.buttons are for external controllers, not the
- // handheld path, so model the real hardware input here.
+ // Strict handheld: LT/RT come from Vita rear-touch zones and are trigger axes only.
  neutral(); touches[1].reportNum=1; touches[1].report[0]={0,500,200}; tick(); es=drain(); assert(es.size()==1); e=motion(es);
  assert(axis(e,AMOTION_EVENT_AXIS_LTRIGGER)==1 && axis(e,AMOTION_EVENT_AXIS_BRAKE)==1);
  neutral(); touches[1].reportNum=1; touches[1].report[0]={0,1400,200}; tick(); es=drain(); assert(es.size()==1); e=motion(es);
@@ -156,5 +202,5 @@ int main() {
 #else
  assert(axis_traces==0 && button_traces==0);
 #endif
- puts("Gamepad regression passed: strict/hybrid modes, remapping, identity, sticks, HAT, triggers, external pad, touch and queue");
+ puts("Gamepad regression passed: gameplay HUD actions, strict/hybrid modes, remapping, identity, sticks, HAT, triggers, external pad, touch and queue");
 }
