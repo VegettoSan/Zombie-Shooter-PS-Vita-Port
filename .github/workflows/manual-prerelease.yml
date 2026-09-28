@@ -145,8 +145,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish manual physical-test pre-release
-        if: github.event_name == 'workflow_dispatch'
+      - name: Publish physical-test pre-release
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
@@ -163,5 +163,4 @@ jobs:
 
             Commit: `${{ github.sha }}`
             Physical Vita verification remains separate from build verification.
-            Test note: ${{ inputs.notes }}
           files: dist/*
