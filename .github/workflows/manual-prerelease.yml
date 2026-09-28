@@ -1,5 +1,9 @@
-name: Manual Vita VPK Pre-release
+name: Zombie Shooter 3.6.1 Vita VPK
+
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       notes:
@@ -7,112 +11,157 @@ on:
         required: false
         default: ''
         type: string
+
 permissions:
   contents: write
+
 concurrency:
-  group: zombie-vita-manual-prerelease
-  cancel-in-progress: false
+  group: zombie-shooter-361-vita-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-prerelease:
-    name: Functional baseline - Debug + Release
+  build-vpk:
+    name: 3.6.1 ARMv7 - Debug + Release
     runs-on: ubuntu-22.04
     env:
       VITASDK: /usr/local/vitasdk
+      ZOMBIE_GAME_VERSION: 3.6.1
+      ZOMBIE_GAME_VERSION_CODE: '1161'
+      ZOMBIE_SO_SIZE: '9908972'
+      ZOMBIE_SO_SHA1: f7c7bbfc41f7ed8b76c8c5b1af3e9b0dfdf188c0
+      ZOMBIE_SO_SHA256: cb461ac47de79536824e8f7b64fa82293b796bcc159675b4f5ad6304e60bdca1
     defaults:
       run:
         shell: bash
+
     steps:
       - name: Checkout source and pinned submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
-      - name: Install the exact functional local SoftFP SDK
+
+      - name: Install exact SoftFP VitaSDK baseline
         run: bash scripts/install_baseline_sdk.sh
-      - name: Host regressions
+
+      - name: Verify SoftFP toolchain
         run: |
-          tests/run_jni_field_regression.sh
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          "$VITASDK/bin/arm-vita-eabi-gcc" -Q --help=target | tee /tmp/gcc-target.txt
+          grep -E -- '-mfloat-abi=[[:space:]]*softfp|softfp' /tmp/gcc-target.txt
+
+      - name: Prepare 3.6.1 Java-facing identity
+        run: |
+          set -euo pipefail
+          python3 scripts/prepare_game_361_source.py
+          grep -F 'NewStringUTF(&jni, "3.6.1")' source/java_base.inc
+          grep -F 'return 1161;' source/java_base.inc
+
+      - name: Bridge regressions relevant to 3.6.1 bring-up
+        run: |
+          set -euo pipefail
+          bash tests/run_jni_field_regression.sh
           bash tests/run_gamepad_regression.sh
           bash tests/run_settings_regression.sh
-          python3 tests/run_render_scale_regression.py
-          tests/run_gl_buffer_regression.sh
           tests/run_logger_regression.sh
-          bash tests/run_texture_update_regression.sh
           bash tests/run_asset_index_regression.sh
-          bash tests/run_engine_probe_regression.sh
-      - name: Palette ARM regression against canonical SO
-        run: |
-          python3 -m pip install --target /tmp/zombie-arm-test-deps unicorn==2.1.4 pyelftools==0.32
-          PYTHONPATH=/tmp/zombie-arm-test-deps bash tests/run_raster_palette_regression.sh
-          PYTHONPATH=/tmp/zombie-arm-test-deps bash tests/run_raster_alpha_regression.sh
+
       - name: Build Debug VPK
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-session-debug -DCMAKE_BUILD_TYPE=Debug -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          rm -rf build-session-debug
+          cmake -S . -B build-session-debug \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DZOMBIE_BUILD_ID="361-${GITHUB_SHA}"
           cmake --build build-session-debug -j"$(nproc)" 2>&1 | tee build-debug.log
           test -s build-session-debug/zombie_shooter.vpk
           test -s build-session-debug/so_loader
           unzip -t build-session-debug/zombie_shooter.vpk
+
       - name: Build Release VPK
         run: |
           set -euo pipefail
           export PATH="$VITASDK/bin:$PATH"
-          cmake -S . -B build-session-release -DCMAKE_BUILD_TYPE=Release -DZOMBIE_BUILD_ID="$GITHUB_SHA"
+          rm -rf build-session-release
+          cmake -S . -B build-session-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DZOMBIE_BUILD_ID="361-${GITHUB_SHA}"
           cmake --build build-session-release -j"$(nproc)" 2>&1 | tee build-release.log
           test -s build-session-release/zombie_shooter.vpk
           test -s build-session-release/so_loader
           unzip -t build-session-release/zombie_shooter.vpk
           python3 scripts/check_release_flags.py build-session-release
-      - name: Record baseline evidence and package two VPKs
+
+      - name: Package VPKs and symbol files
         id: meta
         run: |
           set -euo pipefail
           mkdir -p dist
           short_sha="${GITHUB_SHA:0:7}"
-          tag="vita-test-${GITHUB_RUN_NUMBER}-${short_sha}"
+          tag="vita-361-test-${GITHUB_RUN_NUMBER}-${short_sha}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          cp build-session-debug/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Debug.vpk
-          cp build-session-release/zombie_shooter.vpk dist/Zombie-Shooter-Vita-Release.vpk
-          cp build-session-debug/so_loader dist/Zombie-Shooter-Vita-Debug.elf
-          cp build-session-release/so_loader dist/Zombie-Shooter-Vita-Release.elf
+
+          cp build-session-debug/zombie_shooter.vpk dist/Zombie-Shooter-3.6.1-Vita-Debug.vpk
+          cp build-session-release/zombie_shooter.vpk dist/Zombie-Shooter-3.6.1-Vita-Release.vpk
+          cp build-session-debug/so_loader dist/Zombie-Shooter-3.6.1-Vita-Debug.elf
+          cp build-session-release/so_loader dist/Zombie-Shooter-3.6.1-Vita-Release.elf
           cp scripts/vitasdk-version.txt dist/
           git submodule status > dist/submodules.txt
-          sha256sum demo/libzombie_shooter.so > dist/so-reference.sha256.txt
-          for variant in debug release; do
-            cp "build-session-$variant/CMakeFiles/so_loader.dir/flags.make" "dist/$variant-flags.txt"
-            cp "build-session-$variant/CMakeFiles/so_loader.dir/link.txt" "dist/$variant-link.txt"
-          done
+
+          cat > dist/GAME-DATA-REQUIRED.txt <<EOF
+          Zombie Shooter Free ${ZOMBIE_GAME_VERSION}
+          versionCode=${ZOMBIE_GAME_VERSION_CODE}
+          ABI=armeabi-v7a
+          Vita path=ux0:data/zombieshooter/
+          libzombie_shooter.so size=${ZOMBIE_SO_SIZE}
+          libzombie_shooter.so SHA1=${ZOMBIE_SO_SHA1}
+          libzombie_shooter.so SHA256=${ZOMBIE_SO_SHA256}
+
+          The original Android library and assets are NOT included in this artifact.
+          Use scripts/extract_game_361.py on your legally obtained 3.6.1 XAPK,
+          then copy libzombie_shooter.so and the complete assets/ directory to
+          ux0:data/zombieshooter/ before launching the VPK.
+          EOF
+
           cat > dist/build-info.txt <<EOF
           Commit: $GITHUB_SHA
-          SDK: /usr/local/vitasdk, GCC 10.3.0, SoftFP
-          SDK archive SHA256: 25e1271b50aef4e0b4e7be837b6c2316507c47a0f56127a5b2d633f6a6aa0878
-          Recipe: plain CMake Debug and Release, same as local
+          Android target: Zombie Shooter 3.6.1 build 1161 armeabi-v7a
+          SDK: /usr/local/vitasdk, SoftFP
+          Bring-up policy: generic kuser/protobuf compatibility only; legacy 3.2.3 game-specific hooks disabled
           Runtime verification: requires physical PS Vita
           EOF
+
+          cp build-debug.log dist/
+          cp build-release.log dist/
           sha256sum dist/*.vpk dist/*.elf > dist/SHA256SUMS.txt
-      - name: Upload two VPKs and build evidence
+
+      - name: Upload VPK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Zombie-Shooter-Vita-${{ steps.meta.outputs.tag }}
+          name: Zombie-Shooter-3.6.1-Vita-${{ steps.meta.outputs.tag }}
           path: dist/
           if-no-files-found: error
           retention-days: 14
-      - name: Publish manual test pre-release
+
+      - name: Publish manual physical-test pre-release
+        if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: Zombie Shooter Vita Test ${{ github.run_number }}
+          name: Zombie Shooter 3.6.1 Vita Test ${{ github.run_number }}
           prerelease: true
           make_latest: false
           body: |
-            Physical-Vita test build from master.
-            New runtime logging selector: log_mode 0=off, 1=errors/fatal (Release default), 2=+PERF, 3=verbose Debug diagnostics.
-            Legacy vita_shooter is retired; controls.txt is the only handheld mapping source.
-            Existing config.txt and controls.txt files are preserved and are never overwritten.
+            Zombie Shooter 3.6.1 build 1161 armeabi-v7a bring-up for physical PS Vita.
+
+            The VPK does not include proprietary Android game files. Prepare the data with `scripts/extract_game_361.py` and copy it to `ux0:data/zombieshooter/`.
+
+            Install the Debug VPK first. The migration intentionally disables old 3.2.3 binary-specific hooks until they are re-derived against 3.6.1.
+
             Commit: `${{ github.sha }}`
-            Includes exactly Debug and Release loader VPKs plus matching ELF files for crash symbolization; game assets are not packaged.
             Physical Vita verification remains separate from build verification.
             Test note: ${{ inputs.notes }}
           files: dist/*
