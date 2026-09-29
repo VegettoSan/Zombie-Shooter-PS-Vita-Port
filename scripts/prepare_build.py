@@ -102,12 +102,6 @@ def main():
     # touching them. Running it here makes local CMake and GitHub Actions agree.
     subprocess.check_call([sys.executable, str(ROOT / 'scripts/apply_crypto_evp_361.py')])
 
-    # Real-Vita profiling showed successful AAsset opens dominating startup
-    # (~78 s), while actual reads were sub-second. Route the guest's opaque
-    # AAsset imports through our direct sceIo backend. The patcher is idempotent
-    # and exact-anchor guarded, so a dynlib drift fails closed.
-    subprocess.check_call([sys.executable, str(ROOT / 'scripts/apply_asset_fast_backend.py')])
-
     print('Functional SDK, SoftFP ABI, pinned submodules and exact Pass11 sources verified')
 
 
