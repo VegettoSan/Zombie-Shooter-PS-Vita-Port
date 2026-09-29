@@ -1,15 +1,16 @@
 /* Zombie Shooter fast read-only AAsset backend.
  *
  * FalsoNDK's generic implementation uses FILE plus seek-to-end/ftell/seek-back
- * for every successful open.  Real-Vita profiling of build 56 showed startup
- * performing thousands of AAsset opens and spending ~78 seconds inside
- * successful open calls while actual reads took well under a second.  Assets
- * in this port are ordinary unpacked files, so use sceIo directly and query the
- * size once with sceIoGetstat.  Small/VID assets still feed the existing bounded
- * LRU; the guest ABI remains the normal opaque AAsset pointer.
+ * for every successful open. Real-Vita profiling showed startup performing
+ * thousands of AAsset opens and spending ~78 seconds inside successful open
+ * calls while actual reads took well under a second. Assets in this port are
+ * ordinary unpacked files, so use sceIo directly and query the size once with
+ * sceIoGetstat. Small/VID assets still feed the existing bounded LRU; the guest
+ * ABI remains the normal opaque AAsset pointer.
  */
 #include "utils/asset_fast.h"
 #include "utils/asset_cache.h"
+#include "utils/asset_index.h"
 
 #include <psp2/io/fcntl.h>
 #include <psp2/io/stat.h>
@@ -31,6 +32,15 @@ struct ZombieAsset {
     size_t size;
 };
 
+static int normalize_asset_name(const char *filename, char out[512]) {
+    if (!filename) return 0;
+    size_t n = strlen(filename);
+    if (!n || n >= 512) return 0;
+    memcpy(out, filename, n + 1);
+    for (size_t i = 0; i < n; ++i) if (out[i] == '\\') out[i] = '/';
+    return 1;
+}
+
 static char *asset_path(const char *filename) {
     if (!filename) return NULL;
     size_t base = strlen(DATA_PATH "assets/");
@@ -40,7 +50,6 @@ static char *asset_path(const char *filename) {
     if (!path) return NULL;
     memcpy(path, DATA_PATH "assets/", base);
     memcpy(path + base, filename, name + 1);
-    for (char *p = path + base; *p; ++p) if (*p == '\\') *p = '/';
     return path;
 }
 
@@ -64,8 +73,15 @@ static int read_all(SceUID fd, unsigned char *dst, size_t size) {
 extern "C" AAsset *zombie_asset_open(AAssetManager *mgr, const char *filename, int mode) {
     (void)mgr;
     (void)mode;
-    char *path = asset_path(filename);
-    if (!path) { errno = ENOENT; return NULL; }
+    char name[512];
+    if (!normalize_asset_name(filename, name)) { errno = ENOENT; return NULL; }
+
+    /* Keep the exact immutable-directory / bounded negative cache already
+     * proven on Vita. A known miss must never reach sceIoGetstat/open. */
+    if (asset_index_missing(name)) { errno = ENOENT; return NULL; }
+
+    char *path = asset_path(name);
+    if (!path) { errno = ENOMEM; return NULL; }
 
     ZombieAsset *a = (ZombieAsset *)calloc(1, sizeof(*a));
     if (!a) { free(path); errno = ENOMEM; return NULL; }
@@ -82,12 +98,14 @@ extern "C" AAsset *zombie_asset_open(AAssetManager *mgr, const char *filename, i
     SceIoStat st;
     memset(&st, 0, sizeof(st));
     if (sceIoGetstat(path, &st) < 0 || st.st_size < 0 || (uint64_t)st.st_size > (uint64_t)SIZE_MAX) {
+        asset_index_record_missing(name, ENOENT);
         free(a->path); free(a); errno = ENOENT; return NULL;
     }
     a->size = (size_t)st.st_size;
 
     SceUID fd = sceIoOpen(path, SCE_O_RDONLY, 0);
     if (fd < 0) {
+        asset_index_record_missing(name, ENOENT);
         free(a->path); free(a); errno = ENOENT; return NULL;
     }
 
