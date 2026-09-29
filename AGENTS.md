@@ -2,98 +2,70 @@
 
 These instructions apply to the entire repository and are the first handoff for Codex/AI-assisted work.
 
-## Project goal and active target
+## Active target
 
-Port the Android version of **Zombie Shooter** to **real PS Vita hardware** by loading and adapting the original Android ARM shared library rather than reimplementing the game.
+Port the Android version of **Zombie Shooter** to **real PS Vita hardware** by loading/adapting the original ARM Android library rather than reimplementing the game.
 
-The **active target is now Zombie Shooter 3.6.1 build 1161, `armeabi-v7a`**:
+Canonical target:
 
 ```text
+Zombie Shooter Free 3.6.1
+versionCode: 1161
 package: com.sigmateam.zombieshooter.free
 library: libzombie_shooter.so
-ABI: ARM32 EABI5 soft-float
+ABI: armeabi-v7a / ARM32 EABI5 SoftFP
 size: 9,908,972 bytes
 SHA1: f7c7bbfc41f7ed8b76c8c5b1af3e9b0dfdf188c0
 SHA256: cb461ac47de79536824e8f7b64fa82293b796bcc159675b4f5ad6304e60bdca1
-Vita data path: ux0:data/zombieshooter/
+Vita data: ux0:data/zombieshooter/
 ```
 
-**Do not use 3.2.3/3.5.3 offsets, hashes or Java assumptions as if they belonged to 3.6.1.** Older material remains useful only as historical architecture/performance reference.
+**Never use 3.2.3/3.5.3 offsets, hashes, Java assumptions or native layouts as if they belonged to 3.6.1.** Older work is historical reference only unless revalidated against this exact binary.
 
 ## Mandatory reading before code changes
 
-For any Android->Vita boot, JNI, filesystem, save, input, renderer, shader, asset, audio, performance, crash or loader task, read in this order:
+For boot, JNI, filesystem, save, input, renderer, shader, asset, audio, performance, crash or loader work, read:
 
 ```text
 1. AGENTS.md
-2. docs/METALSYNTAX_PORTING_GUIDE.md
-3. docs/METALSYNTAX_TOOLKIT_FINDINGS_2026-09-28.md
-4. the newest relevant hardware report/log for the subsystem being changed
+2. docs/CURRENT_ENGINEERING_STATE_2026-09-29.md
+3. docs/METALSYNTAX_PORTING_GUIDE.md
+4. docs/METALSYNTAX_TOOLKIT_FINDINGS_2026-09-28.md
+5. newest relevant real-Vita log/report for the subsystem
 ```
 
-`docs/METALSYNTAX_TOOLKIT_FINDINGS_2026-09-28.md` is the current 3.6.1 engineering handoff. It documents the corrected Android/Bionic filesystem ABI, Registry/save investigation, MetalSyntax toolkit usage, shader plan and performance methodology.
+`docs/CURRENT_ENGINEERING_STATE_2026-09-29.md` supersedes older blocker/status documents when they conflict. It records the gameplay-verified save architecture and the build-66 asset-I/O regression that must not be repeated.
 
-Old blocker documents remain useful history, but the 3.6.1 handoff and newer physical-Vita evidence supersede conflicting older assumptions.
+## Current real-Vita baseline
 
-## Current physical-Vita state
-
-The first 3.6.1 bring-up was playable, but the user reported:
+Preferred stable physical-test reference:
 
 ```text
-~10 FPS regression versus the prior optimized baseline
-music missing
-controls still wrong
-campaign save still not persistent
+source state: 6b9ad638c768dd14945ef318a85e7bf7200bcdd9
+physical-test build: 59
+Release VPK SHA256: 2898570a8b5c64a84d7aed3a77e87be8a64448ea7c5a10fae76dc172c1e6c836
 ```
 
-A recovery build later re-enabled only 3.6.1-rederived music/render-scale/frame-reuse hooks and revised save/input handling. **Do not claim those recovered behaviors fixed until the user tests the current build on a physical Vita.**
+A later direct-AAsset experiment (build 66) was rejected. After rollback, `master` source contents were compared against `6b9ad638...` and GitHub reported zero changed files. Later rollback/documentation commits are history; functionally the code returned to the build-59 baseline before documentation-only changes.
 
-Known user-visible priorities remain:
+Verified current state:
 
 ```text
-1. campaign save/load persistence
-2. correct physical/digital controller behavior
-3. recover/improve FPS without visual regressions
-4. stable music/audio
-5. texture/sprite correctness and loading time
+campaign save/load across relaunch: GAMEPLAY VERIFIED
+save-induced ~1 s gameplay freeze: FIXED / GAMEPLAY VERIFIED via async worker
+quiet logger physical-fsync stalls: FIXED
+build-66 direct sceIo AAsset backend: REGRESSION / REJECTED / ROLLED BACK
+initial loading time: still too slow; optimize only with new measurements
+next active engineering area: shaders/render correctness + measured performance
 ```
 
-## Safety backup for the current engineering pass
+Do not overwrite verified behavior merely because an older document says SAVE still fails.
 
-Before the MetalSyntax-toolkit/ABI integration, `master` was preserved at:
+## Real hardware is authoritative
 
-```text
-backup/pre-metalsyntax-integration-20260928
-commit 24d8d4c2db27bd6d953db37ac881ea3e56ebd7b1
-```
+The authoritative runtime is a **physical PS Vita**. Vita3K is useful but is not authoritative for this kubridge/soloader path.
 
-Do not delete or move that backup.
-
-## Source-of-truth rule
-
-The exact 3.6.1 XAPK/APK/DEX and exact ARMv7 `.so` are the source of truth.
-
-Use, as appropriate:
-
-```text
-AndroidManifest.xml
-JADX / smali
-readelf
-nm -D -C
-objdump -d/-T
-strings
-Ghidra / targeted decompilation
-real Vita logs
-.psp2dmp
-```
-
-Never infer behavior only from names or from another port.
-
-## Target hardware and VitaSDK
-
-The authoritative runtime is a **real PS Vita**. Vita3K is not authoritative for this kubridge/soloader path.
-
-Use the SoftFP VitaSDK only:
+Use SoftFP VitaSDK only:
 
 ```bash
 export VITASDK=/usr/local/vitasdk
@@ -103,108 +75,132 @@ export PATH="$VITASDK/bin:$PATH"
 
 It must report `-mfloat-abi=softfp`.
 
-Never modify `/usr/local/vitasdk-hardfp`.
+Never modify `/usr/local/vitasdk-hardfp` and never reuse a build directory created with another ABI/toolchain.
 
-Never reuse a CMake build directory created with another ABI/toolchain.
+## Source of truth and patch discipline
 
-## Lifecycle
+The exact 3.6.1 APK/XAPK/DEX and ARMv7 `.so`, plus real Vita logs/dumps, are the source of truth.
 
-3.6.1 uses the NativeActivity-style path and exports `ANativeActivity_onCreate`; the loader currently drives the game through FalsoNDK/FalsoJNI and its Android event loop.
-
-Preserve semantic Android lifecycle ordering. If changing bootstrap behavior, verify it against the exact 3.6.1 Java/native path first.
-
-Loader stages should remain observable:
+Use as appropriate:
 
 ```text
-load ELF
--> relocate
--> resolve imports
--> apply individually justified compatibility patches
--> cache maintenance if required
--> constructors/init array
--> real NativeActivity/game lifecycle
+AndroidManifest.xml
+JADX / smali
+readelf / nm -D -C / objdump
+strings
+Ghidra / targeted decompilation
+real Vita logs
+.psp2dmp
 ```
 
-## Version-specific patches
+Every game-specific hook/patch must be tied to this exact binary by strong identity evidence such as symbol/address, prologue/signature guard, disassembly/decompilation evidence and/or hardware evidence. Prefer multiple guards. Never assume constant deltas between versions. Fail closed when a guard does not match.
 
-Every game-specific patch must be tied to the exact 3.6.1 binary by at least one strong identity mechanism:
+## JNI / Bionic ABI invariant
+
+Treat JNI signatures and Android guest layouts as correctness-critical. Verify static vs instance, receiver type, argument count/types, return type, object/string/array representation and ARM32 packing/alignment.
+
+`source/reimpl/io.h` intentionally models ARM32 Bionic filesystem layouts with fixed-width fields and assertions. Do not replace them with Vita/newlib host typedefs without proving binary identity. `stat_newlib_to_bionic()` and `dirent_newlib_to_bionic()` must populate guest layouts field-by-field.
+
+## Save system — protected verified behavior
+
+Campaign persistence is **GAMEPLAY VERIFIED** on real Vita.
+
+Current authoritative format:
 
 ```text
-symbol + resolved address
-symbol + prologue/signature guard
-Ghidra/objdump evidence
-hardware crash/log evidence
+ux0:data/zombieshooter/save/<encrypted-key-hex>.dat
 ```
 
-Prefer multiple guards.
+Each file stores one raw Registry value. The native `Registry::encryptKey()` path preserves the game's key namespace. Do not replace this with an invented aggregate container unless new binary evidence proves the game requires it.
 
-Never assume a constant address delta between Android versions. Never copy another game's patch address.
-
-Fail safely when a guard does not match; do not patch an unknown location.
-
-## JNI and Android ABI correctness
-
-Treat JNI signatures and guest Android C layouts as correctness-critical.
-
-Verify:
+Important exact-3.6.1 symbols:
 
 ```text
-static vs instance
-jclass vs jobject
-argument count/types
-variadic promotions
-return type
-jstring/jbyteArray/object representation
-legacy Dalvik direct layout vs FalsoJNI-managed objects
-sizeof/offsetof/alignment/packing of Android structs
+core::Registry::storeEncrypted  0x003FB985 (Thumb)
+core::Registry::loadDecrypted   0x003FB055 (Thumb)
+core::Registry::encryptKey      0x003FBFF5 (Thumb)
+core::Registry::remove          0x003FBEF5
+core::Registry::contains        0x003FD351
+STRING::c_str                   0x003ED769 (Thumb)
 ```
 
-### Bionic filesystem ABI — protected invariant
+The original AES value-encryption path was not safe in this environment; EVP initialization failed. Do not revive it without proving the exact key/context contract.
 
-The repository previously represented Android `stat64` and `dirent64` using Vita/newlib typedefs/layouts. This was wrong and can shift guest-visible fields such as file size.
+### Save hot-path invariant
 
-Current `source/reimpl/io.h` intentionally uses fixed-width ARM32 Bionic layouts and compile-time assertions. Do not weaken/remove those assertions or replace fields with host typedefs such as `nlink_t`, `uid_t`, `gid_t` or host `struct timespec` without proving identical layout.
-
-`stat_newlib_to_bionic()` and `dirent_newlib_to_bionic()` must populate those guest layouts field-by-field.
-
-## Save system — current critical investigation
-
-Do **not** reduce Zombie Shooter's campaign persistence to "write SharedPreferences to a file".
-
-The 3.6.1 native library exposes a richer Registry system including paths such as:
+Build 52 proved that synchronous filesystem persistence can visibly freeze gameplay. Build 59 fixes it with an asynchronous worker:
 
 ```text
-RegistryPrivate::initialize/getString/setString/remove/contains/getAllKeys
-RegistryPrivate::beginBatchUpdate/endBatchUpdate
-RegistryPrivate::setRegSync/setRegAsync/clear
-Registry::queueFlush/loadValue/storeValue
-Registry::createDump/generateDump/loadDump/startDumpLoad/finishDumpLoad
+Registry mutation
+-> synchronously update RAM map
+-> enqueue owned mutation
+-> return to game
+-> worker performs tmp/bak/dat persistence
 ```
 
-The exact Java side also references SharedPreferences/RegistryEnumerator.
+Preserve:
 
-Required save workflow:
+- immediate RAM visibility for reads;
+- queue-owned copies of key/value data;
+- coalescing of repeated updates to the same key;
+- correct clear/remove ordering;
+- safe synchronous fallback if worker creation fails;
+- existing per-key filenames/format;
+- no device-wide `sceIoSync("ux0:", ...)` per value.
+
+Do **not** move physical save writes back onto the gameplay/render thread.
+
+## Logger — protected performance invariant
+
+Hardware logs showed physical log syncs can cost hundreds of milliseconds to over one second.
+
+Quiet Debug/Release checkpoints may flush buffered bytes but must not call physical `sceIoSyncByFd()` for routine ERROR/PERF/time thresholds. Fatal and explicit `logger_force_sync()` remain durable sync points. Verbose diagnostic mode may intentionally be more synchronous.
+
+Do not reintroduce physical fsync per error, per save or periodic quiet checkpoint.
+
+## Asset/loading I/O — explicit rejected experiment
+
+### Build 66 direct `sceIo` AAsset backend is REJECTED
+
+Do **not** recreate the build-66 approach as-is.
+
+It replaced buffered FalsoNDK/stdio AAsset handling with direct:
 
 ```text
-exact JADX callbacks
--> exact Registry native calls
--> batching/sync/async semantics
--> file/dump format/path
--> rename/fsync/stat validation
--> close app
--> relaunch
--> verify campaign resumes instead of tutorial
+sceIoGetstat -> sceIoOpen -> sceIoRead/sceIoLseek -> sceIoClose
 ```
 
-A file being created is not enough. Save is only `GAMEPLAY VERIFIED` after successful relaunch/restoration on hardware.
+The hypothesis came from aggregate `AAssetManager_open()` timing. Real Vita testing showed a severe regression:
 
-Do not guess JNI array/string layouts. MetalSyntax's Zenonia work demonstrated that confusing a raw Dalvik array with FalsoJNI's actual `JavaDynArray*` can silently corrupt saves.
+```text
+initial loading worse
+menu transitions much slower
+level transitions much slower
+~94 s startup/VID gap in the captured Release log
+additional ~20–25 s transition delays
+```
+
+Likely lesson: Zombie Shooter performs many small logical reads while parsing VID/maps/menus. `fread` provides useful stdio buffering. Direct unbuffered `sceIoRead` can turn those small reads into physical filesystem operations, making the system slower despite avoiding seek/ftell work during open.
+
+**Hard rule:** never replace current buffered AAsset reads with direct unbuffered `sceIoRead` based only on aggregate open time.
+
+Any future loading optimization must A/B all of:
+
+```text
+cold launch -> main menu
+main menu -> gameplay
+pause/options/menu transitions
+level/zone transitions
+gameplay -> main menu
+```
+
+Preserve buffering/read-ahead. Measure read size/count patterns before changing the backend. Do not aggressively increase the asset cache without real-Vita memory headroom measurements.
 
 ## Input
 
-3.6.1 contains a real native joystick path (`AndroidJoystickControl`, `InputHandlerNative::onJoysticEvent`, motion-axis handling).
+3.6.1 contains a native joystick path (`AndroidJoystickControl`, `InputHandlerNative::onJoysticEvent`, motion-axis handling).
 
-Preferred order:
+Preferred architecture:
 
 ```text
 Vita controls
@@ -212,40 +208,39 @@ Vita controls
 -> game's native joystick path
 ```
 
-Use synthetic touch only for actions proven to be touch-driven.
+Use synthetic touch only for actions proven touch-driven. Do not layer translations blindly. Verify analog and digital paths separately on hardware.
 
-Do not layer multiple translations blindly. Verify analog axes and digital buttons separately.
-
-## Graphics and shaders
-
-The game imports programmable GLES APIs and contains GLSL ES shader source, while important gameplay also uses a software work surface uploaded through GLES.
+## Graphics and shaders — next active area
 
 Keep VitaGL as compatibility baseline until evidence supports a change.
 
-The repository already has shader cache/inventory instrumentation. Future shader work should follow:
+The repository already has shader cache/inventory instrumentation. Previous logs showed shader-cache hits and no evidence that shader compilation alone explains multi-minute loading. Shader work should therefore focus on correctness and measured cost, not assume it will solve loading automatically.
+
+Required workflow:
 
 ```text
-observe real glShaderSource input
+observe exact glShaderSource input
 -> hash/deduplicate
--> optionally dump unknown shaders in Debug
--> transpile offline with real tooling
--> psp2cgc validate
--> A/B test on real Vita
+-> map programs actually used in gameplay
+-> dump unknown/problematic shaders in Debug only
+-> transpile offline with real tooling where justified
+-> psp2cgc/toolchain validate
+-> A/B visual correctness and FPS on real Vita
 ```
 
-Do not promise gameplay FPS from shader precompilation alone; software rendering/full-frame uploads may dominate.
-
-Useful MetalSyntax pipeline reference:
+Useful reference pipeline:
 
 ```text
 GLSL ES -> glslangValidator -> SPIR-V -> SPIRV-Cross -> Cg -> psp2cgc
 ```
 
-## Performance
+Do not promise gameplay FPS gains from shader precompilation alone; the game also has expensive software rendering/full-frame upload work.
 
-Optimize only measured active work on real hardware.
+## Performance discipline
 
-Prefer removing work before micro-optimizing it:
+Optimize only measured active work on physical hardware.
+
+Prefer eliminating work before micro-optimizing it:
 
 ```text
 redundant framebuffer/texture uploads
@@ -256,87 +251,54 @@ unnecessary synchronization
 excessive Release logging
 ```
 
-Use Release builds for FPS comparisons. Debug builds are for evidence collection.
+Use Release for timing/FPS comparisons. Debug is for bounded evidence collection. Aggregate counters are hypotheses, not proof of root cause; build 66 is the concrete example.
 
-Useful telemetry concepts from `MetalSyntax/psvita-port-toolkit-cli`:
-
-```text
-perf-telemetry: frame time, p95/p99, stutters
-mem-profile: live/peak heap and checkpoint survivors
-logs-live: low-latency diagnostics
-soak-test: long stability/hang testing
-```
-
-`sceGxmFinish()` timing is profiling-only because forcing completion changes timing.
-
-## Audio
-
-The recovered M4A/AAC music path was re-derived for 3.6.1 after the initial migration muted music. Preserve it unless exact evidence shows the new version requires a different path.
-
-Do not replace working audio architecture casually. Identify the exact engine/OpenSL/player call path before changing it.
-
-## MetalSyntax toolkit policy
-
-The toolkit is an external engineering aid, not a runtime dependency.
-
-High-value tools/concepts:
-
-```text
-jni-analyze
-so-patch scanning
-align-check
-disasm
-perf-telemetry
-mem-profile
-shader-transpile
-shader-live-reload
-crash/export-context tooling
-```
-
-Generated stubs/patches/shaders are candidates, not truth. Review them against the exact 3.6.1 binary.
-
-Do not vendor the entire toolkit into this repository.
-
-## Debugging discipline
-
-Within a subsystem:
+Within a subsystem use:
 
 ```text
 evidence
 -> small hypothesis
 -> small change
 -> build/regression
--> physical Vita test
--> new log/dump
+-> physical Vita A/B test
+-> new evidence
 -> root cause
 ```
 
 Avoid unrelated speculative patch stacks.
 
-Use bounded logging. Critical logs must flush before a likely crash; do not spam every frame in normal Release.
+## Audio
 
-Useful prefixes:
+Preserve the recovered 3.6.1 music/audio path unless exact evidence shows a defect. Do not replace working audio architecture casually; identify the engine/OpenSL/player path first.
 
-```text
-[BOOT] [SO] [JNI] [LIFE] [GL] [ASSET]
-[AUDIO] [INPUT] [SAVE] [THREAD] [PATCH] [WARN] [CRASH]
-```
+## Lifecycle
 
-For dynamic `.so` crashes:
+3.6.1 follows a NativeActivity-style path and exports `ANativeActivity_onCreate`. Preserve Android lifecycle ordering and keep loader stages observable:
 
 ```text
-offset = PC_or_LR - logged_module_base
+load ELF
+-> relocate
+-> resolve imports
+-> guarded compatibility patches
+-> cache maintenance where required
+-> constructors/init array
+-> real NativeActivity/game lifecycle
 ```
 
-Resolve the exact offset with the matching unstripped binary/symbols/Ghidra.
+## Safety backup
 
-## Repository / publication policy
+Pre-MetalSyntax integration backup:
 
-Normal Codex work should be local unless the user explicitly authorizes remote changes. Do not push, force-update branches, publish releases or rewrite history without explicit user instruction in the active task.
+```text
+backup/pre-metalsyntax-integration-20260928
+commit 24d8d4c2db27bd6d953db37ac881ea3e56ebd7b1
+```
 
-The user explicitly authorized the current task to document the MetalSyntax findings and apply justified improvements on `master`; that authorization does not automatically extend to unrelated future tasks.
+Do not delete or move it.
 
-Do not use destructive git operations (`reset --hard`, `clean -fd`, history rewrites) as a shortcut.
+## Repository/publication policy
+
+Normal Codex work is local unless the user explicitly authorizes remote changes in the active task. Do not push, publish releases, force-update branches or rewrite history without explicit authorization. Do not use destructive git operations such as `reset --hard` or `clean -fd` as a shortcut.
 
 ## Build
 
@@ -347,7 +309,7 @@ export VITASDK=/usr/local/vitasdk
 export PATH="$VITASDK/bin:$PATH"
 rm -rf build
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j"$(nproc)" 2>&1 | tee build.log
+cmake --build build -j"$(nproc)"
 ```
 
 Release:
@@ -355,10 +317,10 @@ Release:
 ```bash
 rm -rf build
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j"$(nproc)" 2>&1 | tee build.log
+cmake --build build -j"$(nproc)"
 ```
 
-The GitHub Actions 3.6.1 workflow builds/regresses both variants and publishes physical-test prereleases after success.
+The 3.6.1 GitHub Actions workflow builds/regresses Debug and Release and publishes physical-test prereleases after successful code pushes. Documentation-only changes do not prove runtime behavior.
 
 ## Verification vocabulary
 
@@ -370,41 +332,36 @@ BUILD VERIFIED
 VPK VERIFIED
 REAL VITA VERIFIED
 GAMEPLAY VERIFIED
+REGRESSION / REJECTED
 ```
 
 Never call something fixed merely because it compiles.
 
-## Next engineering order
+## Current engineering order
 
-Unless newer Vita evidence changes the priority:
+Unless newer real-Vita evidence changes priorities:
 
 ```text
-1. verify corrected Bionic filesystem ABI builds and runs
-2. reconstruct Registry/SharedPreferences end-to-end
-3. verify campaign save/reload
-4. verify recovered music
-5. compare current 3.6.1 Release FPS to older baseline
-6. profile actual bottleneck if still slower
-7. finish native gamepad mapping from real event semantics
-8. add optional performance/memory telemetry where useful
-9. dump/transpile only real observed shaders
-10. optimize/polish with A/B hardware evidence
+1. preserve build-59 save/input/audio/render baseline
+2. shader/render investigation and correctness
+3. measure shader/runtime cost on real Vita
+4. improve only measured shader/render bottlenecks
+5. revisit loading later with buffered-I/O-aware instrumentation
+6. never retry build-66 direct unbuffered AAsset approach without a fundamentally different design and new evidence
 ```
 
-## End-of-task report for Codex
+## End-of-task report
 
 Keep reports concise and include:
 
 ```text
 exact target/version/hash
 source evidence used
-root cause(s) or remaining hypothesis
+root cause or remaining hypothesis
 files changed
-regression status
-Debug build status
-Release build status
-VPK/release identity
+regression/build status
+Debug/Release/VPK identity where relevant
 verification level
 exact physical-Vita test matrix
-at most 1-3 requested logs/dumps
+at most 1–3 requested logs/dumps
 ```
