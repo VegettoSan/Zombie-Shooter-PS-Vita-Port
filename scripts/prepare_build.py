@@ -102,7 +102,12 @@ def main():
     # touching them. Running it here makes local CMake and GitHub Actions agree.
     subprocess.check_call([sys.executable, str(ROOT / 'scripts/apply_crypto_evp_361.py')])
 
-    print('Functional SDK, SoftFP ABI, pinned submodules and exact Pass11 sources verified')
+    # Conservative shader/runtime optimizations derived from the MetalSyntax
+    # methodology.  This is first-party bridge code only: VitaGL still owns
+    # GLSL->GXP compilation/cache and every optimization has normal GL fallback.
+    subprocess.check_call([sys.executable, str(ROOT / 'scripts/apply_shader_runtime_optimizations.py')])
+
+    print('Functional SDK, SoftFP ABI, pinned submodules, exact Pass11 sources and shader runtime optimizations verified')
 
 
 if __name__ == '__main__':
