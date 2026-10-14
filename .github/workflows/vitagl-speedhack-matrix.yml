@@ -1,0 +1,151 @@
+name: Zombie Shooter - VitaGL speedhack A-B VPKs
+
+on:
+  push:
+    branches:
+      - experiment/vitagl-speedhack-matrix-20261014
+    paths:
+      - '.github/workflows/vitagl-speedhack-matrix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zombie-vitagl-speedhack-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Release - ${{ matrix.variant }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [baseline, nodebug, textures, gc, draw1, draw2, samplers, nodmac]
+    env:
+      VITASDK: /usr/local/vitasdk
+    steps:
+      - name: Checkout pinned source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install pinned SoftFP VitaSDK
+        run: bash scripts/install_baseline_sdk.sh
+
+      - name: Verify SoftFP ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          "$VITASDK/bin/arm-vita-eabi-gcc" -Q --help=target | grep -E -- 'softfp'
+
+      - name: Prepare 3.6.1 loader and validate changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/prepare_game_361_incremental.py
+          bash tests/run_jni_field_regression.sh
+          bash tests/run_gamepad_regression.sh
+          bash tests/run_settings_regression.sh
+          tests/run_logger_regression.sh
+          bash tests/run_asset_index_regression.sh
+
+      - name: Build and verify isolated ${{ matrix.variant }} variant
+        shell: bash
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          export PATH="$VITASDK/bin:$PATH"
+          cmake -S . -B "build-${VARIANT}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DZOMBIE_VITAGL_EXPERIMENT="${VARIANT}" \
+            -DZOMBIE_BUILD_ID="vitagl-${VARIANT}-${GITHUB_SHA:0:12}"
+          cmake --build "build-${VARIANT}" -j"$(nproc)" 2>&1 | tee "build-${VARIANT}.log"
+          test -s "build-${VARIANT}/zombie_shooter.vpk"
+          unzip -t "build-${VARIANT}/zombie_shooter.vpk"
+          python3 scripts/check_release_flags.py "build-${VARIANT}"
+          grep -F "ZOMBIE_VITAGL_EXPERIMENT:STRING=${VARIANT}" "build-${VARIANT}/CMakeCache.txt"
+          mkdir -p dist
+          cp "build-${VARIANT}/zombie_shooter.vpk" "dist/Zombie-Shooter-3.6.1-Vita-${VARIANT}.vpk"
+          cp "build-${VARIANT}/so_loader" "dist/Zombie-Shooter-3.6.1-Vita-${VARIANT}.elf"
+          cp "build-${VARIANT}.log" "dist/build-${VARIANT}.log"
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "variant=$VARIANT"
+            echo 'target=Zombie Shooter 3.6.1 armeabi-v7a'
+            echo 'vitasdk=/usr/local/vitasdk SoftFP'
+            echo 'verification=CI build and ZIP integrity only; hardware not tested'
+          } > "dist/info-${VARIANT}.txt"
+          sha256sum "dist/Zombie-Shooter-3.6.1-Vita-${VARIANT}.vpk" > "dist/sha256-${VARIANT}.txt"
+
+      - name: Upload isolated VPK and logs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zombie-Shooter-VitaGL-${{ matrix.variant }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload failure log if build fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Failed-Zombie-VitaGL-${{ matrix.variant }}
+          path: |
+            build-${{ matrix.variant }}.log
+            build-${{ matrix.variant }}/CMakeCache.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+  publish:
+    name: Publish experimental pre-release (stable untouched)
+    needs: build
+    if: success()
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download eight tested-for-integrity build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Zombie-Shooter-VitaGL-*
+          merge-multiple: true
+          path: dist
+
+      - name: Verify complete matrix and write SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variant in baseline nodebug textures gc draw1 draw2 samplers nodmac; do
+            test -s "dist/Zombie-Shooter-3.6.1-Vita-${variant}.vpk"
+            unzip -t "dist/Zombie-Shooter-3.6.1-Vita-${variant}.vpk" >/dev/null
+          done
+          cd dist
+          sha256sum Zombie-Shooter-3.6.1-Vita-*.vpk > SHA256SUMS.txt
+
+      - name: Publish pre-release with all eight variants
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: vitagl-speedhack-test-${{ github.run_number }}-${{ github.sha }}
+          target_commitish: ${{ github.sha }}
+          name: Zombie Shooter 3.6.1 - vitaGL speedhack experiment
+          prerelease: true
+          make_latest: false
+          body: |
+            EXPERIMENTAL PERFORMANCE TESTS ONLY. Main/master and the previous stable baseline are unchanged.
+            Includes eight distinct Release builds: baseline, nodebug, textures, gc, draw1, draw2, samplers, nodmac.
+            Every variant has the same TitleID ZOMB00001; install and test ONE VPK AT A TIME.
+            Avoid mixing data versions. Requires legally obtained game data in ux0:data/zombieshooter/.
+            Build validation checks SoftFP Release flags, output file existence and VPK ZIP integrity.
+            FPS, rendering, audio, gameplay, save stability and hardware compatibility are NOT validated by CI.
+            Baseline is the build control, not an assertion of physical-Vita stability.
+            Share log files and performance observations for each variant before choosing an optimization.
+          files: |
+            dist/*.vpk
+            dist/SHA256SUMS.txt
+            dist/info-*.txt
+            dist/build-*.log
