@@ -2,6 +2,7 @@
  * Counters are cumulative; snapshots never reset a concurrent writer's data. */
 #include "utils/perf.h"
 #include "utils/logger.h"
+#include "utils/settings.h"
 #include "utils/asset_index.h"
 #include "utils/asset_cache.h"
 #include <psp2/kernel/processmgr.h>
@@ -95,9 +96,11 @@ static void io_record(IOStats *s, int bytes, uint64_t start) {
     }
 }
 void perf_bulk_memset(size_t bytes,uint64_t start) {
+    if(setting_log_mode<2) return;
     int i=slot_index();io_record(i<0?NULL:&slots[i].bulk_fill,(int)bytes,start);
 }
 void perf_engine_phase(unsigned phase,uint64_t start) {
+    if(setting_log_mode<2) return;
     if(phase>=PERF_ENGINE_COUNT) return;
     int i=slot_index();io_record(i<0?NULL:&slots[i].engine[phase],0,start);
 }
@@ -137,8 +140,9 @@ static void report_slow_opens(void) {
             snapshot[i].mode,snapshot[i].truncated,snapshot[i].name);
 }
 AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode) {
-    int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset_open;
-    uint64_t start=sceKernelGetProcessTimeWide();
+    int profiling=setting_log_mode>=2;
+    int i=profiling?slot_index():-1; IOStats *s=i<0?NULL:&slots[i].asset_open;
+    uint64_t start=profiling?sceKernelGetProcessTimeWide():0;
     char normalized[256];
     if(name && strlen(name)<sizeof(normalized)) {
         strcpy(normalized,name);for(char *p=normalized;*p;p++) if(*p=='\\') *p='/';name=normalized;
@@ -146,6 +150,7 @@ AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode) 
     int indexed_missing=asset_index_missing(name);
     AAsset *ret=indexed_missing?NULL:AAssetManager_open(mgr,name,mode);
     if(!ret && !indexed_missing)asset_index_record_missing(name,errno);
+    if(!profiling) return ret;
     int saved_errno=errno;
     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
     io_record(s,ret?0:-1,start);
@@ -156,17 +161,21 @@ AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode) 
     return ret;
 }
 off_t AAsset_seek_perf(AAsset *asset, off_t offset, int whence) {
+    if(setting_log_mode<2) return AAsset_seek(asset,offset,whence);
     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset_seek;
     uint64_t start=sceKernelGetProcessTimeWide();
     off_t ret=AAsset_seek(asset,offset,whence);
     io_record(s,ret<0?-1:0,start); return ret;
 }
 int AAsset_read_perf(AAsset *asset, void *buf, size_t count) {
+    if(setting_log_mode<2) return AAsset_read(asset,buf,count);
     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset;
     uint64_t start=s && (count>=4096 || (LOAD(&s->calls)&255)==0) ? sceKernelGetProcessTimeWide():0;
     int n=AAsset_read(asset,buf,count); io_record(s,n,start); return n;
 }
 static int poll_perf(int all, int timeout, int *fd, int *events, void **data) {
+    if(setting_log_mode<2)
+        return all?ALooper_pollAll(timeout,fd,events,data):ALooper_pollOnce(timeout,fd,events,data);
     int i=slot_index(); WaitStats *s=i<0?NULL:(all?&slots[i].all:&slots[i].once);
     uint64_t start=sceKernelGetProcessTimeWide();
     int ret=all?ALooper_pollAll(timeout,fd,events,data):ALooper_pollOnce(timeout,fd,events,data);
@@ -183,6 +192,13 @@ int ALooper_pollOnce_perf(int timeout,int *fd,int *events,void **data) { return 
 int ALooper_pollAll_perf(int timeout,int *fd,int *events,void **data) { return poll_perf(1,timeout,fd,events,data); }
 #endif
 size_t fread_perf(void *ptr,size_t size,size_t n,FILE *stream) {
+    if(setting_log_mode<2) {
+#ifdef USE_SCELIBC_IO
+        return sceLibcBridge_fread(ptr,size,n,stream);
+#else
+        return fread(ptr,size,n,stream);
+#endif
+    }
     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].file;
     uint64_t start=sceKernelGetProcessTimeWide();
 #ifdef USE_SCELIBC_IO
@@ -193,6 +209,13 @@ size_t fread_perf(void *ptr,size_t size,size_t n,FILE *stream) {
     io_record(s,(int)(ret*size),start); return ret;
 }
 ssize_t read_perf(int fd,void *buf,size_t count) {
+    if(setting_log_mode<2) {
+#ifdef NDK_PORT
+        return fndk_read(fd,buf,count);
+#else
+        return read(fd,buf,count);
+#endif
+    }
     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].read;
     uint64_t start=sceKernelGetProcessTimeWide();
 #ifdef NDK_PORT

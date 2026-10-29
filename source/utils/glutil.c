@@ -25,6 +25,7 @@
 #include <so_util/so_util.h>
 #include "utils/perf.h"
 #include "utils/upload_reuse_guard.h"
+#include "utils/software_framebuffer_contract.h"
 static UploadReuseGuard upload_guard;
 /* Shared with the pinned VitaGL COW diagnostic, default zero. */
 int zombie_texture_full_preserve;
@@ -99,24 +100,28 @@ static struct {
     unsigned draws, arrays, binds, rejected;
     GLTiming buffer_data, buffer_sub, tex_image, tex_sub, finish, flush, compile, link, draw_sample;
 } gl_perf;
+static uint64_t gl_time_begin(void) {
+    return setting_log_mode >= 2 ? sceKernelGetProcessTimeWide() : 0;
+}
 static void gl_time(GLTiming *t, uint64_t start) {
+    if (!start) return;
     unsigned us = (unsigned)(sceKernelGetProcessTimeWide()-start);
     t->calls++; t->total_us += us;
     if (us > t->max_us) t->max_us = us;
 }
 static unsigned draw_sample_sequence;
 static uint64_t draw_sample_begin(void) {
+    if (setting_log_mode < 2) return 0;
     return (draw_sample_sequence++ & 15u)==0?sceKernelGetProcessTimeWide():0;
 }
 static void draw_sample_end(uint64_t start) { if(start) gl_time(&gl_perf.draw_sample,start); }
 
-/* Pass 10: immutable SO analysis proves the final software framebuffer upload
- * returns to OpenGLES::UnLock(bool)+0x94 at so+0x46BF59. Immediately before it,
+/* Exact 3.6.1 analysis: the final software framebuffer upload
+ * returns to OpenGLES::UnLock(bool)+0x94 at so+0x47EECD. Immediately before it,
  * the game binds texture [OpenGLES+0x500] and submits the entire RGBA/U8 work
  * surface at x=y=0. Reinitializing that bound texture as RGB565 once lets the
  * patched VitaGL converter write the guest RGBA pixels directly into the new
  * GPU allocation, cutting destination bandwidth in half with no staging copy. */
-#define SOFTWARE_UNLOCK_TEXSUB_RETURN 0x0046BF59u
 #define SOFTWARE_INIT_TEXIMAGE_RETURN_A 0x00468179u
 #define SOFTWARE_INIT_TEXIMAGE_RETURN_B 0x0046862Fu
 static struct {
@@ -125,7 +130,18 @@ static struct {
 } framebuffer565;
 
 static inline uintptr_t guest_return(unsigned offset) {
-    return (uintptr_t)so_mod.text_base + offset;
+    return (uintptr_t)so_mod.load_addr + offset;
+}
+
+static int software_upload_contract_ready(void) {
+    static int valid=-1;
+    if(valid<0) {
+        uintptr_t symbol=(uintptr_t)so_symbol(&so_mod,"_ZN8OpenGLES6UnLockEb");
+        valid=symbol==guest_return(SOFTWARE_UNLOCK_ENTRY|1u) &&
+            software_framebuffer_contract((const void *)(symbol&~(uintptr_t)1));
+        l_perf("software_upload_contract valid=%d return_offset=0x%08X target=361_1161",valid,SOFTWARE_UNLOCK_TEXSUB_RETURN);
+    }
+    return valid;
 }
 
 static inline int is_software_framebuffer_upload(uintptr_t caller,
@@ -254,6 +270,7 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
 
     uint64_t elapsed_us = end_us - window_start_us;
     if (elapsed_us >= 5000000) {
+        if (setting_log_mode >= 2) {
         l_perf("frame frames=%u elapsed_ms=%u fps_x10=%u swap_avg_us=%u swap_max_us=%u frame_max_us=%u",
                window_frames, (unsigned)(elapsed_us / 1000),
                (unsigned)(((uint64_t)window_frames * 10000000) / elapsed_us),
@@ -278,8 +295,10 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
 #undef REPORT_GL
         memset(&gl_perf, 0, sizeof(gl_perf));
         perf_report();
-        logger_force_sync();
-        /* The next interval includes report/sync overhead in its frame time. */
+        logger_flush();
+        }
+        /* Routine telemetry must never physically fsync the render thread.
+         * The next interval includes report/flush overhead in its frame time. */
         window_start_us = end_us;
         window_frames = 0;
         swap_total_us = 0;
@@ -300,20 +319,180 @@ void glFinish_soloader(void) {
     uint64_t start = sceKernelGetProcessTimeWide();
     glFinish(); gl_time(&gl_perf.finish, start);
 }
+
+/* ZOMBIE_SHADER_RUNTIME_OPT_V1
+ * MetalSyntax-inspired low-risk shader work: eliminate repeated CPU-side GL
+ * work and make real game GLSL available to the offline semantic pipeline.
+ * No hand-translated shader is trusted at runtime here. */
+#define SHADER_LOOKUP_CACHE 96u
+#define SHADER_KNOWN_PROGRAMS 64u
+#define SHADER_NAME_MAX 64u
+
+typedef struct {
+    GLuint program;
+    GLint location;
+    unsigned stamp;
+    char name[SHADER_NAME_MAX];
+} ShaderLookupEntry;
+static ShaderLookupEntry shader_uniform_cache[SHADER_LOOKUP_CACHE];
+static ShaderLookupEntry shader_attrib_cache[SHADER_LOOKUP_CACHE];
+static GLuint shader_known_programs[SHADER_KNOWN_PROGRAMS];
+static unsigned shader_known_program_count, shader_lookup_stamp;
+static GLuint shader_current_program = ~0u;
+static unsigned shader_use_calls, shader_use_skips;
+static unsigned shader_uniform_calls, shader_uniform_hits;
+static unsigned shader_attrib_calls, shader_attrib_hits;
+static unsigned shader_sources_deduped;
+#ifdef ZOMBIE_DEBUG_BUILD
+static unsigned shader_sources_dumped;
+#endif
+
+static int shader_program_known(GLuint program) {
+    if (!program) return 1;
+    for (unsigned i=0;i<shader_known_program_count;i++)
+        if (shader_known_programs[i] == program) return 1;
+    return 0;
+}
+static void shader_program_set_known(GLuint program, int known) {
+    unsigned i=0;
+    while (i<shader_known_program_count && shader_known_programs[i]!=program) i++;
+    if (known) {
+        if (i==shader_known_program_count && i<SHADER_KNOWN_PROGRAMS)
+            shader_known_programs[shader_known_program_count++]=program;
+    } else if (i<shader_known_program_count) {
+        shader_known_programs[i]=shader_known_programs[--shader_known_program_count];
+    }
+}
+static void shader_lookup_invalidate(GLuint program) {
+    for (unsigned i=0;i<SHADER_LOOKUP_CACHE;i++) {
+        if (shader_uniform_cache[i].program==program) shader_uniform_cache[i].program=0;
+        if (shader_attrib_cache[i].program==program) shader_attrib_cache[i].program=0;
+    }
+    if (shader_current_program==program) shader_current_program=~0u;
+}
+static GLint shader_lookup_get(ShaderLookupEntry *cache, GLuint program,
+                               const char *name, int attrib) {
+    if (!name) return attrib ? glGetAttribLocation(program,name) : glGetUniformLocation(program,name);
+    unsigned len=(unsigned)strlen(name);
+    if (!len || len>=SHADER_NAME_MAX) return attrib ? glGetAttribLocation(program,name) : glGetUniformLocation(program,name);
+    ShaderLookupEntry *slot=NULL;
+    unsigned oldest=~0u;
+    for (unsigned i=0;i<SHADER_LOOKUP_CACHE;i++) {
+        ShaderLookupEntry *e=&cache[i];
+        if (e->program==program && !strcmp(e->name,name)) {
+            e->stamp=++shader_lookup_stamp;
+            if (attrib) shader_attrib_hits++; else shader_uniform_hits++;
+            return e->location;
+        }
+        if (!e->program) { slot=e; oldest=0; }
+        else if (!slot || e->stamp<oldest) { slot=e; oldest=e->stamp; }
+    }
+    GLint loc=attrib ? glGetAttribLocation(program,name) : glGetUniformLocation(program,name);
+    if (slot) {
+        slot->program=program;slot->location=loc;slot->stamp=++shader_lookup_stamp;
+        memcpy(slot->name,name,len+1);
+    }
+    return loc;
+}
+
+/* The 3.6.1 binary contains two actually-used fragment shaders whose only
+ * difference is formatting whitespace.  Canonicalizing exactly this proven
+ * shape lets VitaGL compile/cache one program instead of two without changing
+ * precision, uniforms, varyings, or expression semantics. */
+static const char zombie_plain_texture_fs[] =
+    "precision mediump float;\n"
+    "precision lowp int;\n"
+    "varying vec2 v_texCoord;\n"
+    "uniform lowp sampler2D s_texture;\n"
+    "void main(){gl_FragColor=texture2D(s_texture,v_texCoord);}\n";
+static int shader_plain_texture_duplicate(const char *s,size_t n) {
+    if (!s || (n!=282u && n!=425u)) return 0;
+    return strstr(s,"precision mediump float;") &&
+           strstr(s,"uniform lowp sampler2D s_texture;") &&
+           strstr(s,"varying vec2 v_texCoord;") &&
+           strstr(s,"gl_FragColor") && strstr(s,"texture2D") &&
+           !strstr(s,"discard") && !strstr(s,"u_gamma") &&
+           !strstr(s,"u_diffuse") && !strstr(s,"u_specular") &&
+           !strstr(s,"v_color");
+}
+static char *shader_concat_source(GLsizei count,const GLchar **strings,const GLint *lengths,size_t *out_n) {
+    if (out_n) *out_n=0;
+    if (count<=0 || !strings) return NULL;
+    size_t total=0;
+    for (GLsizei i=0;i<count;i++) {
+        if (!strings[i]) return NULL;
+        size_t n=(lengths && lengths[i]>=0)?(size_t)lengths[i]:strlen(strings[i]);
+        if (n>65536u || total>65536u-n) return NULL;
+        total+=n;
+    }
+    char *joined=(char*)malloc(total+1);
+    if (!joined) return NULL;
+    size_t off=0;
+    for (GLsizei i=0;i<count;i++) {
+        size_t n=(lengths && lengths[i]>=0)?(size_t)lengths[i]:strlen(strings[i]);
+        memcpy(joined+off,strings[i],n);off+=n;
+    }
+    joined[total]=0;if(out_n)*out_n=total;return joined;
+}
+#ifdef ZOMBIE_DEBUG_BUILD
+static uint64_t shader_dump_hash(const void *data,size_t n) {
+    const unsigned char *p=(const unsigned char*)data;
+    uint64_t h=1469598103934665603ull;
+    while(n--) h=(h^*p++)*1099511628211ull;
+    return h;
+}
+static void shader_dump_glsl(const char *source,size_t n) {
+    if (!source || !n) return;
+    const char *stage=strstr(source,"gl_Position")?"vs":"fs";
+    uint64_t hash=shader_dump_hash(source,n);
+    char path[256];
+    snprintf(path,sizeof(path),DATA_PATH "glsl_dump/%016llX_%s.glsl",(unsigned long long)hash,stage);
+    SceIoStat st;
+    if (sceIoGetstat(path,&st)>=0) return;
+    if (!file_mkpath(DATA_PATH "glsl_dump/.probe",0777)) return;
+    FILE *f=fopen(path,"wb");
+    if (!f) return;
+    size_t wrote=fwrite(source,1,n,f);fclose(f);
+    if (wrote==n) shader_sources_dumped++;
+}
+#endif
+
+void glUseProgram_soloader(GLuint program) {
+    shader_use_calls++;
+    if (program==shader_current_program && shader_program_known(program)) {
+        shader_use_skips++;return;
+    }
+    glUseProgram(program);
+    if (shader_program_known(program)) shader_current_program=program;
+    else shader_current_program=~0u;
+}
+void glDeleteProgram_soloader(GLuint program) {
+    shader_lookup_invalidate(program);shader_program_set_known(program,0);glDeleteProgram(program);
+}
+GLint glGetUniformLocation_soloader(GLuint program,const GLchar *name) {
+    shader_uniform_calls++;return shader_lookup_get(shader_uniform_cache,program,name,0);
+}
+GLint glGetAttribLocation_soloader(GLuint program,const GLchar *name) {
+    shader_attrib_calls++;return shader_lookup_get(shader_attrib_cache,program,name,1);
+}
+
 void glLinkProgram_soloader(GLuint program) {
+    shader_lookup_invalidate(program);
     uint64_t start = sceKernelGetProcessTimeWide();
     glLinkProgram(program); gl_time(&gl_perf.link, start);
+    GLint ok=GL_FALSE;glGetProgramiv(program,GL_LINK_STATUS,&ok);
+    shader_program_set_known(program,ok==GL_TRUE);
 }
 void glFlush_soloader(void) {
     uint64_t start = sceKernelGetProcessTimeWide();
     glFlush(); gl_time(&gl_perf.flush, start);
 }
 void glBufferData_soloader(GLenum target, GLsizei size, const GLvoid *data, GLenum usage) {
-    uint64_t start = sceKernelGetProcessTimeWide();
+    uint64_t start = gl_time_begin();
     glBufferData(target, size, data, usage); gl_time(&gl_perf.buffer_data, start);
 }
 void glBufferSubData_soloader(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data) {
-    uint64_t start = sceKernelGetProcessTimeWide();
+    uint64_t start = gl_time_begin();
     glBufferSubData(target, offset, size, data); gl_time(&gl_perf.buffer_sub, start);
 }
 void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data) {
@@ -340,6 +519,7 @@ void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint y
         }
     }
     int software_upload = data && caller == guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN) &&
+        software_upload_contract_ready() &&
         target == GL_TEXTURE_2D && level == 0 && xoffset == 0 && yoffset == 0 &&
         format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
         width >= 720 && width <= 1100 && height >= 400 && height <= 650;
@@ -361,9 +541,10 @@ void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint y
     if (is_software_framebuffer_upload(caller,target,level,xoffset,yoffset,width,height,format,type,data))
         framebuffer565_reinit_if_needed(target,width,height);
 
-    uint64_t start = sceKernelGetProcessTimeWide();
+    uint64_t start = gl_time_begin();
     glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, data);
     if(software_upload) upload_reuse_complete(&upload_guard,(unsigned)texture,(uintptr_t)data,width,height);
+    if(!start) return;
     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
     gl_perf.tex_sub.calls++; gl_perf.tex_sub.total_us+=us;
     if (us>gl_perf.tex_sub.max_us) gl_perf.tex_sub.max_us=us;
@@ -412,10 +593,31 @@ static void shader_cache_report(void) {
     l_perf("shader_inventory unique_vertex=%u unique_fragment=%u unique_program_combinations=%u program_uses=%u overflow=%u",vertex,fragment,unique_programs,uses,inventory_overflow);
     __atomic_clear(&shader_inventory_lock,__ATOMIC_RELEASE);
     l_perf("shader_cache hits=%u misses=%u invalid=%u bytes_loaded=%u compile_us=%u load_us=%u writes_failed=%u actual_compile_calls=%u writes=%u counters=lifetime",stats[0],stats[1],stats[2],stats[3],stats[4],stats[5],stats[6],stats[7],stats[8]);
+    l_perf("shader_runtime use_calls=%u use_skips=%u uniform_calls=%u uniform_hits=%u attrib_calls=%u attrib_hits=%u source_dedupes=%u"
+#ifdef ZOMBIE_DEBUG_BUILD
+           " dumps=%u"
+#endif
+           ,shader_use_calls,shader_use_skips,shader_uniform_calls,shader_uniform_hits,
+           shader_attrib_calls,shader_attrib_hits,shader_sources_deduped
+#ifdef ZOMBIE_DEBUG_BUILD
+           ,shader_sources_dumped
+#endif
+           );
 }
 void glShaderSource_soloader(GLuint shader,GLsizei count,const GLchar **strings,const GLint *lengths) {
-    /* Native vitaGL already handles concatenation and negative lengths. */
-    glShaderSource(shader,count,strings,lengths);
+    size_t n=0;char *joined=shader_concat_source(count,strings,lengths,&n);
+#ifdef ZOMBIE_DEBUG_BUILD
+    if (joined) shader_dump_glsl(joined,n);
+#endif
+    if (joined && shader_plain_texture_duplicate(joined,n)) {
+        const GLchar *canonical=zombie_plain_texture_fs;
+        GLint canonical_len=(GLint)(sizeof(zombie_plain_texture_fs)-1);
+        glShaderSource(shader,1,&canonical,&canonical_len);
+        shader_sources_deduped++;
+    } else {
+        glShaderSource(shader,count,strings,lengths);
+    }
+    free(joined);
 }
 void glCompileShader_soloader(GLuint shader) {
     uint64_t start=sceKernelGetProcessTimeWide();glCompileShader(shader);gl_time(&gl_perf.compile,start);

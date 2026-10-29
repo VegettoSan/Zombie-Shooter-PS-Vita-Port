@@ -22,7 +22,7 @@ extern "C" {
 extern int setting_asset_cache_mib;
 extern int setting_asset_negative_cache; // exact ENOENT misses, process lifetime, 256 entries
 extern int setting_audio_frames;
-extern int setting_software_width; // 0: Android policy; 960: native; 864: reduced
+extern int setting_software_width; // 0: Android; 960: native; 864: reduced; 768: experimental
 extern int setting_music_mode;     // 0: stable/silent; 1: legacy PCM WAV; 2: compressed original M4A/AAC Vita mixer
 extern int setting_log_mode;       // 0: off; 1: errors/fatal; 2: +PERF; 3: verbose Debug diagnostics
 extern int setting_framebuffer_565; // 0: original RGBA; 2: corrected RGB565 diagnostic (legacy value 1 is disabled)

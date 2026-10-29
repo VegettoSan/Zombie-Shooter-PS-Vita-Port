@@ -44,6 +44,28 @@ int main(void) {
  jni->DeleteGlobalRef(&jni,window); jni->DeleteGlobalRef(&jni,display); jni->DeleteGlobalRef(&jni,dm);
  puts("DisplayMetrics JNI regression passed: exact descriptors, nonzero fields and complete activity/display chain");
 
+ /* Build-1161 CryptEngine::applicationUID() uses this exact Android chain,
+  * then SHA-256 hashes the returned 16 ASCII hex characters into 32 bytes. */
+ jobject crypto_activity=(jobject)0x42424242;
+ jmethodID content_resolver_id=jni->GetMethodID(&jni,(jclass)crypto_activity,"getContentResolver","()Landroid/content/ContentResolver;");
+ assert(content_resolver_id);
+ assert(!jni->GetMethodID(&jni,(jclass)crypto_activity,"getContentResolver","()Ljava/lang/Object;"));
+ jobject content_resolver=jni->CallObjectMethod(&jni,crypto_activity,content_resolver_id); assert(content_resolver);
+ jclass secure=jni->FindClass(&jni,"android.provider.Settings$Secure"); assert(secure);
+ jmethodID secure_get=jni->GetStaticMethodID(&jni,secure,"getString","(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;");
+ assert(secure_get);
+ assert(!jni->GetStaticMethodID(&jni,secure,"getString","(Ljava/lang/String;)Ljava/lang/String;"));
+ jstring android_id_name=jni->NewStringUTF(&jni,"android_id");
+ jstring android_id_value=jni->CallStaticObjectMethod(&jni,secure,secure_get,content_resolver,android_id_name); assert(android_id_value);
+ const char *android_id_utf=jni->GetStringUTFChars(&jni,android_id_value,NULL); assert(android_id_utf);
+ assert(strlen(android_id_utf)==16 && !strcmp(android_id_utf,"a1b2c3d4e5f60718"));
+ jni->ReleaseStringUTFChars(&jni,android_id_value,(char*)android_id_utf);
+ jstring unknown_secure_name=jni->NewStringUTF(&jni,"unknown_secure_key");
+ assert(!jni->CallStaticObjectMethod(&jni,secure,secure_get,content_resolver,unknown_secure_name));
+ jni->DeleteGlobalRef(&jni,android_id_name); jni->DeleteGlobalRef(&jni,android_id_value);
+ jni->DeleteGlobalRef(&jni,unknown_secure_name); jni->DeleteGlobalRef(&jni,secure);
+ puts("Crypto identity JNI regression passed: exact Settings.Secure android_id path and stable non-empty UID");
+
  jclass clazz=jni->FindClass(&jni,"android/view/InputDevice");
  jclass helper=jni->FindClass(&jni,"com/sigmateam/sige/InputDeviceHelper");
  jmethodID get=jni->GetStaticMethodID(&jni,clazz,"getDevice","(I)Landroid/view/InputDevice;");

@@ -95,8 +95,8 @@ static void reset_xbox_defaults(void) {
     bindings[1].xbox_mask  = SCE_CTRL_CIRCLE;   /* B */
     bindings[2].xbox_mask  = SCE_CTRL_SQUARE;   /* X */
     bindings[3].xbox_mask  = SCE_CTRL_TRIANGLE; /* Y */
-    bindings[4].xbox_mask  = SCE_CTRL_L1;       /* LB */
-    bindings[5].xbox_mask  = SCE_CTRL_R1;       /* RB */
+    bindings[4].xbox_mask  = SCE_CTRL_RIGHT;    /* next weapon / action8 */
+    bindings[5].xbox_mask  = SCE_CTRL_LEFT;     /* previous weapon / action7 */
     bindings[6].xbox_mask  = SCE_CTRL_L2;       /* LT */
     bindings[7].xbox_mask  = SCE_CTRL_R2;       /* RT */
     bindings[8].xbox_mask  = SCE_CTRL_START;
@@ -207,8 +207,9 @@ static bool write_default_controls(void) {
           "circle B\n"
           "square X\n"
           "triangle Y\n\n"
-          "l LB\n"
-          "r RB\n"
+          "# 3.6.1 gameplay aliases: shoulders use the proven weapon HAT actions.\n"
+          "l DPAD_RIGHT\n"
+          "r DPAD_LEFT\n"
           "rear_left LT\n"
           "rear_right RT\n\n"
           "start START\n"
@@ -279,6 +280,25 @@ void gamepad_config_load(void) {
         bindings[index].xbox_mask = logical;
     }
     fclose(f);
+
+    /* Auto-migrate only the untouched old stock profile. Custom controls.txt
+     * files keep their explicit choices. */
+    if (bindings[0].xbox_mask == SCE_CTRL_CROSS &&
+        bindings[1].xbox_mask == SCE_CTRL_CIRCLE &&
+        bindings[2].xbox_mask == SCE_CTRL_SQUARE &&
+        bindings[3].xbox_mask == SCE_CTRL_TRIANGLE &&
+        bindings[4].xbox_mask == SCE_CTRL_L1 &&
+        bindings[5].xbox_mask == SCE_CTRL_R1 &&
+        bindings[6].xbox_mask == SCE_CTRL_L2 &&
+        bindings[7].xbox_mask == SCE_CTRL_R2 &&
+        bindings[10].xbox_mask == SCE_CTRL_UP &&
+        bindings[11].xbox_mask == SCE_CTRL_DOWN &&
+        bindings[12].xbox_mask == SCE_CTRL_LEFT &&
+        bindings[13].xbox_mask == SCE_CTRL_RIGHT) {
+        bindings[4].xbox_mask = SCE_CTRL_RIGHT; /* L -> next weapon/action8 */
+        bindings[5].xbox_mask = SCE_CTRL_LEFT;  /* R -> previous weapon/action7 */
+        l_perf("[INPUT] controls auto_migrated=361_gameplay l=DPAD_RIGHT r=DPAD_LEFT rear_left=LT rear_right=RT");
+    }
 
     controls_loaded = true;
     log_effective_mapping("controls.txt");

@@ -73,30 +73,39 @@ static jobject secureGetString(jmethodID id, va_list args) {
 	(void) id;
 	jobject resolver = va_arg(args, jobject);
 	jstring name = va_arg(args, jstring);
-	if (resolver != (jobject)0x71717171 || !name)
+	if (!name)
 		return NULL;
 	const char *key = jni->GetStringUTFChars(&jni, name, NULL);
 	if (!key)
 		return NULL;
 	int is_android_id = strcmp(key, "android_id") == 0;
+#ifdef ZOMBIE_DEBUG_BUILD
+	static unsigned crypto_identity_reports;
+	if (__atomic_fetch_add(&crypto_identity_reports, 1, __ATOMIC_RELAXED) < 8)
+		l_perf("[CRYPTO] Settings.Secure.getString name=%s resolver=%p resolver_expected=%d android_id=%d",
+		       key, resolver, resolver == (jobject)0x71717171, is_android_id);
+#endif
 	jni->ReleaseStringUTFChars(&jni, name, (char *)key);
 	if (!is_android_id)
 		return NULL;
-	/* Settings.Secure.ANDROID_ID is a stable 64-bit hexadecimal identifier.
-	 * Keep it stable across runs so encrypted local saves keep the same key. */
+	/* applicationUID() SHA-256 hashes this normal 64-bit Android identifier.
+	 * Do not return a pre-hashed/32-character value here: that would change the
+	 * engine's real key derivation contract. Resolver identity is intentionally
+	 * not used as a rejection condition once this exact static API is resolved;
+	 * Android accepts any valid ContentResolver and the Vita object is synthetic. */
 	return jni->NewStringUTF(&jni, "a1b2c3d4e5f60718");
 }
 
 static jobject getVersion(jmethodID id, va_list args) {
 	(void) id;
 	(void) args;
-	return jni->NewStringUTF(&jni, "3.5.3");
+	return jni->NewStringUTF(&jni, "3.6.1");
 }
 
 static jint getVersionCode(jmethodID id, va_list args) {
 	(void) id;
 	(void) args;
-	return 1153;
+	return 1161;
 }
 
 static void quit(jmethodID id, va_list args) {
@@ -240,6 +249,25 @@ static const InputMethod input_methods[] = {
 };
 
 int fjni_resolve_method(jclass clazz, const char *name, const char *sig, jboolean is_static, jmethodID *result) {
+    /* CryptEngine::applicationUID() asks the main Activity for a resolver and
+     * then calls Settings.Secure.getString(ContentResolver,String). Resolve
+     * both calls by exact descriptor so the registry encryption key never
+     * depends on FalsoJNI's name-only fallback. Consume every same-name query
+     * on these classes: a wrong descriptor must be NULL, never fall through to
+     * legacy name-only lookup. */
+    if (clazz == (jclass)0x42424242 && !strcmp(name, "getContentResolver")) {
+        *result = NULL;
+        if (!is_static && !strcmp(sig, "()Landroid/content/ContentResolver;"))
+            *result = (jmethodID)(uintptr_t)METHOD_GET_CONTENT_RESOLVER;
+        return 1;
+    }
+    if (class_matches(clazz, "android/provider/Settings$Secure") && is_static) {
+        *result = NULL;
+        if (!strcmp(name, "getString") &&
+            !strcmp(sig, "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;"))
+            *result = (jmethodID)(uintptr_t)METHOD_SECURE_GET_STRING;
+        return 1;
+    }
     if (clazz == (jclass)0x42424242 && !strcmp(name, "getWindowManager") &&
         !strcmp(sig, "()Landroid/view/WindowManager;") && !is_static) {
         *result = (jmethodID)(uintptr_t)METHOD_GET_WINDOW_MANAGER; return 1;
@@ -340,7 +368,7 @@ char WINDOW_SERVICE[] = "window";
 // System-wide constant that's often used to determine Android version
 // https://developer.android.com/reference/android/os/Build.VERSION.html#SDK_INT
 // Possible values: https://developer.android.com/reference/android/os/Build.VERSION_CODES
-const int SDK_INT = 24; // Matches the APK's minSdk and native build target.
+const int SDK_INT = 24; // Matches the ARMv7 native ELF/API target used by the compatibility layer.
 
 /* JNI NULL (0) is reserved for an unknown field. These IDs are opaque:
  * native callers obtain them by name, never by a hardcoded numeric value. */

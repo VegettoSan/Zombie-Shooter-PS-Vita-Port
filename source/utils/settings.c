@@ -78,6 +78,7 @@ void settings_save() {
         fprintf(config, "#   0   = original Android engine policy (~1024x580 on Vita, no scale hook)\n");
         fprintf(config, "#   960 = cap work surface to ~960x544\n");
         fprintf(config, "#   864 = cap work surface to ~864x489 (real-Vita validated, recommended)\n");
+        fprintf(config, "#   768 = experimental ~768x435; physical output stays 960x544\n");
         fprintf(config, "# music_mode modes:\n");
         fprintf(config, "#   0 = no replacement music backend; stable/silent fallback\n");
         fprintf(config, "#   1 = LEGACY PCM16 WAV hook; confirmed OpenSL crash, diagnostic only\n");
@@ -143,7 +144,7 @@ void settings_load() {
             setting_audio_frames=value==128 || value==1024 || value==2048?value:1024;continue;
         }
         if (strcmp("software_width", buffer) == 0) {
-            setting_software_width = value==0 || value==864 || value==960 ? value : 864;
+            setting_software_width = value==0 || value==768 || value==864 || value==960 ? value : 864;
             continue;
         }
         if (strcmp("music_mode", buffer) == 0) {

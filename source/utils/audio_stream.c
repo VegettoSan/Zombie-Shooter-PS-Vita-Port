@@ -264,20 +264,20 @@ void zombie_music_report(void) {
 #ifndef ZOMBIE_MUSIC_HOST
 static void install_original_music(void) {
     const struct { const char *name;unsigned offset;uint32_t prologue[2];uintptr_t replacement; } hooks[]={
-        {"_ZN5sound11MusicPlayer6onOpenERK6STRING",0x4d4174,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_open},
-        {"_ZN5sound11MusicPlayer7onCloseEv",0x4d46e8,{0xaf03b5f0,0x8d04f84d},(uintptr_t)music_close},
-        {"_ZN5sound11MusicPlayer8onUpdateEv",0x4d485c,{0xaf02b5b0,0x4941b0a6},(uintptr_t)music_update},
-        {"_ZN5sound11MusicPlayer7onPauseEv",0x4d4990,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_pause},
-        {"_ZN5sound11MusicPlayer8onResumeEv",0x4d4ad0,{0xaf02b5b0,0x0438f100},(uintptr_t)music_resume},
-        {"_ZN5sound11MusicPlayer12updateVolumeEi",0x4d4058,{0xaf02b5b0,0x4a3bb0a6},(uintptr_t)music_volume}
+        {"_ZN5sound11MusicPlayer6onOpenERK6STRING",0x4ef2f0,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_open},
+        {"_ZN5sound11MusicPlayer7onCloseEv",0x4ef864,{0xaf03b5f0,0x8d04f84d},(uintptr_t)music_close},
+        {"_ZN5sound11MusicPlayer8onUpdateEv",0x4ef9d8,{0xaf02b5b0,0x4941b0a6},(uintptr_t)music_update},
+        {"_ZN5sound11MusicPlayer7onPauseEv",0x4efb0c,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_pause},
+        {"_ZN5sound11MusicPlayer8onResumeEv",0x4efc4c,{0xaf02b5b0,0x0438f100},(uintptr_t)music_resume},
+        {"_ZN5sound11MusicPlayer12updateVolumeEi",0x4ef1d4,{0xaf02b5b0,0x4a3bb0a6},(uintptr_t)music_volume}
     };
     uintptr_t addresses[6];
     string_data=(void *)so_symbol(&so_mod,"_ZNK6STRING5c_strEv");
     native_stop=(void *)so_symbol(&so_mod,"_ZN5sound10BaseStream4stopEv");
     const uint32_t string_prologue=0x47706800u;
     const uint32_t stop_prologue[]={0xaf02b5b0u,0x4604b0a4u};
-    if((uintptr_t)string_data!=so_mod.load_addr+0x3dc789u ||
-       (uintptr_t)native_stop!=so_mod.load_addr+0x4d4da9u ||
+    if((uintptr_t)string_data!=so_mod.load_addr+0x3ed769u ||
+       (uintptr_t)native_stop!=so_mod.load_addr+0x4eff25u ||
        memcmp((void *)((uintptr_t)string_data&~1u),&string_prologue,4) ||
        memcmp((void *)((uintptr_t)native_stop&~1u),stop_prologue,8)) {
         l_perf("audio_stream installed=0 music_mode=2 guard_failed=backend_helpers");return;

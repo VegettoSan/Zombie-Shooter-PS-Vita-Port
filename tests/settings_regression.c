@@ -71,5 +71,7 @@ int main(void) {
     }
     setting_render_diagnostics=2;setting_asset_negative_cache=1;settings_save();settings_reset();settings_load();
     assert(setting_render_diagnostics==2 && setting_asset_negative_cache==1);
+    setting_software_width=768;settings_save();settings_load();
+    assert(setting_software_width==768);
     puts("Settings regression PASS: log modes 0-3, stale vita_shooter ignored, 864 default, framebuffer migration, render reuse, music/cache/audio preservation");
 }

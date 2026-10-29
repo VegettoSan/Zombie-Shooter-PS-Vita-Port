@@ -1,0 +1,2 @@
+1415a032653b2f1df172c6e315e86b745f87cb26706d711bf3bbce44e384dfe5  artifacts/fps-2026-10-28/zombie_shooter-release.vpk
+99df10c9df552768611bcfa4a0aba58a5b937230b5495f2d5852b2d5f76ecf4a  artifacts/fps-2026-10-28/so_loader-release.elf

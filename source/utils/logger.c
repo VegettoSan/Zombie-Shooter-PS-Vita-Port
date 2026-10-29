@@ -113,6 +113,12 @@ void logger_get_sync_stats(unsigned *count, unsigned *us) {
     if (count) *count = s.syncs;
     if (us) *us = s.sync_us;
 }
+void logger_flush(void) {
+    if (setting_log_mode <= 0) return;
+    if (!lock_log()) return;
+    flush_checkpoint_locked();
+    sceKernelUnlockLwMutex(&mutex, 1);
+}
 void logger_force_sync(void) {
     if (setting_log_mode <= 0) return;
     if (!lock_log()) return;

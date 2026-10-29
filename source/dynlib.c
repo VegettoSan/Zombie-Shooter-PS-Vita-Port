@@ -70,6 +70,10 @@ ssize_t read_perf(int, void *, size_t);
 int AAsset_read_perf(AAsset *, void *, size_t);
 AAsset *AAssetManager_open_perf(AAssetManager *, const char *, int);
 off_t AAsset_seek_perf(AAsset *, off_t, int);
+void glUseProgram_soloader(GLuint);
+void glDeleteProgram_soloader(GLuint);
+GLint glGetUniformLocation_soloader(GLuint,const GLchar *);
+GLint glGetAttribLocation_soloader(GLuint,const GLchar *);
 int ALooper_pollOnce_perf(int, int *, int *, void **);
 int ALooper_pollAll_perf(int, int *, int *, void **);
 #endif
@@ -741,7 +745,7 @@ so_default_dynlib default_dynlib[] = {
         { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers_soloader },
         { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
         { "glDeleteFramebuffersOES", (uintptr_t)&glDeleteFramebuffers },
-        { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
+        { "glDeleteProgram", (uintptr_t)&glDeleteProgram_soloader },
         { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
         { "glDeleteRenderbuffersOES", (uintptr_t)&glDeleteRenderbuffers },
         { "glDeleteShader", (uintptr_t)&glDeleteShader },
@@ -792,7 +796,7 @@ so_default_dynlib default_dynlib[] = {
         { "glGenTextures", (uintptr_t)&glGenTextures },
         { "glGetActiveAttrib", (uintptr_t)&glGetActiveAttrib },
         { "glGetActiveUniform", (uintptr_t)&glGetActiveUniform },
-        { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation },
+        { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation_soloader },
         { "glGetBooleanv", (uintptr_t)&glGetBooleanv },
         { "glGetBufferParameteriv", (uintptr_t)&glGetBufferParameteriv },
         { "glGetBufferPointervOES", (uintptr_t)&ret0 },
@@ -824,7 +828,7 @@ so_default_dynlib default_dynlib[] = {
         { "glGetTexParameterfv", (uintptr_t)&ret0 },
         { "glGetTexParameteriv", (uintptr_t)&ret0 },
         { "glGetTexParameterxv", (uintptr_t)&ret0 },
-        { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation },
+        { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation_soloader },
         { "glHint", (uintptr_t)&glHint },
         { "glIsBuffer", (uintptr_t)&ret0 },
         { "glIsRenderbuffer", (uintptr_t)&glIsRenderbuffer },
@@ -940,7 +944,7 @@ so_default_dynlib default_dynlib[] = {
         { "glUniformMatrix4fv", (uintptr_t)&glUniformMatrix4fv },
         { "glUnmapBuffer", (uintptr_t)&glUnmapBuffer },
         { "glUnmapBufferOES", (uintptr_t)&glUnmapBuffer },
-        { "glUseProgram", (uintptr_t)&glUseProgram },
+        { "glUseProgram", (uintptr_t)&glUseProgram_soloader },
         { "glValidateProgram", (uintptr_t)&ret0 },
         { "glVertexAttrib4f", (uintptr_t)&glVertexAttrib4f },
         { "glVertexAttrib4fv", (uintptr_t)&glVertexAttrib4fv },

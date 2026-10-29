@@ -298,9 +298,9 @@ void soloader_init_all() {
      * from the previous game binary.  3.6.1 has different internal addresses
      * and must not receive those hooks until each one is revalidated.  Keep
      * only the generic kuser/protobuf fix required by this exact ARMv7 SO. */
-    l_info("Applying 3.6.1 safe bring-up patches (kuser/protobuf only)...");
-    kuser_patch();
-    l_success("3.6.1 safe bring-up patches applied; legacy game-specific hooks disabled.");
+    l_info("Applying verified 3.6.1 recovery patches (kuser + frame reuse + music + render scale)...");
+    so_patch();
+    l_success("3.6.1 recovery patches applied; unsafe legacy raster/light/startup hooks remain disabled.");
 
     l_info("Flushing caches...");
     so_flush_caches(&so_mod);

@@ -1,0 +1,985 @@
+diff --git a/source/dynlib.c b/source/dynlib.c
+index cd9909d..a133d16 100644
+--- a/source/dynlib.c
++++ b/source/dynlib.c
+@@ -70,6 +70,10 @@ ssize_t read_perf(int, void *, size_t);
+ int AAsset_read_perf(AAsset *, void *, size_t);
+ AAsset *AAssetManager_open_perf(AAssetManager *, const char *, int);
+ off_t AAsset_seek_perf(AAsset *, off_t, int);
++void glUseProgram_soloader(GLuint);
++void glDeleteProgram_soloader(GLuint);
++GLint glGetUniformLocation_soloader(GLuint,const GLchar *);
++GLint glGetAttribLocation_soloader(GLuint,const GLchar *);
+ int ALooper_pollOnce_perf(int, int *, int *, void **);
+ int ALooper_pollAll_perf(int, int *, int *, void **);
+ #endif
+@@ -741,7 +745,7 @@ so_default_dynlib default_dynlib[] = {
+         { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers_soloader },
+         { "glDeleteFramebuffers", (uintptr_t)&glDeleteFramebuffers },
+         { "glDeleteFramebuffersOES", (uintptr_t)&glDeleteFramebuffers },
+-        { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
++        { "glDeleteProgram", (uintptr_t)&glDeleteProgram_soloader },
+         { "glDeleteRenderbuffers", (uintptr_t)&glDeleteRenderbuffers },
+         { "glDeleteRenderbuffersOES", (uintptr_t)&glDeleteRenderbuffers },
+         { "glDeleteShader", (uintptr_t)&glDeleteShader },
+@@ -792,7 +796,7 @@ so_default_dynlib default_dynlib[] = {
+         { "glGenTextures", (uintptr_t)&glGenTextures },
+         { "glGetActiveAttrib", (uintptr_t)&glGetActiveAttrib },
+         { "glGetActiveUniform", (uintptr_t)&glGetActiveUniform },
+-        { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation },
++        { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation_soloader },
+         { "glGetBooleanv", (uintptr_t)&glGetBooleanv },
+         { "glGetBufferParameteriv", (uintptr_t)&glGetBufferParameteriv },
+         { "glGetBufferPointervOES", (uintptr_t)&ret0 },
+@@ -824,7 +828,7 @@ so_default_dynlib default_dynlib[] = {
+         { "glGetTexParameterfv", (uintptr_t)&ret0 },
+         { "glGetTexParameteriv", (uintptr_t)&ret0 },
+         { "glGetTexParameterxv", (uintptr_t)&ret0 },
+-        { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation },
++        { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation_soloader },
+         { "glHint", (uintptr_t)&glHint },
+         { "glIsBuffer", (uintptr_t)&ret0 },
+         { "glIsRenderbuffer", (uintptr_t)&glIsRenderbuffer },
+@@ -940,7 +944,7 @@ so_default_dynlib default_dynlib[] = {
+         { "glUniformMatrix4fv", (uintptr_t)&glUniformMatrix4fv },
+         { "glUnmapBuffer", (uintptr_t)&glUnmapBuffer },
+         { "glUnmapBufferOES", (uintptr_t)&glUnmapBuffer },
+-        { "glUseProgram", (uintptr_t)&glUseProgram },
++        { "glUseProgram", (uintptr_t)&glUseProgram_soloader },
+         { "glValidateProgram", (uintptr_t)&ret0 },
+         { "glVertexAttrib4f", (uintptr_t)&glVertexAttrib4f },
+         { "glVertexAttrib4fv", (uintptr_t)&glVertexAttrib4fv },
+diff --git a/source/java_base.inc b/source/java_base.inc
+index 1727b73..0483b9b 100644
+--- a/source/java_base.inc
++++ b/source/java_base.inc
+@@ -73,30 +73,39 @@ static jobject secureGetString(jmethodID id, va_list args) {
+ 	(void) id;
+ 	jobject resolver = va_arg(args, jobject);
+ 	jstring name = va_arg(args, jstring);
+-	if (resolver != (jobject)0x71717171 || !name)
++	if (!name)
+ 		return NULL;
+ 	const char *key = jni->GetStringUTFChars(&jni, name, NULL);
+ 	if (!key)
+ 		return NULL;
+ 	int is_android_id = strcmp(key, "android_id") == 0;
++#ifdef ZOMBIE_DEBUG_BUILD
++	static unsigned crypto_identity_reports;
++	if (__atomic_fetch_add(&crypto_identity_reports, 1, __ATOMIC_RELAXED) < 8)
++		l_perf("[CRYPTO] Settings.Secure.getString name=%s resolver=%p resolver_expected=%d android_id=%d",
++		       key, resolver, resolver == (jobject)0x71717171, is_android_id);
++#endif
+ 	jni->ReleaseStringUTFChars(&jni, name, (char *)key);
+ 	if (!is_android_id)
+ 		return NULL;
+-	/* Settings.Secure.ANDROID_ID is a stable 64-bit hexadecimal identifier.
+-	 * Keep it stable across runs so encrypted local saves keep the same key. */
++	/* applicationUID() SHA-256 hashes this normal 64-bit Android identifier.
++	 * Do not return a pre-hashed/32-character value here: that would change the
++	 * engine's real key derivation contract. Resolver identity is intentionally
++	 * not used as a rejection condition once this exact static API is resolved;
++	 * Android accepts any valid ContentResolver and the Vita object is synthetic. */
+ 	return jni->NewStringUTF(&jni, "a1b2c3d4e5f60718");
+ }
+ 
+ static jobject getVersion(jmethodID id, va_list args) {
+ 	(void) id;
+ 	(void) args;
+-	return jni->NewStringUTF(&jni, "3.5.3");
++	return jni->NewStringUTF(&jni, "3.6.1");
+ }
+ 
+ static jint getVersionCode(jmethodID id, va_list args) {
+ 	(void) id;
+ 	(void) args;
+-	return 1153;
++	return 1161;
+ }
+ 
+ static void quit(jmethodID id, va_list args) {
+@@ -240,6 +249,25 @@ static const InputMethod input_methods[] = {
+ };
+ 
+ int fjni_resolve_method(jclass clazz, const char *name, const char *sig, jboolean is_static, jmethodID *result) {
++    /* CryptEngine::applicationUID() asks the main Activity for a resolver and
++     * then calls Settings.Secure.getString(ContentResolver,String). Resolve
++     * both calls by exact descriptor so the registry encryption key never
++     * depends on FalsoJNI's name-only fallback. Consume every same-name query
++     * on these classes: a wrong descriptor must be NULL, never fall through to
++     * legacy name-only lookup. */
++    if (clazz == (jclass)0x42424242 && !strcmp(name, "getContentResolver")) {
++        *result = NULL;
++        if (!is_static && !strcmp(sig, "()Landroid/content/ContentResolver;"))
++            *result = (jmethodID)(uintptr_t)METHOD_GET_CONTENT_RESOLVER;
++        return 1;
++    }
++    if (class_matches(clazz, "android/provider/Settings$Secure") && is_static) {
++        *result = NULL;
++        if (!strcmp(name, "getString") &&
++            !strcmp(sig, "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;"))
++            *result = (jmethodID)(uintptr_t)METHOD_SECURE_GET_STRING;
++        return 1;
++    }
+     if (clazz == (jclass)0x42424242 && !strcmp(name, "getWindowManager") &&
+         !strcmp(sig, "()Landroid/view/WindowManager;") && !is_static) {
+         *result = (jmethodID)(uintptr_t)METHOD_GET_WINDOW_MANAGER; return 1;
+@@ -340,7 +368,7 @@ char WINDOW_SERVICE[] = "window";
+ // System-wide constant that's often used to determine Android version
+ // https://developer.android.com/reference/android/os/Build.VERSION.html#SDK_INT
+ // Possible values: https://developer.android.com/reference/android/os/Build.VERSION_CODES
+-const int SDK_INT = 24; // Matches the APK's minSdk and native build target.
++const int SDK_INT = 24; // Matches the ARMv7 native ELF/API target used by the compatibility layer.
+ 
+ /* JNI NULL (0) is reserved for an unknown field. These IDs are opaque:
+  * native callers obtain them by name, never by a hardcoded numeric value. */
+diff --git a/source/patch.c b/source/patch.c
+index 09daff8..3ee8543 100644
+--- a/source/patch.c
++++ b/source/patch.c
+@@ -69,6 +69,173 @@ static so_hook sound_initialize_hook;
+ static so_hook text_initialize_hook;
+ static so_hook registry_load_value_hook;
+ 
++
++#include <stdlib.h>
++/* ZS361_DIRECT_REGISTRY_SAVE
++ *
++ * Build 1161's Registry::setString/getString route persistent encrypted values
++ * through storeEncrypted/loadDecrypted.  OpenSSL AES-256-CBC is unavailable in
++ * the Vita runtime provider, so bypass only that crypto boundary and persist
++ * the original STRING value through the direct Vita Registry backend.
++ * Registry::encryptKey remains the game's own implementation, preserving the
++ * exact key namespace expected by contains/remove/enumeration.
++ */
++extern int zombie_registry_direct_put(const char *key, const char *value);
++extern char *zombie_registry_direct_get(const char *key);
++
++static so_hook zs361_registry_store_encrypted_hook;
++static so_hook zs361_registry_load_decrypted_hook;
++
++typedef const char *(*zs361_string_c_str_fn)(const void *self);
++typedef void (*zs361_string_ctor_cstr_fn)(void *self, const char *value);
++typedef void (*zs361_string_copy_ctor_fn)(void *self, const void *other);
++typedef void (*zs361_string_dtor_fn)(void *self);
++typedef void (*zs361_encrypt_key_fn)(void *result, void *registry, const void *key);
++
++static zs361_string_c_str_fn zs361_string_c_str;
++static zs361_string_ctor_cstr_fn zs361_string_ctor_cstr;
++static zs361_string_copy_ctor_fn zs361_string_copy_ctor;
++static zs361_string_dtor_fn zs361_string_dtor;
++static zs361_encrypt_key_fn zs361_encrypt_key;
++
++typedef struct {
++    uintptr_t words[3]; /* build-1161 STRING is exactly 12 bytes */
++} zs361_string_storage;
++
++#define ZS361_REG_STORE_ENCRYPTED_ENTRY 0x003FB984u
++#define ZS361_REG_LOAD_DECRYPTED_ENTRY  0x003FB054u
++#define ZS361_REG_ENCRYPT_KEY_ENTRY     0x003FBFF4u
++#define ZS361_STRING_C_STR_ENTRY        0x003ED768u
++#define ZS361_STRING_CTOR_CSTR_ENTRY    0x003ED7B0u
++#define ZS361_STRING_COPY_CTOR_ENTRY    0x003ED800u
++#define ZS361_STRING_DTOR_ENTRY         0x003EE644u
++
++static uintptr_t zs361_even(uintptr_t address) {
++    return address & ~(uintptr_t)1u;
++}
++
++static uintptr_t zs361_require_thumb_symbol(const char *name, uintptr_t expected_offset) {
++    uintptr_t symbol = so_symbol(&so_mod, name);
++    uintptr_t expected = so_mod.load_addr + expected_offset;
++    if (!symbol || !(symbol & 1u) || zs361_even(symbol) != expected) {
++        l_error("[SAVE] refusing direct Registry hook %s: symbol=%p expected=so+0x%08X Thumb",
++                name, (void *)symbol, (unsigned)expected_offset);
++        return 0;
++    }
++    return symbol;
++}
++
++static int zs361_validate_prologue(uintptr_t symbol, const uint8_t expected[8],
++                                   const char *name) {
++    uintptr_t entry = zs361_even(symbol);
++    if (memcmp((const void *)entry, expected, 8) != 0) {
++        l_error("[SAVE] refusing direct Registry hook %s: build-1161 prologue mismatch", name);
++        return 0;
++    }
++    return 1;
++}
++
++static int zs361_make_backend_key(zs361_string_storage *out, void *registry,
++                                  const void *key, const char **chars_out) {
++    memset(out, 0, sizeof(*out));
++    zs361_encrypt_key(out, registry, key);
++    const char *chars = zs361_string_c_str(out);
++    if (!chars || !*chars) {
++        zs361_string_dtor(out);
++        return 0;
++    }
++    *chars_out = chars;
++    return 1;
++}
++
++static void zs361_hooked_registry_store_encrypted(void *registry,
++                                                   const void *key,
++                                                   const void *value) {
++    zs361_string_storage backend_key;
++    const char *backend_chars = NULL;
++    const char *value_chars = zs361_string_c_str(value);
++    if (!value_chars || !zs361_make_backend_key(&backend_key, registry, key, &backend_chars)) {
++        l_error("[SAVE] direct Registry store rejected invalid STRING/key");
++        return;
++    }
++
++    int ok = zombie_registry_direct_put(backend_chars, value_chars);
++#ifdef ZOMBIE_DEBUG_BUILD
++    static unsigned reports;
++    if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 128)
++        l_perf("[SAVE] Registry.storeEncrypted -> direct file bytes=%u ok=%d",
++               (unsigned)strlen(value_chars), ok);
++#endif
++    zs361_string_dtor(&backend_key);
++}
++
++static void zs361_hooked_registry_load_decrypted(void *result,
++                                                  void *registry,
++                                                  const void *key,
++                                                  const void *fallback) {
++    zs361_string_storage backend_key;
++    const char *backend_chars = NULL;
++    char *value = NULL;
++    int key_ok = zs361_make_backend_key(&backend_key, registry, key, &backend_chars);
++    if (key_ok)
++        value = zombie_registry_direct_get(backend_chars);
++
++    if (value)
++        zs361_string_ctor_cstr(result, value);
++    else
++        zs361_string_copy_ctor(result, fallback);
++
++#ifdef ZOMBIE_DEBUG_BUILD
++    static unsigned reports;
++    if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 128)
++        l_perf("[SAVE] Registry.loadDecrypted <- direct file hit=%d bytes=%u",
++               value != NULL, value ? (unsigned)strlen(value) : 0u);
++#endif
++    free(value);
++    if (key_ok)
++        zs361_string_dtor(&backend_key);
++}
++
++static void install_zs361_direct_registry_save(void) {
++    static const uint8_t store_prologue[8] = {0xF0,0xB5,0x03,0xAF,0x2D,0xE9,0x00,0x0B};
++    static const uint8_t load_prologue[8]  = {0xF0,0xB5,0x03,0xAF,0x4D,0xF8,0x04,0x8D};
++
++    uintptr_t store = zs361_require_thumb_symbol(
++        "_ZN4core8Registry14storeEncryptedERK6STRINGS3_", ZS361_REG_STORE_ENCRYPTED_ENTRY);
++    uintptr_t load = zs361_require_thumb_symbol(
++        "_ZN4core8Registry13loadDecryptedERK6STRINGS3_", ZS361_REG_LOAD_DECRYPTED_ENTRY);
++    uintptr_t encrypt_key = zs361_require_thumb_symbol(
++        "_ZN4core8Registry10encryptKeyERK6STRING", ZS361_REG_ENCRYPT_KEY_ENTRY);
++    uintptr_t c_str = zs361_require_thumb_symbol(
++        "_ZNK6STRING5c_strEv", ZS361_STRING_C_STR_ENTRY);
++    uintptr_t ctor_cstr = zs361_require_thumb_symbol(
++        "_ZN6STRINGC1EPKc", ZS361_STRING_CTOR_CSTR_ENTRY);
++    uintptr_t copy_ctor = zs361_require_thumb_symbol(
++        "_ZN6STRINGC1ERKS_", ZS361_STRING_COPY_CTOR_ENTRY);
++    uintptr_t dtor = zs361_require_thumb_symbol(
++        "_ZN6STRINGD1Ev", ZS361_STRING_DTOR_ENTRY);
++
++    if (!store || !load || !encrypt_key || !c_str || !ctor_cstr || !copy_ctor || !dtor ||
++        !zs361_validate_prologue(store, store_prologue, "Registry::storeEncrypted") ||
++        !zs361_validate_prologue(load, load_prologue, "Registry::loadDecrypted")) {
++        l_error("[SAVE] direct Registry file backend disabled; exact build-1161 guards failed");
++        return;
++    }
++
++    zs361_encrypt_key = (zs361_encrypt_key_fn)encrypt_key;
++    zs361_string_c_str = (zs361_string_c_str_fn)c_str;
++    zs361_string_ctor_cstr = (zs361_string_ctor_cstr_fn)ctor_cstr;
++    zs361_string_copy_ctor = (zs361_string_copy_ctor_fn)copy_ctor;
++    zs361_string_dtor = (zs361_string_dtor_fn)dtor;
++
++    zs361_registry_store_encrypted_hook = hook_addr(
++        store, (uintptr_t)&zs361_hooked_registry_store_encrypted);
++    zs361_registry_load_decrypted_hook = hook_addr(
++        load, (uintptr_t)&zs361_hooked_registry_load_decrypted);
++    l_info("[SAVE] installed 3.6.1 direct Registry backend -> ux0:data/zombieshooter/save/");
++}
++
++
+ static uintptr_t hooked_registry_load_value(void *result, void *self,
+                                             const void *key, const void *fallback) {
+ #ifdef ZOMBIE_DEBUG_BUILD
+@@ -430,12 +597,12 @@ static void install_engine_probes(void) {
+     static const struct {
+         const char *symbol;unsigned offset;uint32_t prologue[2];uintptr_t replacement;
+     } probes[]={
+-        {"_ZN5GRAPH4TactEi",0x410a30,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_graph},
+-        {"_ZN5GRAPH12softwareTactEi",0x410458,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_software},
+-        {"_ZN3MAP4tactEv",0x4372c4,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_map},
+-        {"_ZN8OpenGLES7preTactEv",0x46aa2c,{0xaf03b5f0,0xbd04f84d},(uintptr_t)probe_pre},
+-        {"_ZN8OpenGLES8PostTactEi",0x46af1c,{0xaf03b5f0,0x8d04f84d},(uintptr_t)probe_post},
+-        {"_ZNK16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb",0x4f4b20,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_collector}
++        {"_ZN5GRAPH4TactEi",0x421d70,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_graph},
++        {"_ZN5GRAPH12softwareTactEi",0x421798,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_software},
++        {"_ZN3MAP4tactEv",0x448b00,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_map},
++        {"_ZN8OpenGLES7preTactEv",0x47d9a0,{0xaf03b5f0,0xbd04f84d},(uintptr_t)probe_pre},
++        {"_ZN8OpenGLES8PostTactEi",0x47de90,{0xaf03b5f0,0x8d04f84d},(uintptr_t)probe_post},
++        {"_ZNK16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb",0x5108d0,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_collector}
+     };
+     for(unsigned i=0;i<PERF_ENGINE_COUNT;++i) {
+         uintptr_t address=(uintptr_t)so_symbol(&so_mod,probes[i].symbol);
+@@ -533,16 +700,17 @@ void kuser_patch(void) {
+ #include "contract_trace.inc"
+ void so_patch(void) {
+ 	kuser_patch();
++	install_zs361_direct_registry_save();
+ #ifdef NDK_PORT
+-	install_startup_diagnostics();
++	/* 3.6.1: startup diagnostics disabled until independently revalidated. */
+ 	install_engine_probes();
+-    install_contract_traces();
+-	raster_palette_install();
++    /* 3.6.1: legacy contract traces disabled. */
++	/* 3.6.1: old palette hook disabled. */
+     audio_stream_install();
+     render_scale_install();
+-	raster_alpha_install();
+-	raster_light_install();
+-	light_pipeline_install();
++	/* 3.6.1: old alpha hook disabled. */
++	/* 3.6.1: old raster-light hook disabled. */
++	/* 3.6.1: old light-pipeline hook disabled. */
+ #endif
+ 	// Sample hook with symbol name
+ 	// hook_addr((uintptr_t)so_symbol(&so_mod, "_ZN6glitch2os7Printer5printEPKcz"), (uintptr_t)&hookedFunction);
+diff --git a/source/utils/audio_stream.c b/source/utils/audio_stream.c
+index 002c470..776cf3a 100644
+--- a/source/utils/audio_stream.c
++++ b/source/utils/audio_stream.c
+@@ -264,20 +264,20 @@ void zombie_music_report(void) {
+ #ifndef ZOMBIE_MUSIC_HOST
+ static void install_original_music(void) {
+     const struct { const char *name;unsigned offset;uint32_t prologue[2];uintptr_t replacement; } hooks[]={
+-        {"_ZN5sound11MusicPlayer6onOpenERK6STRING",0x4d4174,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_open},
+-        {"_ZN5sound11MusicPlayer7onCloseEv",0x4d46e8,{0xaf03b5f0,0x8d04f84d},(uintptr_t)music_close},
+-        {"_ZN5sound11MusicPlayer8onUpdateEv",0x4d485c,{0xaf02b5b0,0x4941b0a6},(uintptr_t)music_update},
+-        {"_ZN5sound11MusicPlayer7onPauseEv",0x4d4990,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_pause},
+-        {"_ZN5sound11MusicPlayer8onResumeEv",0x4d4ad0,{0xaf02b5b0,0x0438f100},(uintptr_t)music_resume},
+-        {"_ZN5sound11MusicPlayer12updateVolumeEi",0x4d4058,{0xaf02b5b0,0x4a3bb0a6},(uintptr_t)music_volume}
++        {"_ZN5sound11MusicPlayer6onOpenERK6STRING",0x4ef2f0,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_open},
++        {"_ZN5sound11MusicPlayer7onCloseEv",0x4ef864,{0xaf03b5f0,0x8d04f84d},(uintptr_t)music_close},
++        {"_ZN5sound11MusicPlayer8onUpdateEv",0x4ef9d8,{0xaf02b5b0,0x4941b0a6},(uintptr_t)music_update},
++        {"_ZN5sound11MusicPlayer7onPauseEv",0x4efb0c,{0xaf03b5f0,0xbd04f84d},(uintptr_t)music_pause},
++        {"_ZN5sound11MusicPlayer8onResumeEv",0x4efc4c,{0xaf02b5b0,0x0438f100},(uintptr_t)music_resume},
++        {"_ZN5sound11MusicPlayer12updateVolumeEi",0x4ef1d4,{0xaf02b5b0,0x4a3bb0a6},(uintptr_t)music_volume}
+     };
+     uintptr_t addresses[6];
+     string_data=(void *)so_symbol(&so_mod,"_ZNK6STRING5c_strEv");
+     native_stop=(void *)so_symbol(&so_mod,"_ZN5sound10BaseStream4stopEv");
+     const uint32_t string_prologue=0x47706800u;
+     const uint32_t stop_prologue[]={0xaf02b5b0u,0x4604b0a4u};
+-    if((uintptr_t)string_data!=so_mod.load_addr+0x3dc789u ||
+-       (uintptr_t)native_stop!=so_mod.load_addr+0x4d4da9u ||
++    if((uintptr_t)string_data!=so_mod.load_addr+0x3ed769u ||
++       (uintptr_t)native_stop!=so_mod.load_addr+0x4eff25u ||
+        memcmp((void *)((uintptr_t)string_data&~1u),&string_prologue,4) ||
+        memcmp((void *)((uintptr_t)native_stop&~1u),stop_prologue,8)) {
+         l_perf("audio_stream installed=0 music_mode=2 guard_failed=backend_helpers");return;
+diff --git a/source/utils/gamepad.c b/source/utils/gamepad.c
+index cb5d4a2..13e8303 100644
+--- a/source/utils/gamepad.c
++++ b/source/utils/gamepad.c
+@@ -95,8 +95,8 @@ static void reset_xbox_defaults(void) {
+     bindings[1].xbox_mask  = SCE_CTRL_CIRCLE;   /* B */
+     bindings[2].xbox_mask  = SCE_CTRL_SQUARE;   /* X */
+     bindings[3].xbox_mask  = SCE_CTRL_TRIANGLE; /* Y */
+-    bindings[4].xbox_mask  = SCE_CTRL_L1;       /* LB */
+-    bindings[5].xbox_mask  = SCE_CTRL_R1;       /* RB */
++    bindings[4].xbox_mask  = SCE_CTRL_RIGHT;    /* next weapon / action8 */
++    bindings[5].xbox_mask  = SCE_CTRL_LEFT;     /* previous weapon / action7 */
+     bindings[6].xbox_mask  = SCE_CTRL_L2;       /* LT */
+     bindings[7].xbox_mask  = SCE_CTRL_R2;       /* RT */
+     bindings[8].xbox_mask  = SCE_CTRL_START;
+@@ -207,8 +207,9 @@ static bool write_default_controls(void) {
+           "circle B\n"
+           "square X\n"
+           "triangle Y\n\n"
+-          "l LB\n"
+-          "r RB\n"
++          "# 3.6.1 gameplay aliases: shoulders use the proven weapon HAT actions.\n"
++          "l DPAD_RIGHT\n"
++          "r DPAD_LEFT\n"
+           "rear_left LT\n"
+           "rear_right RT\n\n"
+           "start START\n"
+@@ -280,6 +281,25 @@ void gamepad_config_load(void) {
+     }
+     fclose(f);
+ 
++    /* Auto-migrate only the untouched old stock profile. Custom controls.txt
++     * files keep their explicit choices. */
++    if (bindings[0].xbox_mask == SCE_CTRL_CROSS &&
++        bindings[1].xbox_mask == SCE_CTRL_CIRCLE &&
++        bindings[2].xbox_mask == SCE_CTRL_SQUARE &&
++        bindings[3].xbox_mask == SCE_CTRL_TRIANGLE &&
++        bindings[4].xbox_mask == SCE_CTRL_L1 &&
++        bindings[5].xbox_mask == SCE_CTRL_R1 &&
++        bindings[6].xbox_mask == SCE_CTRL_L2 &&
++        bindings[7].xbox_mask == SCE_CTRL_R2 &&
++        bindings[10].xbox_mask == SCE_CTRL_UP &&
++        bindings[11].xbox_mask == SCE_CTRL_DOWN &&
++        bindings[12].xbox_mask == SCE_CTRL_LEFT &&
++        bindings[13].xbox_mask == SCE_CTRL_RIGHT) {
++        bindings[4].xbox_mask = SCE_CTRL_RIGHT; /* L -> next weapon/action8 */
++        bindings[5].xbox_mask = SCE_CTRL_LEFT;  /* R -> previous weapon/action7 */
++        l_perf("[INPUT] controls auto_migrated=361_gameplay l=DPAD_RIGHT r=DPAD_LEFT rear_left=LT rear_right=RT");
++    }
++
+     controls_loaded = true;
+     log_effective_mapping("controls.txt");
+ }
+diff --git a/source/utils/glutil.c b/source/utils/glutil.c
+index 12650c6..e532ea1 100644
+--- a/source/utils/glutil.c
++++ b/source/utils/glutil.c
+@@ -25,6 +25,7 @@
+ #include <so_util/so_util.h>
+ #include "utils/perf.h"
+ #include "utils/upload_reuse_guard.h"
++#include "utils/software_framebuffer_contract.h"
+ static UploadReuseGuard upload_guard;
+ /* Shared with the pinned VitaGL COW diagnostic, default zero. */
+ int zombie_texture_full_preserve;
+@@ -99,24 +100,28 @@ static struct {
+     unsigned draws, arrays, binds, rejected;
+     GLTiming buffer_data, buffer_sub, tex_image, tex_sub, finish, flush, compile, link, draw_sample;
+ } gl_perf;
++static uint64_t gl_time_begin(void) {
++    return setting_log_mode >= 2 ? sceKernelGetProcessTimeWide() : 0;
++}
+ static void gl_time(GLTiming *t, uint64_t start) {
++    if (!start) return;
+     unsigned us = (unsigned)(sceKernelGetProcessTimeWide()-start);
+     t->calls++; t->total_us += us;
+     if (us > t->max_us) t->max_us = us;
+ }
+ static unsigned draw_sample_sequence;
+ static uint64_t draw_sample_begin(void) {
++    if (setting_log_mode < 2) return 0;
+     return (draw_sample_sequence++ & 15u)==0?sceKernelGetProcessTimeWide():0;
+ }
+ static void draw_sample_end(uint64_t start) { if(start) gl_time(&gl_perf.draw_sample,start); }
+ 
+-/* Pass 10: immutable SO analysis proves the final software framebuffer upload
+- * returns to OpenGLES::UnLock(bool)+0x94 at so+0x46BF59. Immediately before it,
++/* Exact 3.6.1 analysis: the final software framebuffer upload
++ * returns to OpenGLES::UnLock(bool)+0x94 at so+0x47EECD. Immediately before it,
+  * the game binds texture [OpenGLES+0x500] and submits the entire RGBA/U8 work
+  * surface at x=y=0. Reinitializing that bound texture as RGB565 once lets the
+  * patched VitaGL converter write the guest RGBA pixels directly into the new
+  * GPU allocation, cutting destination bandwidth in half with no staging copy. */
+-#define SOFTWARE_UNLOCK_TEXSUB_RETURN 0x0046BF59u
+ #define SOFTWARE_INIT_TEXIMAGE_RETURN_A 0x00468179u
+ #define SOFTWARE_INIT_TEXIMAGE_RETURN_B 0x0046862Fu
+ static struct {
+@@ -125,7 +130,18 @@ static struct {
+ } framebuffer565;
+ 
+ static inline uintptr_t guest_return(unsigned offset) {
+-    return (uintptr_t)so_mod.text_base + offset;
++    return (uintptr_t)so_mod.load_addr + offset;
++}
++
++static int software_upload_contract_ready(void) {
++    static int valid=-1;
++    if(valid<0) {
++        uintptr_t symbol=(uintptr_t)so_symbol(&so_mod,"_ZN8OpenGLES6UnLockEb");
++        valid=symbol==guest_return(SOFTWARE_UNLOCK_ENTRY|1u) &&
++            software_framebuffer_contract((const void *)(symbol&~(uintptr_t)1));
++        l_perf("software_upload_contract valid=%d return_offset=0x%08X target=361_1161",valid,SOFTWARE_UNLOCK_TEXSUB_RETURN);
++    }
++    return valid;
+ }
+ 
+ static inline int is_software_framebuffer_upload(uintptr_t caller,
+@@ -254,6 +270,7 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
+ 
+     uint64_t elapsed_us = end_us - window_start_us;
+     if (elapsed_us >= 5000000) {
++        if (setting_log_mode >= 2) {
+         l_perf("frame frames=%u elapsed_ms=%u fps_x10=%u swap_avg_us=%u swap_max_us=%u frame_max_us=%u",
+                window_frames, (unsigned)(elapsed_us / 1000),
+                (unsigned)(((uint64_t)window_frames * 10000000) / elapsed_us),
+@@ -278,8 +295,10 @@ EGLBoolean eglSwapBuffers_soloader(EGLDisplay dpy, EGLSurface surface) {
+ #undef REPORT_GL
+         memset(&gl_perf, 0, sizeof(gl_perf));
+         perf_report();
+-        logger_force_sync();
+-        /* The next interval includes report/sync overhead in its frame time. */
++        logger_flush();
++        }
++        /* Routine telemetry must never physically fsync the render thread.
++         * The next interval includes report/flush overhead in its frame time. */
+         window_start_us = end_us;
+         window_frames = 0;
+         swap_total_us = 0;
+@@ -300,20 +319,180 @@ void glFinish_soloader(void) {
+     uint64_t start = sceKernelGetProcessTimeWide();
+     glFinish(); gl_time(&gl_perf.finish, start);
+ }
++
++/* ZOMBIE_SHADER_RUNTIME_OPT_V1
++ * MetalSyntax-inspired low-risk shader work: eliminate repeated CPU-side GL
++ * work and make real game GLSL available to the offline semantic pipeline.
++ * No hand-translated shader is trusted at runtime here. */
++#define SHADER_LOOKUP_CACHE 96u
++#define SHADER_KNOWN_PROGRAMS 64u
++#define SHADER_NAME_MAX 64u
++
++typedef struct {
++    GLuint program;
++    GLint location;
++    unsigned stamp;
++    char name[SHADER_NAME_MAX];
++} ShaderLookupEntry;
++static ShaderLookupEntry shader_uniform_cache[SHADER_LOOKUP_CACHE];
++static ShaderLookupEntry shader_attrib_cache[SHADER_LOOKUP_CACHE];
++static GLuint shader_known_programs[SHADER_KNOWN_PROGRAMS];
++static unsigned shader_known_program_count, shader_lookup_stamp;
++static GLuint shader_current_program = ~0u;
++static unsigned shader_use_calls, shader_use_skips;
++static unsigned shader_uniform_calls, shader_uniform_hits;
++static unsigned shader_attrib_calls, shader_attrib_hits;
++static unsigned shader_sources_deduped;
++#ifdef ZOMBIE_DEBUG_BUILD
++static unsigned shader_sources_dumped;
++#endif
++
++static int shader_program_known(GLuint program) {
++    if (!program) return 1;
++    for (unsigned i=0;i<shader_known_program_count;i++)
++        if (shader_known_programs[i] == program) return 1;
++    return 0;
++}
++static void shader_program_set_known(GLuint program, int known) {
++    unsigned i=0;
++    while (i<shader_known_program_count && shader_known_programs[i]!=program) i++;
++    if (known) {
++        if (i==shader_known_program_count && i<SHADER_KNOWN_PROGRAMS)
++            shader_known_programs[shader_known_program_count++]=program;
++    } else if (i<shader_known_program_count) {
++        shader_known_programs[i]=shader_known_programs[--shader_known_program_count];
++    }
++}
++static void shader_lookup_invalidate(GLuint program) {
++    for (unsigned i=0;i<SHADER_LOOKUP_CACHE;i++) {
++        if (shader_uniform_cache[i].program==program) shader_uniform_cache[i].program=0;
++        if (shader_attrib_cache[i].program==program) shader_attrib_cache[i].program=0;
++    }
++    if (shader_current_program==program) shader_current_program=~0u;
++}
++static GLint shader_lookup_get(ShaderLookupEntry *cache, GLuint program,
++                               const char *name, int attrib) {
++    if (!name) return attrib ? glGetAttribLocation(program,name) : glGetUniformLocation(program,name);
++    unsigned len=(unsigned)strlen(name);
++    if (!len || len>=SHADER_NAME_MAX) return attrib ? glGetAttribLocation(program,name) : glGetUniformLocation(program,name);
++    ShaderLookupEntry *slot=NULL;
++    unsigned oldest=~0u;
++    for (unsigned i=0;i<SHADER_LOOKUP_CACHE;i++) {
++        ShaderLookupEntry *e=&cache[i];
++        if (e->program==program && !strcmp(e->name,name)) {
++            e->stamp=++shader_lookup_stamp;
++            if (attrib) shader_attrib_hits++; else shader_uniform_hits++;
++            return e->location;
++        }
++        if (!e->program) { slot=e; oldest=0; }
++        else if (!slot || e->stamp<oldest) { slot=e; oldest=e->stamp; }
++    }
++    GLint loc=attrib ? glGetAttribLocation(program,name) : glGetUniformLocation(program,name);
++    if (slot) {
++        slot->program=program;slot->location=loc;slot->stamp=++shader_lookup_stamp;
++        memcpy(slot->name,name,len+1);
++    }
++    return loc;
++}
++
++/* The 3.6.1 binary contains two actually-used fragment shaders whose only
++ * difference is formatting whitespace.  Canonicalizing exactly this proven
++ * shape lets VitaGL compile/cache one program instead of two without changing
++ * precision, uniforms, varyings, or expression semantics. */
++static const char zombie_plain_texture_fs[] =
++    "precision mediump float;\n"
++    "precision lowp int;\n"
++    "varying vec2 v_texCoord;\n"
++    "uniform lowp sampler2D s_texture;\n"
++    "void main(){gl_FragColor=texture2D(s_texture,v_texCoord);}\n";
++static int shader_plain_texture_duplicate(const char *s,size_t n) {
++    if (!s || (n!=282u && n!=425u)) return 0;
++    return strstr(s,"precision mediump float;") &&
++           strstr(s,"uniform lowp sampler2D s_texture;") &&
++           strstr(s,"varying vec2 v_texCoord;") &&
++           strstr(s,"gl_FragColor") && strstr(s,"texture2D") &&
++           !strstr(s,"discard") && !strstr(s,"u_gamma") &&
++           !strstr(s,"u_diffuse") && !strstr(s,"u_specular") &&
++           !strstr(s,"v_color");
++}
++static char *shader_concat_source(GLsizei count,const GLchar **strings,const GLint *lengths,size_t *out_n) {
++    if (out_n) *out_n=0;
++    if (count<=0 || !strings) return NULL;
++    size_t total=0;
++    for (GLsizei i=0;i<count;i++) {
++        if (!strings[i]) return NULL;
++        size_t n=(lengths && lengths[i]>=0)?(size_t)lengths[i]:strlen(strings[i]);
++        if (n>65536u || total>65536u-n) return NULL;
++        total+=n;
++    }
++    char *joined=(char*)malloc(total+1);
++    if (!joined) return NULL;
++    size_t off=0;
++    for (GLsizei i=0;i<count;i++) {
++        size_t n=(lengths && lengths[i]>=0)?(size_t)lengths[i]:strlen(strings[i]);
++        memcpy(joined+off,strings[i],n);off+=n;
++    }
++    joined[total]=0;if(out_n)*out_n=total;return joined;
++}
++#ifdef ZOMBIE_DEBUG_BUILD
++static uint64_t shader_dump_hash(const void *data,size_t n) {
++    const unsigned char *p=(const unsigned char*)data;
++    uint64_t h=1469598103934665603ull;
++    while(n--) h=(h^*p++)*1099511628211ull;
++    return h;
++}
++static void shader_dump_glsl(const char *source,size_t n) {
++    if (!source || !n) return;
++    const char *stage=strstr(source,"gl_Position")?"vs":"fs";
++    uint64_t hash=shader_dump_hash(source,n);
++    char path[256];
++    snprintf(path,sizeof(path),DATA_PATH "glsl_dump/%016llX_%s.glsl",(unsigned long long)hash,stage);
++    SceIoStat st;
++    if (sceIoGetstat(path,&st)>=0) return;
++    if (!file_mkpath(DATA_PATH "glsl_dump/.probe",0777)) return;
++    FILE *f=fopen(path,"wb");
++    if (!f) return;
++    size_t wrote=fwrite(source,1,n,f);fclose(f);
++    if (wrote==n) shader_sources_dumped++;
++}
++#endif
++
++void glUseProgram_soloader(GLuint program) {
++    shader_use_calls++;
++    if (program==shader_current_program && shader_program_known(program)) {
++        shader_use_skips++;return;
++    }
++    glUseProgram(program);
++    if (shader_program_known(program)) shader_current_program=program;
++    else shader_current_program=~0u;
++}
++void glDeleteProgram_soloader(GLuint program) {
++    shader_lookup_invalidate(program);shader_program_set_known(program,0);glDeleteProgram(program);
++}
++GLint glGetUniformLocation_soloader(GLuint program,const GLchar *name) {
++    shader_uniform_calls++;return shader_lookup_get(shader_uniform_cache,program,name,0);
++}
++GLint glGetAttribLocation_soloader(GLuint program,const GLchar *name) {
++    shader_attrib_calls++;return shader_lookup_get(shader_attrib_cache,program,name,1);
++}
++
+ void glLinkProgram_soloader(GLuint program) {
++    shader_lookup_invalidate(program);
+     uint64_t start = sceKernelGetProcessTimeWide();
+     glLinkProgram(program); gl_time(&gl_perf.link, start);
++    GLint ok=GL_FALSE;glGetProgramiv(program,GL_LINK_STATUS,&ok);
++    shader_program_set_known(program,ok==GL_TRUE);
+ }
+ void glFlush_soloader(void) {
+     uint64_t start = sceKernelGetProcessTimeWide();
+     glFlush(); gl_time(&gl_perf.flush, start);
+ }
+ void glBufferData_soloader(GLenum target, GLsizei size, const GLvoid *data, GLenum usage) {
+-    uint64_t start = sceKernelGetProcessTimeWide();
++    uint64_t start = gl_time_begin();
+     glBufferData(target, size, data, usage); gl_time(&gl_perf.buffer_data, start);
+ }
+ void glBufferSubData_soloader(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid *data) {
+-    uint64_t start = sceKernelGetProcessTimeWide();
++    uint64_t start = gl_time_begin();
+     glBufferSubData(target, offset, size, data); gl_time(&gl_perf.buffer_sub, start);
+ }
+ void glTexImage2D_soloader(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data) {
+@@ -340,6 +519,7 @@ void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint y
+         }
+     }
+     int software_upload = data && caller == guest_return(SOFTWARE_UNLOCK_TEXSUB_RETURN) &&
++        software_upload_contract_ready() &&
+         target == GL_TEXTURE_2D && level == 0 && xoffset == 0 && yoffset == 0 &&
+         format == GL_RGBA && type == GL_UNSIGNED_BYTE &&
+         width >= 720 && width <= 1100 && height >= 400 && height <= 650;
+@@ -361,9 +541,10 @@ void glTexSubImage2D_soloader(GLenum target, GLint level, GLint xoffset, GLint y
+     if (is_software_framebuffer_upload(caller,target,level,xoffset,yoffset,width,height,format,type,data))
+         framebuffer565_reinit_if_needed(target,width,height);
+ 
+-    uint64_t start = sceKernelGetProcessTimeWide();
++    uint64_t start = gl_time_begin();
+     glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, data);
+     if(software_upload) upload_reuse_complete(&upload_guard,(unsigned)texture,(uintptr_t)data,width,height);
++    if(!start) return;
+     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
+     gl_perf.tex_sub.calls++; gl_perf.tex_sub.total_us+=us;
+     if (us>gl_perf.tex_sub.max_us) gl_perf.tex_sub.max_us=us;
+@@ -412,10 +593,31 @@ static void shader_cache_report(void) {
+     l_perf("shader_inventory unique_vertex=%u unique_fragment=%u unique_program_combinations=%u program_uses=%u overflow=%u",vertex,fragment,unique_programs,uses,inventory_overflow);
+     __atomic_clear(&shader_inventory_lock,__ATOMIC_RELEASE);
+     l_perf("shader_cache hits=%u misses=%u invalid=%u bytes_loaded=%u compile_us=%u load_us=%u writes_failed=%u actual_compile_calls=%u writes=%u counters=lifetime",stats[0],stats[1],stats[2],stats[3],stats[4],stats[5],stats[6],stats[7],stats[8]);
++    l_perf("shader_runtime use_calls=%u use_skips=%u uniform_calls=%u uniform_hits=%u attrib_calls=%u attrib_hits=%u source_dedupes=%u"
++#ifdef ZOMBIE_DEBUG_BUILD
++           " dumps=%u"
++#endif
++           ,shader_use_calls,shader_use_skips,shader_uniform_calls,shader_uniform_hits,
++           shader_attrib_calls,shader_attrib_hits,shader_sources_deduped
++#ifdef ZOMBIE_DEBUG_BUILD
++           ,shader_sources_dumped
++#endif
++           );
+ }
+ void glShaderSource_soloader(GLuint shader,GLsizei count,const GLchar **strings,const GLint *lengths) {
+-    /* Native vitaGL already handles concatenation and negative lengths. */
+-    glShaderSource(shader,count,strings,lengths);
++    size_t n=0;char *joined=shader_concat_source(count,strings,lengths,&n);
++#ifdef ZOMBIE_DEBUG_BUILD
++    if (joined) shader_dump_glsl(joined,n);
++#endif
++    if (joined && shader_plain_texture_duplicate(joined,n)) {
++        const GLchar *canonical=zombie_plain_texture_fs;
++        GLint canonical_len=(GLint)(sizeof(zombie_plain_texture_fs)-1);
++        glShaderSource(shader,1,&canonical,&canonical_len);
++        shader_sources_deduped++;
++    } else {
++        glShaderSource(shader,count,strings,lengths);
++    }
++    free(joined);
+ }
+ void glCompileShader_soloader(GLuint shader) {
+     uint64_t start=sceKernelGetProcessTimeWide();glCompileShader(shader);gl_time(&gl_perf.compile,start);
+diff --git a/source/utils/init.c b/source/utils/init.c
+index 202c1ce..6e99bff 100644
+--- a/source/utils/init.c
++++ b/source/utils/init.c
+@@ -298,9 +298,9 @@ void soloader_init_all() {
+      * from the previous game binary.  3.6.1 has different internal addresses
+      * and must not receive those hooks until each one is revalidated.  Keep
+      * only the generic kuser/protobuf fix required by this exact ARMv7 SO. */
+-    l_info("Applying 3.6.1 safe bring-up patches (kuser/protobuf only)...");
+-    kuser_patch();
+-    l_success("3.6.1 safe bring-up patches applied; legacy game-specific hooks disabled.");
++    l_info("Applying verified 3.6.1 recovery patches (kuser + frame reuse + music + render scale)...");
++    so_patch();
++    l_success("3.6.1 recovery patches applied; unsafe legacy raster/light/startup hooks remain disabled.");
+ 
+     l_info("Flushing caches...");
+     so_flush_caches(&so_mod);
+diff --git a/source/utils/logger.c b/source/utils/logger.c
+index 2a25a7d..e7adc77 100644
+--- a/source/utils/logger.c
++++ b/source/utils/logger.c
+@@ -113,6 +113,12 @@ void logger_get_sync_stats(unsigned *count, unsigned *us) {
+     if (count) *count = s.syncs;
+     if (us) *us = s.sync_us;
+ }
++void logger_flush(void) {
++    if (setting_log_mode <= 0) return;
++    if (!lock_log()) return;
++    flush_checkpoint_locked();
++    sceKernelUnlockLwMutex(&mutex, 1);
++}
+ void logger_force_sync(void) {
+     if (setting_log_mode <= 0) return;
+     if (!lock_log()) return;
+diff --git a/source/utils/logger.h b/source/utils/logger.h
+index 75500f0..2a8c56a 100644
+--- a/source/utils/logger.h
++++ b/source/utils/logger.h
+@@ -49,6 +49,7 @@ void _log_print(int t, const char* fmt, ...)
+                 __attribute__ ((format (printf, 2, 3)));
+ typedef struct { unsigned lines, syncs, sync_us, suppressed, total_us; } LoggerStats;
+ void logger_get_stats(LoggerStats *stats);
++void logger_flush(void); // Drain buffered bytes without physical fsync.
+ void logger_force_sync(void);
+ void logger_get_sync_stats(unsigned *count, unsigned *microseconds);
+ 
+diff --git a/source/utils/perf.c b/source/utils/perf.c
+index cc4dbce..c96efcd 100644
+--- a/source/utils/perf.c
++++ b/source/utils/perf.c
+@@ -2,6 +2,7 @@
+  * Counters are cumulative; snapshots never reset a concurrent writer's data. */
+ #include "utils/perf.h"
+ #include "utils/logger.h"
++#include "utils/settings.h"
+ #include "utils/asset_index.h"
+ #include "utils/asset_cache.h"
+ #include <psp2/kernel/processmgr.h>
+@@ -95,9 +96,11 @@ static void io_record(IOStats *s, int bytes, uint64_t start) {
+     }
+ }
+ void perf_bulk_memset(size_t bytes,uint64_t start) {
++    if(setting_log_mode<2) return;
+     int i=slot_index();io_record(i<0?NULL:&slots[i].bulk_fill,(int)bytes,start);
+ }
+ void perf_engine_phase(unsigned phase,uint64_t start) {
++    if(setting_log_mode<2) return;
+     if(phase>=PERF_ENGINE_COUNT) return;
+     int i=slot_index();io_record(i<0?NULL:&slots[i].engine[phase],0,start);
+ }
+@@ -137,8 +140,9 @@ static void report_slow_opens(void) {
+             snapshot[i].mode,snapshot[i].truncated,snapshot[i].name);
+ }
+ AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode) {
+-    int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset_open;
+-    uint64_t start=sceKernelGetProcessTimeWide();
++    int profiling=setting_log_mode>=2;
++    int i=profiling?slot_index():-1; IOStats *s=i<0?NULL:&slots[i].asset_open;
++    uint64_t start=profiling?sceKernelGetProcessTimeWide():0;
+     char normalized[256];
+     if(name && strlen(name)<sizeof(normalized)) {
+         strcpy(normalized,name);for(char *p=normalized;*p;p++) if(*p=='\\') *p='/';name=normalized;
+@@ -146,6 +150,7 @@ AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode)
+     int indexed_missing=asset_index_missing(name);
+     AAsset *ret=indexed_missing?NULL:AAssetManager_open(mgr,name,mode);
+     if(!ret && !indexed_missing)asset_index_record_missing(name,errno);
++    if(!profiling) return ret;
+     int saved_errno=errno;
+     unsigned us=(unsigned)(sceKernelGetProcessTimeWide()-start);
+     io_record(s,ret?0:-1,start);
+@@ -156,17 +161,21 @@ AAsset *AAssetManager_open_perf(AAssetManager *mgr, const char *name, int mode)
+     return ret;
+ }
+ off_t AAsset_seek_perf(AAsset *asset, off_t offset, int whence) {
++    if(setting_log_mode<2) return AAsset_seek(asset,offset,whence);
+     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset_seek;
+     uint64_t start=sceKernelGetProcessTimeWide();
+     off_t ret=AAsset_seek(asset,offset,whence);
+     io_record(s,ret<0?-1:0,start); return ret;
+ }
+ int AAsset_read_perf(AAsset *asset, void *buf, size_t count) {
++    if(setting_log_mode<2) return AAsset_read(asset,buf,count);
+     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].asset;
+     uint64_t start=s && (count>=4096 || (LOAD(&s->calls)&255)==0) ? sceKernelGetProcessTimeWide():0;
+     int n=AAsset_read(asset,buf,count); io_record(s,n,start); return n;
+ }
+ static int poll_perf(int all, int timeout, int *fd, int *events, void **data) {
++    if(setting_log_mode<2)
++        return all?ALooper_pollAll(timeout,fd,events,data):ALooper_pollOnce(timeout,fd,events,data);
+     int i=slot_index(); WaitStats *s=i<0?NULL:(all?&slots[i].all:&slots[i].once);
+     uint64_t start=sceKernelGetProcessTimeWide();
+     int ret=all?ALooper_pollAll(timeout,fd,events,data):ALooper_pollOnce(timeout,fd,events,data);
+@@ -183,6 +192,13 @@ int ALooper_pollOnce_perf(int timeout,int *fd,int *events,void **data) { return
+ int ALooper_pollAll_perf(int timeout,int *fd,int *events,void **data) { return poll_perf(1,timeout,fd,events,data); }
+ #endif
+ size_t fread_perf(void *ptr,size_t size,size_t n,FILE *stream) {
++    if(setting_log_mode<2) {
++#ifdef USE_SCELIBC_IO
++        return sceLibcBridge_fread(ptr,size,n,stream);
++#else
++        return fread(ptr,size,n,stream);
++#endif
++    }
+     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].file;
+     uint64_t start=sceKernelGetProcessTimeWide();
+ #ifdef USE_SCELIBC_IO
+@@ -193,6 +209,13 @@ size_t fread_perf(void *ptr,size_t size,size_t n,FILE *stream) {
+     io_record(s,(int)(ret*size),start); return ret;
+ }
+ ssize_t read_perf(int fd,void *buf,size_t count) {
++    if(setting_log_mode<2) {
++#ifdef NDK_PORT
++        return fndk_read(fd,buf,count);
++#else
++        return read(fd,buf,count);
++#endif
++    }
+     int i=slot_index(); IOStats *s=i<0?NULL:&slots[i].read;
+     uint64_t start=sceKernelGetProcessTimeWide();
+ #ifdef NDK_PORT
+diff --git a/source/utils/render_scale.c b/source/utils/render_scale.c
+index 02d74d6..b8814b9 100644
+--- a/source/utils/render_scale.c
++++ b/source/utils/render_scale.c
+@@ -1,6 +1,6 @@
+ /* MIT. Runtime-selectable work resolution for run #16 recovery A/B/C.
+  * software_width=0 skips the hook entirely and preserves the Android engine
+- * policy.  960 and 864 install the verified hook and only cap the original
++ * policy.  960, 864 and experimental 768 only cap the original
+  * factor.  Physical DisplayMetrics remain 960x544 at 220 DPI. */
+ #include <stdint.h>
+ #include <string.h>
+@@ -48,7 +48,7 @@ void render_scale_install(void) {
+         return;
+     }
+ 
+-    if (setting_software_width != 864 && setting_software_width != 960) {
++    if (setting_software_width != 768 && setting_software_width != 864 && setting_software_width != 960) {
+         l_perf("work_resolution installed=0 requested_width=%d reason=invalid_config hook_skipped=1",
+                setting_software_width);
+         return;
+@@ -63,9 +63,9 @@ void render_scale_install(void) {
+     const uint32_t prologue[] = {0xaf03b5f0, 0xbd04f84d};
+     uint32_t code[4];
+ 
+-    if (!(addr & 1) || entry != so_mod.load_addr + 0x481db0 ||
+-        getter != so_mod.load_addr + 0x4820d1 ||
+-        setter != so_mod.load_addr + 0x4820dd ||
++    if (!(addr & 1) || entry != so_mod.load_addr + 0x4959c0 ||
++        getter != so_mod.load_addr + 0x495de1 ||
++        setter != so_mod.load_addr + 0x495ded ||
+         arena < so_mod.patch_base || arena > so_mod.patch_base + so_mod.patch_size ||
+         so_mod.patch_base + so_mod.patch_size - arena < sizeof(code) ||
+         !engine_probe_trampoline(code, (void *)entry, prologue,
+diff --git a/source/utils/render_scale_policy.h b/source/utils/render_scale_policy.h
+index d6bd194..1d2149e 100644
+--- a/source/utils/render_scale_policy.h
++++ b/source/utils/render_scale_policy.h
+@@ -7,7 +7,7 @@ static inline float render_scale_cap(uint32_t width,uint32_t height,
+                                      float original,int requested) {
+     if (!requested || width!=960 || height!=544 ||
+         !(original>0.0f) || !isfinite(original)) return original;
+-    if(requested!=864 && requested!=960) return original;
++    if(requested!=768 && requested!=864 && requested!=960) return original;
+     float cap=(float)requested/(float)width;
+     return original>cap ? cap : original;
+ }
+diff --git a/source/utils/settings.c b/source/utils/settings.c
+index 4741b49..dbdfafe 100644
+--- a/source/utils/settings.c
++++ b/source/utils/settings.c
+@@ -78,6 +78,7 @@ void settings_save() {
+         fprintf(config, "#   0   = original Android engine policy (~1024x580 on Vita, no scale hook)\n");
+         fprintf(config, "#   960 = cap work surface to ~960x544\n");
+         fprintf(config, "#   864 = cap work surface to ~864x489 (real-Vita validated, recommended)\n");
++        fprintf(config, "#   768 = experimental ~768x435; physical output stays 960x544\n");
+         fprintf(config, "# music_mode modes:\n");
+         fprintf(config, "#   0 = no replacement music backend; stable/silent fallback\n");
+         fprintf(config, "#   1 = LEGACY PCM16 WAV hook; confirmed OpenSL crash, diagnostic only\n");
+@@ -143,7 +144,7 @@ void settings_load() {
+             setting_audio_frames=value==128 || value==1024 || value==2048?value:1024;continue;
+         }
+         if (strcmp("software_width", buffer) == 0) {
+-            setting_software_width = value==0 || value==864 || value==960 ? value : 864;
++            setting_software_width = value==0 || value==768 || value==864 || value==960 ? value : 864;
+             continue;
+         }
+         if (strcmp("music_mode", buffer) == 0) {
+diff --git a/source/utils/settings.h b/source/utils/settings.h
+index 68e9609..2f702a6 100644
+--- a/source/utils/settings.h
++++ b/source/utils/settings.h
+@@ -22,7 +22,7 @@ extern "C" {
+ extern int setting_asset_cache_mib;
+ extern int setting_asset_negative_cache; // exact ENOENT misses, process lifetime, 256 entries
+ extern int setting_audio_frames;
+-extern int setting_software_width; // 0: Android policy; 960: native; 864: reduced
++extern int setting_software_width; // 0: Android; 960: native; 864: reduced; 768: experimental
+ extern int setting_music_mode;     // 0: stable/silent; 1: legacy PCM WAV; 2: compressed original M4A/AAC Vita mixer
+ extern int setting_log_mode;       // 0: off; 1: errors/fatal; 2: +PERF; 3: verbose Debug diagnostics
+ extern int setting_framebuffer_565; // 0: original RGBA; 2: corrected RGB565 diagnostic (legacy value 1 is disabled)

@@ -1,6 +1,6 @@
 /* MIT. Runtime-selectable work resolution for run #16 recovery A/B/C.
  * software_width=0 skips the hook entirely and preserves the Android engine
- * policy.  960 and 864 install the verified hook and only cap the original
+ * policy.  960, 864 and experimental 768 only cap the original
  * factor.  Physical DisplayMetrics remain 960x544 at 220 DPI. */
 #include <stdint.h>
 #include <string.h>
@@ -48,7 +48,7 @@ void render_scale_install(void) {
         return;
     }
 
-    if (setting_software_width != 864 && setting_software_width != 960) {
+    if (setting_software_width != 768 && setting_software_width != 864 && setting_software_width != 960) {
         l_perf("work_resolution installed=0 requested_width=%d reason=invalid_config hook_skipped=1",
                setting_software_width);
         return;
@@ -63,9 +63,9 @@ void render_scale_install(void) {
     const uint32_t prologue[] = {0xaf03b5f0, 0xbd04f84d};
     uint32_t code[4];
 
-    if (!(addr & 1) || entry != so_mod.load_addr + 0x481db0 ||
-        getter != so_mod.load_addr + 0x4820d1 ||
-        setter != so_mod.load_addr + 0x4820dd ||
+    if (!(addr & 1) || entry != so_mod.load_addr + 0x4959c0 ||
+        getter != so_mod.load_addr + 0x495de1 ||
+        setter != so_mod.load_addr + 0x495ded ||
         arena < so_mod.patch_base || arena > so_mod.patch_base + so_mod.patch_size ||
         so_mod.patch_base + so_mod.patch_size - arena < sizeof(code) ||
         !engine_probe_trampoline(code, (void *)entry, prologue,

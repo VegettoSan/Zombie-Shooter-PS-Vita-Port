@@ -49,6 +49,7 @@ void _log_print(int t, const char* fmt, ...)
                 __attribute__ ((format (printf, 2, 3)));
 typedef struct { unsigned lines, syncs, sync_us, suppressed, total_us; } LoggerStats;
 void logger_get_stats(LoggerStats *stats);
+void logger_flush(void); // Drain buffered bytes without physical fsync.
 void logger_force_sync(void);
 void logger_get_sync_stats(unsigned *count, unsigned *microseconds);
 

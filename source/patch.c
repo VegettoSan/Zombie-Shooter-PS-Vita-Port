@@ -69,6 +69,173 @@ static so_hook sound_initialize_hook;
 static so_hook text_initialize_hook;
 static so_hook registry_load_value_hook;
 
+
+#include <stdlib.h>
+/* ZS361_DIRECT_REGISTRY_SAVE
+ *
+ * Build 1161's Registry::setString/getString route persistent encrypted values
+ * through storeEncrypted/loadDecrypted.  OpenSSL AES-256-CBC is unavailable in
+ * the Vita runtime provider, so bypass only that crypto boundary and persist
+ * the original STRING value through the direct Vita Registry backend.
+ * Registry::encryptKey remains the game's own implementation, preserving the
+ * exact key namespace expected by contains/remove/enumeration.
+ */
+extern int zombie_registry_direct_put(const char *key, const char *value);
+extern char *zombie_registry_direct_get(const char *key);
+
+static so_hook zs361_registry_store_encrypted_hook;
+static so_hook zs361_registry_load_decrypted_hook;
+
+typedef const char *(*zs361_string_c_str_fn)(const void *self);
+typedef void (*zs361_string_ctor_cstr_fn)(void *self, const char *value);
+typedef void (*zs361_string_copy_ctor_fn)(void *self, const void *other);
+typedef void (*zs361_string_dtor_fn)(void *self);
+typedef void (*zs361_encrypt_key_fn)(void *result, void *registry, const void *key);
+
+static zs361_string_c_str_fn zs361_string_c_str;
+static zs361_string_ctor_cstr_fn zs361_string_ctor_cstr;
+static zs361_string_copy_ctor_fn zs361_string_copy_ctor;
+static zs361_string_dtor_fn zs361_string_dtor;
+static zs361_encrypt_key_fn zs361_encrypt_key;
+
+typedef struct {
+    uintptr_t words[3]; /* build-1161 STRING is exactly 12 bytes */
+} zs361_string_storage;
+
+#define ZS361_REG_STORE_ENCRYPTED_ENTRY 0x003FB984u
+#define ZS361_REG_LOAD_DECRYPTED_ENTRY  0x003FB054u
+#define ZS361_REG_ENCRYPT_KEY_ENTRY     0x003FBFF4u
+#define ZS361_STRING_C_STR_ENTRY        0x003ED768u
+#define ZS361_STRING_CTOR_CSTR_ENTRY    0x003ED7B0u
+#define ZS361_STRING_COPY_CTOR_ENTRY    0x003ED800u
+#define ZS361_STRING_DTOR_ENTRY         0x003EE644u
+
+static uintptr_t zs361_even(uintptr_t address) {
+    return address & ~(uintptr_t)1u;
+}
+
+static uintptr_t zs361_require_thumb_symbol(const char *name, uintptr_t expected_offset) {
+    uintptr_t symbol = so_symbol(&so_mod, name);
+    uintptr_t expected = so_mod.load_addr + expected_offset;
+    if (!symbol || !(symbol & 1u) || zs361_even(symbol) != expected) {
+        l_error("[SAVE] refusing direct Registry hook %s: symbol=%p expected=so+0x%08X Thumb",
+                name, (void *)symbol, (unsigned)expected_offset);
+        return 0;
+    }
+    return symbol;
+}
+
+static int zs361_validate_prologue(uintptr_t symbol, const uint8_t expected[8],
+                                   const char *name) {
+    uintptr_t entry = zs361_even(symbol);
+    if (memcmp((const void *)entry, expected, 8) != 0) {
+        l_error("[SAVE] refusing direct Registry hook %s: build-1161 prologue mismatch", name);
+        return 0;
+    }
+    return 1;
+}
+
+static int zs361_make_backend_key(zs361_string_storage *out, void *registry,
+                                  const void *key, const char **chars_out) {
+    memset(out, 0, sizeof(*out));
+    zs361_encrypt_key(out, registry, key);
+    const char *chars = zs361_string_c_str(out);
+    if (!chars || !*chars) {
+        zs361_string_dtor(out);
+        return 0;
+    }
+    *chars_out = chars;
+    return 1;
+}
+
+static void zs361_hooked_registry_store_encrypted(void *registry,
+                                                   const void *key,
+                                                   const void *value) {
+    zs361_string_storage backend_key;
+    const char *backend_chars = NULL;
+    const char *value_chars = zs361_string_c_str(value);
+    if (!value_chars || !zs361_make_backend_key(&backend_key, registry, key, &backend_chars)) {
+        l_error("[SAVE] direct Registry store rejected invalid STRING/key");
+        return;
+    }
+
+    int ok = zombie_registry_direct_put(backend_chars, value_chars);
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned reports;
+    if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 128)
+        l_perf("[SAVE] Registry.storeEncrypted -> direct file bytes=%u ok=%d",
+               (unsigned)strlen(value_chars), ok);
+#endif
+    zs361_string_dtor(&backend_key);
+}
+
+static void zs361_hooked_registry_load_decrypted(void *result,
+                                                  void *registry,
+                                                  const void *key,
+                                                  const void *fallback) {
+    zs361_string_storage backend_key;
+    const char *backend_chars = NULL;
+    char *value = NULL;
+    int key_ok = zs361_make_backend_key(&backend_key, registry, key, &backend_chars);
+    if (key_ok)
+        value = zombie_registry_direct_get(backend_chars);
+
+    if (value)
+        zs361_string_ctor_cstr(result, value);
+    else
+        zs361_string_copy_ctor(result, fallback);
+
+#ifdef ZOMBIE_DEBUG_BUILD
+    static unsigned reports;
+    if (__atomic_fetch_add(&reports, 1, __ATOMIC_RELAXED) < 128)
+        l_perf("[SAVE] Registry.loadDecrypted <- direct file hit=%d bytes=%u",
+               value != NULL, value ? (unsigned)strlen(value) : 0u);
+#endif
+    free(value);
+    if (key_ok)
+        zs361_string_dtor(&backend_key);
+}
+
+static void install_zs361_direct_registry_save(void) {
+    static const uint8_t store_prologue[8] = {0xF0,0xB5,0x03,0xAF,0x2D,0xE9,0x00,0x0B};
+    static const uint8_t load_prologue[8]  = {0xF0,0xB5,0x03,0xAF,0x4D,0xF8,0x04,0x8D};
+
+    uintptr_t store = zs361_require_thumb_symbol(
+        "_ZN4core8Registry14storeEncryptedERK6STRINGS3_", ZS361_REG_STORE_ENCRYPTED_ENTRY);
+    uintptr_t load = zs361_require_thumb_symbol(
+        "_ZN4core8Registry13loadDecryptedERK6STRINGS3_", ZS361_REG_LOAD_DECRYPTED_ENTRY);
+    uintptr_t encrypt_key = zs361_require_thumb_symbol(
+        "_ZN4core8Registry10encryptKeyERK6STRING", ZS361_REG_ENCRYPT_KEY_ENTRY);
+    uintptr_t c_str = zs361_require_thumb_symbol(
+        "_ZNK6STRING5c_strEv", ZS361_STRING_C_STR_ENTRY);
+    uintptr_t ctor_cstr = zs361_require_thumb_symbol(
+        "_ZN6STRINGC1EPKc", ZS361_STRING_CTOR_CSTR_ENTRY);
+    uintptr_t copy_ctor = zs361_require_thumb_symbol(
+        "_ZN6STRINGC1ERKS_", ZS361_STRING_COPY_CTOR_ENTRY);
+    uintptr_t dtor = zs361_require_thumb_symbol(
+        "_ZN6STRINGD1Ev", ZS361_STRING_DTOR_ENTRY);
+
+    if (!store || !load || !encrypt_key || !c_str || !ctor_cstr || !copy_ctor || !dtor ||
+        !zs361_validate_prologue(store, store_prologue, "Registry::storeEncrypted") ||
+        !zs361_validate_prologue(load, load_prologue, "Registry::loadDecrypted")) {
+        l_error("[SAVE] direct Registry file backend disabled; exact build-1161 guards failed");
+        return;
+    }
+
+    zs361_encrypt_key = (zs361_encrypt_key_fn)encrypt_key;
+    zs361_string_c_str = (zs361_string_c_str_fn)c_str;
+    zs361_string_ctor_cstr = (zs361_string_ctor_cstr_fn)ctor_cstr;
+    zs361_string_copy_ctor = (zs361_string_copy_ctor_fn)copy_ctor;
+    zs361_string_dtor = (zs361_string_dtor_fn)dtor;
+
+    zs361_registry_store_encrypted_hook = hook_addr(
+        store, (uintptr_t)&zs361_hooked_registry_store_encrypted);
+    zs361_registry_load_decrypted_hook = hook_addr(
+        load, (uintptr_t)&zs361_hooked_registry_load_decrypted);
+    l_info("[SAVE] installed 3.6.1 direct Registry backend -> ux0:data/zombieshooter/save/");
+}
+
+
 static uintptr_t hooked_registry_load_value(void *result, void *self,
                                             const void *key, const void *fallback) {
 #ifdef ZOMBIE_DEBUG_BUILD
@@ -430,12 +597,12 @@ static void install_engine_probes(void) {
     static const struct {
         const char *symbol;unsigned offset;uint32_t prologue[2];uintptr_t replacement;
     } probes[]={
-        {"_ZN5GRAPH4TactEi",0x410a30,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_graph},
-        {"_ZN5GRAPH12softwareTactEi",0x410458,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_software},
-        {"_ZN3MAP4tactEv",0x4372c4,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_map},
-        {"_ZN8OpenGLES7preTactEv",0x46aa2c,{0xaf03b5f0,0xbd04f84d},(uintptr_t)probe_pre},
-        {"_ZN8OpenGLES8PostTactEi",0x46af1c,{0xaf03b5f0,0x8d04f84d},(uintptr_t)probe_post},
-        {"_ZNK16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb",0x4f4b20,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_collector}
+        {"_ZN5GRAPH4TactEi",0x421d70,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_graph},
+        {"_ZN5GRAPH12softwareTactEi",0x421798,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_software},
+        {"_ZN3MAP4tactEv",0x448b00,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_map},
+        {"_ZN8OpenGLES7preTactEv",0x47d9a0,{0xaf03b5f0,0xbd04f84d},(uintptr_t)probe_pre},
+        {"_ZN8OpenGLES8PostTactEi",0x47de90,{0xaf03b5f0,0x8d04f84d},(uintptr_t)probe_post},
+        {"_ZNK16SPRITE_COLLECTOR9DrawLayerEiRK7VECTOR2S2_bb",0x5108d0,{0xaf03b5f0,0x0f00e92d},(uintptr_t)probe_collector}
     };
     for(unsigned i=0;i<PERF_ENGINE_COUNT;++i) {
         uintptr_t address=(uintptr_t)so_symbol(&so_mod,probes[i].symbol);
@@ -533,16 +700,17 @@ void kuser_patch(void) {
 #include "contract_trace.inc"
 void so_patch(void) {
 	kuser_patch();
+	install_zs361_direct_registry_save();
 #ifdef NDK_PORT
-	install_startup_diagnostics();
+	/* 3.6.1: startup diagnostics disabled until independently revalidated. */
 	install_engine_probes();
-    install_contract_traces();
-	raster_palette_install();
+    /* 3.6.1: legacy contract traces disabled. */
+	/* 3.6.1: old palette hook disabled. */
     audio_stream_install();
     render_scale_install();
-	raster_alpha_install();
-	raster_light_install();
-	light_pipeline_install();
+	/* 3.6.1: old alpha hook disabled. */
+	/* 3.6.1: old raster-light hook disabled. */
+	/* 3.6.1: old light-pipeline hook disabled. */
 #endif
 	// Sample hook with symbol name
 	// hook_addr((uintptr_t)so_symbol(&so_mod, "_ZN6glitch2os7Printer5printEPKcz"), (uintptr_t)&hookedFunction);

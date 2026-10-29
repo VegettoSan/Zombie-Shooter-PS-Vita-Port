@@ -44,6 +44,10 @@ int main(void) {
     assert(mock_syncs==base && !console_calls);
     assert(strstr(output,"unique 63"));
 
+    /* Render telemetry can drain the complete report without a physical sync. */
+    l_perf("render window");base=mock_syncs;logger_flush();
+    assert(mock_syncs==base && strstr(output,"render window"));
+
     /* Fatal remains crash-durable and console-visible. */
     base=mock_syncs;
     for(int i=0;i<6;++i) l_fatal("fatal same");

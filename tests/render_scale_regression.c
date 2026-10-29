@@ -6,6 +6,9 @@ int main(void) {
     float f=render_scale_cap(960,544,android,864);
     assert((unsigned)(960*f)==864);
     assert((unsigned)(544*f)==489);
+    f=render_scale_cap(960,544,android,768);
+    assert((unsigned)(960*f)==768 && (unsigned)(544*f)==435);
+    assert(render_scale_cap(960,544,0.75f,768)==0.75f);
     assert(render_scale_cap(960,544,android,960)==1.0f);
     assert(render_scale_cap(960,544,android,0)==android);
     assert(render_scale_cap(960,544,0.75f,864)==0.75f);
